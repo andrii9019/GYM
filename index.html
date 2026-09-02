@@ -45,7 +45,10 @@
   .ex-progress-name { font-size: 14px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .ex-progress-meta { font-size: 12px; color: var(--text-secondary, #666); margin-top: 2px; }
   .ex-progress-trend { font-size: 11px; margin-top: 4px; line-height: 1.5; }
-  .ex-progress-chart-wrap { width: 90px; height: 46px; flex-shrink: 0; }
+  .ex-progress-chart-wrap { width: 80px; height: 46px; flex-shrink: 0; }
+  .ex-progress-count { width: 36px; flex-shrink: 0; text-align: center; }
+  .ex-progress-count-num { font-size: 19px; font-weight: 700; line-height: 1; }
+  .ex-progress-count-label { font-size: 9px; color: var(--text-secondary, #666); margin-top: 1px; }
   .period-btn.active { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
 </style>
 <div style="max-width: 720px; margin: 0 auto; font-family: system-ui, sans-serif; padding: 1rem 0;">
@@ -100,6 +103,11 @@
 
   <div id="view-progress" style="display:none;">
     <div class="wj-card" style="margin-bottom: 1rem;">
+      <div style="font-weight:500; font-size:15px; margin-bottom: 10px;">Кількість тренувань по групах</div>
+      <div id="training-count-list" style="display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px;"></div>
+    </div>
+
+    <div class="wj-card" style="margin-bottom: 1rem;">
       <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 10px; gap:8px;">
         <div style="font-weight:500; font-size:15px;">Прогрес по вправах</div>
         <div style="display:flex; gap:4px;" id="period-switcher">
@@ -139,7 +147,7 @@
   let entries = [];
   let program = {};
 
-  const PROGRAM_VERSION = 2;
+  const PROGRAM_VERSION = 3;
   const PROGRAM_VERSION_KEY = 'program_version';
 
   const ENTRIES_SEED_VERSION = 1;
@@ -147,36 +155,36 @@
 
   const SEED_ENTRIES = [
     // 26.08.2026 — ноги/плечі/спина (найближче до Дня 3)
-    { id: 900001, date: '2026-08-26', day: 'День 3', exercise: 'Розгинання ніг', weight: 60, sets: 4, reps: 12, repsLabel: '12', rpe: null, notes: '' },
-    { id: 900002, date: '2026-08-26', day: 'День 3', exercise: 'Згинання ніг', weight: 40, sets: 4, reps: 12, repsLabel: '12', rpe: null, notes: '' },
-    { id: 900003, date: '2026-08-26', day: 'День 3', exercise: 'Жим ногами', weight: 100, sets: 4, reps: 10, repsLabel: '10', rpe: null, notes: '100+ кг (за записом)' },
-    { id: 900004, date: '2026-08-26', day: 'День 3', exercise: 'Жим у хамері над головою', weight: 25, sets: 3, reps: 10, repsLabel: '10', rpe: null, notes: '25 кг/рука' },
-    { id: 900005, date: '2026-08-26', day: 'День 3', exercise: 'Тяга в тренажері до грудей', weight: 45, sets: 3, reps: 12, repsLabel: '12', rpe: null, notes: '' },
-    { id: 900006, date: '2026-08-26', day: 'День 3', exercise: 'Махи в сторони', weight: 10, sets: 3, reps: 15, repsLabel: '15', rpe: null, notes: '' },
-    { id: 900007, date: '2026-08-26', day: 'День 3', exercise: 'Face Pull', weight: 35, sets: 3, reps: 15, repsLabel: '15', rpe: null, notes: '' },
+    { id: 900001, date: '2026-08-26', day: 'Легкі ноги Дельти', exercise: 'Розгинання ніг', weight: 60, sets: 4, reps: 12, repsLabel: '12', rpe: null, notes: '' },
+    { id: 900002, date: '2026-08-26', day: 'Легкі ноги Дельти', exercise: 'Згинання ніг', weight: 40, sets: 4, reps: 12, repsLabel: '12', rpe: null, notes: '' },
+    { id: 900003, date: '2026-08-26', day: 'Легкі ноги Дельти', exercise: 'Жим ногами', weight: 100, sets: 4, reps: 10, repsLabel: '10', rpe: null, notes: '100+ кг (за записом)' },
+    { id: 900004, date: '2026-08-26', day: 'Легкі ноги Дельти', exercise: 'Жим в хамері над головою', weight: 25, sets: 3, reps: 10, repsLabel: '10', rpe: null, notes: '25 кг/рука' },
+    { id: 900005, date: '2026-08-26', day: 'Легкі ноги Дельти', exercise: 'Тяга в тренажері до грудей', weight: 45, sets: 3, reps: 12, repsLabel: '12', rpe: null, notes: '' },
+    { id: 900006, date: '2026-08-26', day: 'Легкі ноги Дельти', exercise: 'Махи в сторони', weight: 10, sets: 3, reps: 15, repsLabel: '15', rpe: null, notes: '' },
+    { id: 900007, date: '2026-08-26', day: 'Легкі ноги Дельти', exercise: 'Face Pull', weight: 35, sets: 3, reps: 15, repsLabel: '15', rpe: null, notes: '' },
 
-    // 28.08.2026 — спина/руки (День 4)
-    { id: 900008, date: '2026-08-28', day: 'День 4', exercise: 'Гіперекстензія', weight: 0, sets: 2, reps: 15, repsLabel: '15', rpe: null, notes: '' },
-    { id: 900009, date: '2026-08-28', day: 'День 4', exercise: 'Верхня тяга хамер широкий хват', weight: 50, sets: 3, reps: 12, repsLabel: '12', rpe: null, notes: '' },
-    { id: 900010, date: '2026-08-28', day: 'День 4', exercise: 'Верхня тяга хамер середнім хватом', weight: 60, sets: 3, reps: 12, repsLabel: '12', rpe: null, notes: '' },
-    { id: 900011, date: '2026-08-28', day: 'День 4', exercise: 'Нижня тяга в хамері', weight: 40, sets: 3, reps: 12, repsLabel: '12', rpe: null, notes: 'рука' },
-    { id: 900012, date: '2026-08-28', day: 'День 4', exercise: 'Горизонтальна тяга до грудей в хамері', weight: 50, sets: 3, reps: 12, repsLabel: '12', rpe: null, notes: '' },
-    { id: 900013, date: '2026-08-28', day: 'День 4', exercise: 'Пуловер', weight: 45, sets: 3, reps: 12, repsLabel: '12', rpe: null, notes: '' },
-    { id: 900014, date: '2026-08-28', day: 'День 4', exercise: 'Face Pull', weight: 0, sets: 3, reps: 12, repsLabel: '12', rpe: null, notes: '' },
-    { id: 900015, date: '2026-08-28', day: 'День 4', exercise: 'Французький жим', weight: 35, sets: 4, reps: 10, repsLabel: '10', rpe: null, notes: '' },
-    { id: 900016, date: '2026-08-28', day: 'День 4', exercise: 'Розгинання рук на блоці з канатом', weight: 25, sets: 3, reps: 15, repsLabel: '15', rpe: null, notes: '' },
+    // 28.08.2026 — спина/руки (Спина Трицепс)
+    { id: 900008, date: '2026-08-28', day: 'Спина Трицепс', exercise: 'Гіперекстензія', weight: 0, sets: 2, reps: 15, repsLabel: '15', rpe: null, notes: '' },
+    { id: 900009, date: '2026-08-28', day: 'Спина Трицепс', exercise: 'Верхня тяга хамер широкий хват', weight: 50, sets: 3, reps: 12, repsLabel: '12', rpe: null, notes: '' },
+    { id: 900010, date: '2026-08-28', day: 'Спина Трицепс', exercise: 'Верхня тяга хамер середнім хватом', weight: 60, sets: 3, reps: 12, repsLabel: '12', rpe: null, notes: '' },
+    { id: 900011, date: '2026-08-28', day: 'Спина Трицепс', exercise: 'Нижня тяга в хамері', weight: 40, sets: 3, reps: 12, repsLabel: '12', rpe: null, notes: 'рука' },
+    { id: 900012, date: '2026-08-28', day: 'Спина Трицепс', exercise: 'Горизонтальна тяга до грудей в хамері', weight: 50, sets: 3, reps: 12, repsLabel: '12', rpe: null, notes: '' },
+    { id: 900013, date: '2026-08-28', day: 'Спина Трицепс', exercise: 'Пуловер', weight: 45, sets: 3, reps: 12, repsLabel: '12', rpe: null, notes: '' },
+    { id: 900014, date: '2026-08-28', day: 'Спина Трицепс', exercise: 'Face Pull', weight: 0, sets: 3, reps: 12, repsLabel: '12', rpe: null, notes: '' },
+    { id: 900015, date: '2026-08-28', day: 'Спина Трицепс', exercise: 'Французький жим', weight: 35, sets: 4, reps: 10, repsLabel: '10', rpe: null, notes: '' },
+    { id: 900016, date: '2026-08-28', day: 'Спина Трицепс', exercise: 'Розгинання рук на блоці з канатом', weight: 25, sets: 3, reps: 15, repsLabel: '15', rpe: null, notes: '' },
 
-    // 29.08.2026 — ноги (День 1)
-    { id: 900017, date: '2026-08-29', day: 'День 1', exercise: 'Жим ногами', weight: 140, sets: 4, reps: 8, repsLabel: '8', rpe: null, notes: '' },
-    { id: 900018, date: '2026-08-29', day: 'День 1', exercise: 'Присід', weight: 60, sets: 3, reps: 6, repsLabel: '6', rpe: null, notes: '' },
-    { id: 900019, date: '2026-08-29', day: 'День 1', exercise: 'Румунська тяга', weight: 70, sets: 3, reps: 8, repsLabel: '8', rpe: null, notes: '' },
-    { id: 900020, date: '2026-08-29', day: 'День 1', exercise: 'Випади болгарські', weight: 15, sets: 3, reps: 6, repsLabel: '6', rpe: null, notes: 'рука' },
-    { id: 900021, date: '2026-08-29', day: 'День 1', exercise: 'Підйом на ікри', weight: 70, sets: 4, reps: 15, repsLabel: '15', rpe: null, notes: '' },
-    { id: 900022, date: '2026-08-29', day: 'День 1', exercise: 'Шраги з гантелями', weight: 20, sets: 3, reps: 12, repsLabel: '12', rpe: null, notes: 'рука' }
+    // 29.08.2026 — ноги (Ноги)
+    { id: 900017, date: '2026-08-29', day: 'Ноги', exercise: 'Жим ногами', weight: 140, sets: 4, reps: 8, repsLabel: '8', rpe: null, notes: '' },
+    { id: 900018, date: '2026-08-29', day: 'Ноги', exercise: 'Присід', weight: 60, sets: 3, reps: 6, repsLabel: '6', rpe: null, notes: '' },
+    { id: 900019, date: '2026-08-29', day: 'Ноги', exercise: 'Румунська тяга', weight: 70, sets: 3, reps: 8, repsLabel: '8', rpe: null, notes: '' },
+    { id: 900020, date: '2026-08-29', day: 'Ноги', exercise: 'Випади болгарські', weight: 15, sets: 3, reps: 6, repsLabel: '6', rpe: null, notes: 'рука' },
+    { id: 900021, date: '2026-08-29', day: 'Ноги', exercise: 'Підйом на ікри', weight: 70, sets: 4, reps: 15, repsLabel: '15', rpe: null, notes: '' },
+    { id: 900022, date: '2026-08-29', day: 'Ноги', exercise: 'Шраги з гантелями', weight: 20, sets: 3, reps: 12, repsLabel: '12', rpe: null, notes: 'рука' }
   ];
 
   const DEFAULT_PROGRAM = {
-    "День 1": [
+    "Ноги": [
       { name: "Присід", sets: 3, reps: "6", weight: 60 },
       { name: "Румунська тяга", sets: 3, reps: "8", weight: 60 },
       { name: "Випади болгарські", sets: 3, reps: "10", weight: 15 },
@@ -186,7 +194,7 @@
       { name: "Згинання ніг", sets: 3, reps: "15", weight: 0 },
       { name: "Розгинання ніг", sets: 3, reps: "15", weight: 0 }
     ],
-    "День 2": [
+    "Груди Біцепс": [
       { name: "Жим", sets: 4, reps: "8", weight: 70 },
       { name: "Бруси (+ додаткова вага)", sets: 3, reps: "10", weight: 15 },
       { name: "Жим гантелей під кутом", sets: 3, reps: "12", weight: 25 },
@@ -195,7 +203,7 @@
       { name: "Підйом штанги на біцепс", sets: 3, reps: "12", weight: 30 },
       { name: "Підйом гантелі на біцепс сидячи", sets: 3, reps: "12", weight: 10 }
     ],
-    "День 3": [
+    "Легкі ноги Дельти": [
       { name: "Розгинання ніг", sets: 4, reps: "12", weight: 60 },
       { name: "Згинання ніг", sets: 4, reps: "12", weight: 40 },
       { name: "Присід", sets: 4, reps: "10", weight: 50 },
@@ -204,7 +212,7 @@
       { name: "Махи в сторони", sets: 3, reps: "15", weight: 10 },
       { name: "Face Pull", sets: 3, reps: "15", weight: 35 }
     ],
-    "День 4": [
+    "Спина Трицепс": [
       { name: "Гіперекстензія", sets: 2, reps: "15", weight: 0 },
       { name: "Верхня тяга хамер широкий хват", sets: 3, reps: "12", weight: 50 },
       { name: "Верхня тяга хамер середнім хватом", sets: 3, reps: "12", weight: 60 },
@@ -262,6 +270,57 @@
       catch(e){ console.error('Помилка збереження версії посіву записів', e); }
     }
 
+    // Одноразове виправлення назв вправ, які зберігались із різним написанням
+    // (напр. "Жим у хамері" vs "Жим в хамері") — обʼєднуємо в одну вправу.
+    const NAME_FIXES_VERSION = 1;
+    const NAME_FIXES_KEY = 'name_fixes_version';
+    const NAME_FIXES = [
+      ['Жим у хамері над головою', 'Жим в хамері над головою']
+    ];
+    let nameFixVersion = 0;
+    try {
+      const nfRes = await storage.get(NAME_FIXES_KEY, false);
+      nameFixVersion = nfRes && nfRes.value ? parseInt(nfRes.value) : 0;
+    } catch(e){ nameFixVersion = 0; }
+    if(nameFixVersion < NAME_FIXES_VERSION){
+      let changed = false;
+      NAME_FIXES.forEach(([from, to]) => {
+        entries.forEach(e => {
+          if(e.exercise === from){ e.exercise = to; changed = true; }
+        });
+      });
+      if(changed) await saveEntries();
+      try { await storage.set(NAME_FIXES_KEY, String(NAME_FIXES_VERSION), false); }
+      catch(e){ console.error('Помилка збереження версії виправлення назв', e); }
+    }
+
+    // Одноразове перейменування днів програми у вже збережених записах
+    // (напр. "День 1" → "Ноги")
+    const DAY_RENAME_VERSION = 1;
+    const DAY_RENAME_KEY = 'day_rename_version';
+    const DAY_RENAMES = [
+      ['День 1', 'Ноги'],
+      ['День 2', 'Груди Біцепс'],
+      ['День 3', 'Легкі ноги Дельти'],
+      ['День 4', 'Спина Трицепс']
+    ];
+    let dayRenameVersion = 0;
+    try {
+      const drRes = await storage.get(DAY_RENAME_KEY, false);
+      dayRenameVersion = drRes && drRes.value ? parseInt(drRes.value) : 0;
+    } catch(e){ dayRenameVersion = 0; }
+    if(dayRenameVersion < DAY_RENAME_VERSION){
+      let changed = false;
+      DAY_RENAMES.forEach(([from, to]) => {
+        entries.forEach(e => {
+          if(e.day === from){ e.day = to; changed = true; }
+        });
+      });
+      if(changed) await saveEntries();
+      try { await storage.set(DAY_RENAME_KEY, String(DAY_RENAME_VERSION), false); }
+      catch(e){ console.error('Помилка збереження версії перейменування днів', e); }
+    }
+
     renderAll();
   }
 
@@ -283,7 +342,7 @@
     });
     if(tab==='log') renderLog();
     if(tab==='history') renderHistory();
-    if(tab==='progress'){ renderProgress(); }
+    if(tab==='progress'){ renderProgress(); renderTrainingCounts(); }
     if(tab==='program') renderProgram();
   }
   document.getElementById('tab-program').addEventListener('click', ()=>switchTab('program'));
@@ -529,10 +588,10 @@
   // --- Календар історії тренувань ---
   const DAY_COLOR_PALETTE = ['#378ADD', '#e07b39', '#4caf7d', '#a066cc', '#d64550', '#2ba9a1', '#c9a227'];
   const FIXED_DAY_COLORS = {
-    'День 1': '#e63946',
-    'День 2': '#e9c46a',
-    'День 3': '#ff8fab',
-    'День 4': '#9b5de5'
+    'Ноги': '#e63946',
+    'Груди Біцепс': '#e9c46a',
+    'Легкі ноги Дельти': '#ff8fab',
+    'Спина Трицепс': '#9b5de5'
   };
   let calendarCursor = null; // { year, month } month is 0-indexed
   let selectedCalDate = null;
@@ -603,7 +662,7 @@
       const isSelected = iso === selectedCalDate;
       if(dayType){
         const color = colorMap[dayType];
-        const textColor = (dayType === 'День 2') ? '#3a2e00' : '#fff';
+        const textColor = (dayType === 'Груди Біцепс') ? '#3a2e00' : '#fff';
         const volLabel = formatVolume(dateToVolume[iso]);
         html += `<div class="cal-cell trained${isToday ? ' today-marker' : ''}${isSelected ? ' selected' : ''}" style="background:${color}; color:${textColor};" data-date="${iso}"><span class="cal-cell-day">${d}</span><span class="cal-cell-volume">${volLabel}</span></div>`;
       } else {
@@ -723,8 +782,45 @@
       progressPeriod = btn.getAttribute('data-period');
       document.querySelectorAll('.period-btn').forEach(b => b.classList.toggle('active', b === btn));
       renderProgress();
+      renderTrainingCounts();
     });
   });
+
+  function renderTrainingCounts(){
+    const container = document.getElementById('training-count-list');
+    if(!container) return;
+    const colorMap = getDayColorMap();
+    const cutoff = periodCutoffDate();
+    const filtered = cutoff ? entries.filter(e => e.date >= cutoff) : entries;
+
+    const datesByDay = {};
+    filtered.forEach(e=>{
+      const d = e.day || 'Без назви';
+      if(!datesByDay[d]) datesByDay[d] = new Set();
+      datesByDay[d].add(e.date);
+    });
+
+    const days = dayNames().length ? dayNames() : Object.keys(datesByDay).sort();
+
+    if(days.length === 0){
+      container.innerHTML = '<p style="color:var(--text-secondary,#666); font-size:14px; text-align:center; padding: 1rem 0; grid-column: 1 / -1;">Немає даних.</p>';
+      return;
+    }
+
+    container.innerHTML = days.map(day => {
+      const count = datesByDay[day] ? datesByDay[day].size : 0;
+      const color = colorMap[day] || '#378ADD';
+      return `
+        <div style="border-radius: 10px; padding: 12px; background: ${color}1a; border: 1px solid ${color}55;">
+          <div style="font-size:12px; color: var(--text-secondary,#666); margin-bottom:4px;">${escapeHtml(day)}</div>
+          <div style="display:flex; align-items:baseline; gap:4px;">
+            <span style="font-size:26px; font-weight:700; color:${color};">${count}</span>
+            <span style="font-size:12px; color: var(--text-secondary,#666);">трен.</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
 
   function renderProgress(){
     exerciseChartInstances.forEach(c => c.destroy());
@@ -732,6 +828,7 @@
 
     const container = document.getElementById('exercise-progress-list');
     const cutoff = periodCutoffDate();
+    const colorMap = getDayColorMap();
     const allNames = allExerciseNames().filter(name => entries.some(e => e.exercise === name));
     const names = cutoff
       ? allNames.filter(name => entries.some(e => e.exercise === name && e.date >= cutoff))
@@ -755,6 +852,7 @@
             <div class="ex-progress-meta" id="meta-${id}">-</div>
             <div class="ex-progress-trend" id="trend-${id}"></div>
           </div>
+          <div class="ex-progress-count" id="count-${id}"></div>
           <div class="ex-progress-chart-wrap"><canvas id="chart-${id}"></canvas></div>
         </div>
       `;
@@ -765,8 +863,15 @@
       const fullData = entries.filter(e => e.exercise === name).sort((a,b)=>a.date.localeCompare(b.date));
       const chartData = cutoff ? fullData.filter(e => e.date >= cutoff) : fullData;
       const maxWeight = Math.max(...fullData.map(e=>e.weight));
-      document.getElementById('meta-'+id).textContent = `Макс: ${maxWeight} кг · ${fullData.length} тренувань`;
+      document.getElementById('meta-'+id).textContent = `Макс: ${maxWeight} кг`;
       document.getElementById('trend-'+id).innerHTML = buildTrendHtml(fullData);
+
+      const lastDay = fullData.length ? fullData[fullData.length-1].day : null;
+      const badgeColor = (lastDay && colorMap[lastDay]) ? colorMap[lastDay] : '#378ADD';
+      document.getElementById('count-'+id).innerHTML = `
+        <div class="ex-progress-count-num" style="color:${badgeColor};">${fullData.length}</div>
+        <div class="ex-progress-count-label">трен.</div>
+      `;
 
       const ctx = document.getElementById('chart-'+id).getContext('2d');
       if(chartData.length === 0){
@@ -865,6 +970,7 @@
     renderLog();
     renderHistory();
     renderProgress();
+    renderTrainingCounts();
   }
 
   loadData();
