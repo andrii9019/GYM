@@ -48,6 +48,8 @@
   .ex-row:last-child { border-bottom: none; }
   .ex-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 6px; }
   .ex-mini-label { font-size: 11px; color: var(--text-secondary, #666); }
+  .color-swatch { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; box-sizing: border-box; }
+  .color-swatch.selected { border-color: #fff; box-shadow: 0 0 0 2px #378ADD; }
   .ex-field-sets { background: rgba(46,158,91,0.12); border-radius: 8px; padding: 6px; }
   .ex-field-sets .ex-mini-label { color: #2e9e5b; font-weight: 500; }
   .ex-field-sets input { border-color: rgba(46,158,91,0.4); }
@@ -79,8 +81,21 @@
   .period-btn.active { background: #378ADD; color: #fff; border-color: #378ADD; }
   #wj-toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(20px); background: #2e9e5b; color: #fff; padding: 10px 16px; border-radius: 10px; font-size: 13px; max-width: 90vw; text-align: center; opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.2s; z-index: 9999; box-shadow: 0 4px 14px rgba(0,0,0,0.3); }
   #wj-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  #confirm-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 10000; padding: 20px; box-sizing: border-box; }
+  #confirm-modal-overlay.show { display: flex; }
+  #confirm-modal-box { background: var(--surface-2, #1c1c1c); border-radius: 12px; padding: 1.25rem; max-width: 360px; width: 100%; }
+  #confirm-modal-text { font-size: 14px; margin: 0 0 1rem; color: var(--text-primary, #f0f0f0); }
 </style>
 <div id="wj-toast"></div>
+<div id="confirm-modal-overlay">
+  <div id="confirm-modal-box">
+    <p id="confirm-modal-text"></p>
+    <div style="display:flex; gap:8px; justify-content:flex-end;">
+      <button class="wj-btn" id="confirm-modal-cancel">Скасувати</button>
+      <button class="wj-btn wj-btn-danger" id="confirm-modal-ok">Видалити</button>
+    </div>
+  </div>
+</div>
 <div style="max-width: 720px; margin: 0 auto; font-family: system-ui, sans-serif; padding: 1rem 0;">
   <h2 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;">Журнал тренувань з програмою на 4 дні, редагуванням вправ, історією та графіком прогресу</h2>
 
@@ -95,10 +110,15 @@
     <div class="wj-row" style="margin-bottom: 10px; gap:8px;">
       <select class="wj-select" id="program-day-select" style="flex:1;"></select>
       <button class="wj-btn wj-btn-success" id="btn-add-day" style="flex-shrink:0; padding:8px 12px;" aria-label="Додати день">+</button>
+      <button class="wj-btn wj-btn-danger" id="btn-delete-day" style="flex-shrink:0; padding:8px 12px;" aria-label="Видалити день">✕</button>
     </div>
-    <div id="add-day-form" style="display:none; margin-bottom: 10px; gap:8px;" class="wj-row">
-      <input type="text" class="wj-input" id="new-day-name" placeholder="Назва нового дня, напр. Руки" style="flex:1;" />
-      <button class="wj-btn wj-btn-primary" id="btn-confirm-add-day" style="flex-shrink:0;">Додати</button>
+    <div id="add-day-form" style="display:none; margin-bottom: 10px; flex-direction:column; gap:8px;">
+      <input type="text" class="wj-input" id="new-day-name" placeholder="Назва нового дня, напр. Руки" />
+      <div>
+        <div class="ex-mini-label" style="margin-bottom:6px;">Колір дня</div>
+        <div id="new-day-color-swatches" style="display:flex; gap:8px; flex-wrap:wrap;"></div>
+      </div>
+      <button class="wj-btn wj-btn-primary" id="btn-confirm-add-day">Додати</button>
     </div>
     <div id="add-day-error" style="color: var(--text-danger, #c0392b); font-size: 13px; margin-bottom: 8px; display:none;"></div>
     <div class="wj-card" id="program-list"></div>
@@ -280,12 +300,43 @@
     toastTimer = setTimeout(()=>{ el.classList.remove('show'); }, 3000);
   }
 
+  function showConfirm(message){
+    return new Promise((resolve)=>{
+      const overlay = document.getElementById('confirm-modal-overlay');
+      const textEl = document.getElementById('confirm-modal-text');
+      const okBtn = document.getElementById('confirm-modal-ok');
+      const cancelBtn = document.getElementById('confirm-modal-cancel');
+      textEl.textContent = message;
+      overlay.classList.add('show');
+
+      function cleanup(result){
+        overlay.classList.remove('show');
+        okBtn.removeEventListener('click', onOk);
+        cancelBtn.removeEventListener('click', onCancel);
+        overlay.removeEventListener('click', onOverlayClick);
+        resolve(result);
+      }
+      function onOk(){ cleanup(true); }
+      function onCancel(){ cleanup(false); }
+      function onOverlayClick(e){ if(e.target === overlay) cleanup(false); }
+
+      okBtn.addEventListener('click', onOk);
+      cancelBtn.addEventListener('click', onCancel);
+      overlay.addEventListener('click', onOverlayClick);
+    });
+  }
+
   async function loadData(){
     let storedVersion = 0;
     try {
       const vRes = await storage.get(PROGRAM_VERSION_KEY, false);
       storedVersion = vRes && vRes.value ? parseInt(vRes.value) : 0;
     } catch(e){ storedVersion = 0; }
+
+    try {
+      const dcRes = await storage.get(DAY_COLORS_KEY, false);
+      dayColors = dcRes && dcRes.value ? JSON.parse(dcRes.value) : {};
+    } catch(e){ dayColors = {}; }
 
     try {
       const res = await storage.get(PROGRAM_KEY, false);
@@ -523,12 +574,31 @@
     renderProgram();
   });
 
+  let selectedNewDayColor = null;
+
+  function renderColorSwatches(){
+    const wrap = document.getElementById('new-day-color-swatches');
+    wrap.innerHTML = DAY_COLOR_PALETTE_CHOICES.map(c => `
+      <div class="color-swatch" data-color="${c.value}" style="background:${c.value};" title="${c.name}" role="button" aria-label="${c.name}"></div>
+    `).join('');
+    wrap.querySelectorAll('.color-swatch').forEach(sw=>{
+      sw.addEventListener('click', ()=>{
+        selectedNewDayColor = sw.getAttribute('data-color');
+        wrap.querySelectorAll('.color-swatch').forEach(s => s.classList.toggle('selected', s === sw));
+      });
+    });
+  }
+
   document.getElementById('btn-add-day').addEventListener('click', ()=>{
     const form = document.getElementById('add-day-form');
     const isHidden = form.style.display === 'none';
     form.style.display = isHidden ? 'flex' : 'none';
     document.getElementById('add-day-error').style.display = 'none';
-    if(isHidden) document.getElementById('new-day-name').focus();
+    if(isHidden){
+      document.getElementById('new-day-name').focus();
+      selectedNewDayColor = null;
+      renderColorSwatches();
+    }
   });
 
   document.getElementById('btn-confirm-add-day').addEventListener('click', async ()=>{
@@ -545,14 +615,45 @@
       errEl.style.display = 'block';
       return;
     }
+    if(!selectedNewDayColor){
+      errEl.textContent = 'Оберіть колір дня.';
+      errEl.style.display = 'block';
+      return;
+    }
     errEl.style.display = 'none';
     program[name] = [];
+    dayColors[name] = selectedNewDayColor;
     await saveProgram();
+    await saveDayColors();
     input.value = '';
+    selectedNewDayColor = null;
     document.getElementById('add-day-form').style.display = 'none';
     fillDaySelects();
     document.getElementById('program-day-select').value = name;
     renderProgram();
+  });
+
+  document.getElementById('btn-delete-day').addEventListener('click', async ()=>{
+    const sel = document.getElementById('program-day-select');
+    const day = sel.value;
+    if(!day) return;
+    const remaining = dayNames().filter(d => d !== day);
+    if(remaining.length === 0){
+      showToast('Не можна видалити останній день програми.');
+      return;
+    }
+    const exCount = (program[day] || []).length;
+    const confirmMsg = exCount > 0
+      ? `Видалити день "${day}" і всі ${exCount} вправ(и) у ньому? Записи в історії залишаться, лише зникне сам день з програми.`
+      : `Видалити день "${day}"?`;
+    const confirmed = await showConfirm(confirmMsg);
+    if(!confirmed) return;
+    delete program[day];
+    await saveProgram();
+    fillDaySelects();
+    document.getElementById('program-day-select').value = remaining[0];
+    renderProgram();
+    showToast(`День "${day}" видалено з програми.`);
   });
 
   function renderLog(){
@@ -715,29 +816,43 @@
   }
 
   // --- Календар історії тренувань ---
-  const DAY_COLOR_PALETTE = ['#378ADD', '#e07b39', '#4caf7d', '#a066cc', '#d64550', '#2ba9a1', '#c9a227'];
+  const DAY_COLOR_PALETTE_CHOICES = [
+    { name: 'Червоний', value: '#e63946' },
+    { name: 'Жовтий', value: '#e9c46a' },
+    { name: 'Рожевий', value: '#ff8fab' },
+    { name: 'Фіолетовий', value: '#9b5de5' },
+    { name: 'Синій', value: '#378ADD' },
+    { name: 'Зелений', value: '#4caf7d' },
+    { name: 'Помаранчевий', value: '#e07b39' },
+    { name: 'Бірюзовий', value: '#2ba9a1' }
+  ];
   const FIXED_DAY_COLORS = {
     'Ноги': '#e63946',
     'Груди Біцепс': '#e9c46a',
     'Легкі ноги Дельти': '#ff8fab',
     'Спина Трицепс': '#9b5de5'
   };
+  const DAY_COLORS_KEY = 'day_colors';
+  let dayColors = {};
   let calendarCursor = null; // { year, month } month is 0-indexed
   let selectedCalDate = null;
-  const dayColorCache = {};
+
+  async function saveDayColors(){
+    try { await storage.set(DAY_COLORS_KEY, JSON.stringify(dayColors), false); }
+    catch(e){ console.error('Помилка збереження кольорів днів', e); }
+  }
 
   function getDayColorMap(){
-    const uniqueDays = [...new Set(entries.map(e => e.day || 'Без назви'))].sort();
-    uniqueDays.forEach((d) => {
-      if(d in dayColorCache) return;
-      if(FIXED_DAY_COLORS[d]){
-        dayColorCache[d] = FIXED_DAY_COLORS[d];
-      } else {
-        const usedCount = Object.keys(dayColorCache).filter(k => !FIXED_DAY_COLORS[k]).length;
-        dayColorCache[d] = DAY_COLOR_PALETTE[usedCount % DAY_COLOR_PALETTE.length];
+    const allDays = new Set([...dayNames(), ...entries.map(e => e.day || 'Без назви')]);
+    let changed = false;
+    allDays.forEach(d => {
+      if(!dayColors[d]){
+        dayColors[d] = FIXED_DAY_COLORS[d] || DAY_COLOR_PALETTE_CHOICES[Object.keys(dayColors).length % DAY_COLOR_PALETTE_CHOICES.length].value;
+        changed = true;
       }
     });
-    return dayColorCache;
+    if(changed) saveDayColors();
+    return dayColors;
   }
 
   function initCalendarCursor(){
