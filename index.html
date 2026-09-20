@@ -30,6 +30,8 @@
   .wj-btn { background: transparent; border: 0.5px solid var(--border-strong, #ccc); border-radius: 8px; padding: 8px 14px; font-size: 14px; cursor: pointer; color: var(--text-primary, #1a1a1a); }
   .wj-btn:hover { background: var(--surface-1, #f4f4f2); }
   .wj-btn:active { transform: scale(0.98); }
+  .wj-btn:disabled { opacity: 0.3; cursor: default; }
+  .wj-btn:disabled:active { transform: none; }
   .wj-btn-primary { background: #378ADD; color: #fff; border: none; }
   .wj-btn-danger { background: #ff6b6b; border: 1px solid #ff6b6b; color: #fff; }
   .wj-btn-danger:hover { background: #ff5252; }
@@ -73,9 +75,12 @@
   .ex-progress-count-num { font-size: 19px; font-weight: 700; line-height: 1; }
   .ex-progress-count-label { font-size: 9px; color: var(--text-secondary, #666); margin-top: 1px; }
   .ex-progress-legend { display:flex; gap:12px; margin-top: 10px; font-size: 10px; font-weight: 500; }
-  .ex-progress-chart-combo { position: relative; height: 50px; margin-top: 4px; }
+  .ex-progress-chart-combo { position: relative; height: 64px; margin-top: 4px; }
   .period-btn.active { background: #378ADD; color: #fff; border-color: #378ADD; }
+  #wj-toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(20px); background: #2e9e5b; color: #fff; padding: 10px 16px; border-radius: 10px; font-size: 13px; max-width: 90vw; text-align: center; opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.2s; z-index: 9999; box-shadow: 0 4px 14px rgba(0,0,0,0.3); }
+  #wj-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 </style>
+<div id="wj-toast"></div>
 <div style="max-width: 720px; margin: 0 auto; font-family: system-ui, sans-serif; padding: 1rem 0;">
   <h2 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;">Журнал тренувань з програмою на 4 дні, редагуванням вправ, історією та графіком прогресу</h2>
 
@@ -265,6 +270,16 @@
     return d.innerHTML;
   }
 
+  let toastTimer = null;
+  function showToast(message){
+    const el = document.getElementById('wj-toast');
+    if(!el) return;
+    el.textContent = message;
+    el.classList.add('show');
+    if(toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=>{ el.classList.remove('show'); }, 3000);
+  }
+
   async function loadData(){
     let storedVersion = 0;
     try {
@@ -411,7 +426,11 @@
     }
     list.innerHTML = exercises.map((ex, i) => `
       <div class="ex-row">
-        <input class="wj-input" data-field="name" data-i="${i}" value="${escapeHtml(ex.name)}" placeholder="Назва вправи" />
+        <div style="display:flex; align-items:center; gap:6px;">
+          <input class="wj-input" data-field="name" data-i="${i}" value="${escapeHtml(ex.name)}" placeholder="Назва вправи" style="flex:1;" />
+          <button class="wj-btn" data-move-up="${i}" style="flex-shrink:0; padding:6px 10px;" aria-label="Перемістити вище" ${i === 0 ? 'disabled' : ''}>↑</button>
+          <button class="wj-btn" data-move-down="${i}" style="flex-shrink:0; padding:6px 10px;" aria-label="Перемістити нижче" ${i === exercises.length - 1 ? 'disabled' : ''}>↓</button>
+        </div>
         <div class="ex-grid">
           <div class="ex-field-sets">
             <div class="ex-mini-label">Підходи</div>
@@ -431,7 +450,7 @@
     `).join('');
 
     list.querySelectorAll('input[data-field]').forEach(inp=>{
-      inp.addEventListener('change', async ()=>{
+      const handleFieldCommit = async ()=>{
         const i = parseInt(inp.getAttribute('data-i'));
         const field = inp.getAttribute('data-field');
         let val = inp.value;
@@ -441,26 +460,56 @@
         if(field === 'name'){
           const oldName = program[day][i].name;
           const newName = val.trim();
+          if(oldName === newName) return;
           program[day][i].name = newName;
           await saveProgram();
-          if(oldName && newName && oldName !== newName){
-            let changed = false;
+          if(oldName && newName){
+            let count = 0;
             entries.forEach(e => {
-              if(e.exercise === oldName){ e.exercise = newName; changed = true; }
+              if(e.exercise === oldName){ e.exercise = newName; count++; }
             });
-            if(changed) await saveEntries();
+            if(count > 0){
+              await saveEntries();
+              showToast(`Оновлено в історії: ${count} запис(ів) "${oldName}" → "${newName}"`);
+            } else {
+              showToast(`Назву вправи оновлено на "${newName}"`);
+            }
           }
           return;
         }
 
         program[day][i][field] = val;
         await saveProgram();
-      });
+      };
+      // 'change' і 'blur' одночасно — деякі мобільні браузери в PWA
+      // не завжди надійно шлють 'change' для текстових полів.
+      inp.addEventListener('change', handleFieldCommit);
+      inp.addEventListener('blur', handleFieldCommit);
     });
     list.querySelectorAll('button[data-del]').forEach(btn=>{
       btn.addEventListener('click', async ()=>{
         const i = parseInt(btn.getAttribute('data-del'));
         program[day].splice(i,1);
+        await saveProgram();
+        renderProgram();
+      });
+    });
+    list.querySelectorAll('button[data-move-up]').forEach(btn=>{
+      btn.addEventListener('click', async ()=>{
+        const i = parseInt(btn.getAttribute('data-move-up'));
+        if(i <= 0) return;
+        const arr = program[day];
+        [arr[i-1], arr[i]] = [arr[i], arr[i-1]];
+        await saveProgram();
+        renderProgram();
+      });
+    });
+    list.querySelectorAll('button[data-move-down]').forEach(btn=>{
+      btn.addEventListener('click', async ()=>{
+        const i = parseInt(btn.getAttribute('data-move-down'));
+        const arr = program[day];
+        if(i >= arr.length - 1) return;
+        [arr[i], arr[i+1]] = [arr[i+1], arr[i]];
         await saveProgram();
         renderProgram();
       });
@@ -978,9 +1027,10 @@
             <div class="ex-progress-count" id="count-${id}"></div>
           </div>
           <div class="ex-progress-legend">
+            <span style="color:#e0a030;">● Тоннаж</span>
+            <span style="color:#378ADD;">● Вага</span>
             <span style="color:#2e9e5b;">● Підходи</span>
             <span style="color:#a066cc;">● Повтори</span>
-            <span style="color:#378ADD;">● Вага</span>
           </div>
           <div class="ex-progress-chart-combo"><canvas id="chart-combo-${id}"></canvas></div>
         </div>
@@ -988,11 +1038,13 @@
     }).join('');
 
     function normalize(values){
-      const max = Math.max(...values, 0.0001);
-      return values.map(v => (v / max) * 100);
+      // Індексуємо відносно першого значення — усі криві стартують з 100,
+      // щоб було одразу видно спільну точку відліку.
+      const base = values[0] || 0.0001;
+      return values.map(v => (v / base) * 100);
     }
 
-    function makeComboChart(canvasId, labels, setsVals, repsVals, weightVals){
+    function makeComboChart(canvasId, labels, setsVals, repsVals, weightVals, volumeVals){
       const canvas = document.getElementById(canvasId);
       if(!canvas || labels.length === 0) return null;
       return new Chart(canvas.getContext('2d'), {
@@ -1001,30 +1053,52 @@
           labels: labels,
           datasets: [
             {
+              data: normalize(volumeVals),
+              raw: volumeVals,
+              borderColor: '#e0a030',
+              backgroundColor: '#e0a030',
+              pointBackgroundColor: '#e0a030',
+              pointBorderColor: '#e0a030',
+              tension: 0.3,
+              pointRadius: 3,
+              pointHoverRadius: 5,
+              borderWidth: 2,
+              borderDash: [4, 3]
+            },
+            {
+              data: normalize(weightVals),
+              raw: weightVals,
+              borderColor: '#378ADD',
+              backgroundColor: '#378ADD',
+              pointBackgroundColor: '#378ADD',
+              pointBorderColor: '#378ADD',
+              tension: 0.3,
+              pointRadius: 3,
+              pointHoverRadius: 5,
+              borderWidth: 2
+            },
+            {
               data: normalize(setsVals),
               raw: setsVals,
               borderColor: '#2e9e5b',
-              backgroundColor: 'transparent',
+              backgroundColor: '#2e9e5b',
+              pointBackgroundColor: '#2e9e5b',
+              pointBorderColor: '#2e9e5b',
               tension: 0.3,
-              pointRadius: 0,
+              pointRadius: 3,
+              pointHoverRadius: 5,
               borderWidth: 2
             },
             {
               data: normalize(repsVals),
               raw: repsVals,
               borderColor: '#a066cc',
-              backgroundColor: 'transparent',
+              backgroundColor: '#a066cc',
+              pointBackgroundColor: '#a066cc',
+              pointBorderColor: '#a066cc',
               tension: 0.3,
-              pointRadius: 0,
-              borderWidth: 2
-            },
-            {
-              data: normalize(weightVals),
-              raw: weightVals,
-              borderColor: '#378ADD',
-              backgroundColor: 'transparent',
-              tension: 0.3,
-              pointRadius: 0,
+              pointRadius: 3,
+              pointHoverRadius: 5,
               borderWidth: 2
             }
           ]
@@ -1041,7 +1115,7 @@
               }
             }
           },
-          scales: { y: { display: false, min: 0, max: 105 }, x: { display: false } }
+          scales: { y: { display: false }, x: { display: false } }
         }
       });
     }
@@ -1068,7 +1142,8 @@
         labels,
         chartData.map(e=>e.sets),
         chartData.map(e=>e.reps),
-        chartData.map(e=>e.weight)
+        chartData.map(e=>e.weight),
+        chartData.map(e=>e.weight * e.sets * e.reps)
       );
       if(combo) exerciseChartInstances.push(combo);
     });
