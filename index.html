@@ -33,6 +33,8 @@
   .wj-btn-primary { background: #378ADD; color: #fff; border: none; }
   .wj-btn-danger { background: #ff6b6b; border: 1px solid #ff6b6b; color: #fff; }
   .wj-btn-danger:hover { background: #ff5252; }
+  .wj-btn-success { background: #2e9e5b; border: 1px solid #2e9e5b; color: #fff; }
+  .wj-btn-success:hover { background: #278a4f; }
   .wj-input, .wj-select { height: 36px; border: 0.5px solid var(--border-strong, #ccc); border-radius: 8px; padding: 0 10px; font-size: 14px; width: 100%; box-sizing: border-box; background: var(--surface-2, #fff); color: var(--text-primary, #1a1a1a); }
   .wj-card { background: var(--surface-2, #fff); border: 0.5px solid var(--border, #e5e5e0); border-radius: 12px; padding: 1rem 1.25rem; }
   .wj-label { font-size: 12px; color: var(--text-secondary, #666); margin-bottom: 4px; display: block; }
@@ -87,7 +89,7 @@
   <div id="view-program">
     <div class="wj-row" style="margin-bottom: 10px; gap:8px;">
       <select class="wj-select" id="program-day-select" style="flex:1;"></select>
-      <button class="wj-btn" id="btn-add-day" style="flex-shrink:0; padding:8px 12px;" aria-label="Додати день">+</button>
+      <button class="wj-btn wj-btn-success" id="btn-add-day" style="flex-shrink:0; padding:8px 12px;" aria-label="Додати день">+</button>
     </div>
     <div id="add-day-form" style="display:none; margin-bottom: 10px; gap:8px;" class="wj-row">
       <input type="text" class="wj-input" id="new-day-name" placeholder="Назва нового дня, напр. Руки" style="flex:1;" />
@@ -95,7 +97,7 @@
     </div>
     <div id="add-day-error" style="color: var(--text-danger, #c0392b); font-size: 13px; margin-bottom: 8px; display:none;"></div>
     <div class="wj-card" id="program-list"></div>
-    <button class="wj-btn" id="btn-add-exercise" style="width:100%; margin-top:10px;">+ Додати вправу</button>
+    <button class="wj-btn wj-btn-success" id="btn-add-exercise" style="width:100%; margin-top:10px;">+ Додати вправу</button>
   </div>
 
   <div id="view-log" style="display:none;">
@@ -207,7 +209,7 @@
     { id: 900017, date: '2026-08-29', day: 'Ноги', exercise: 'Жим ногами', weight: 140, sets: 4, reps: 8, repsLabel: '8', rpe: null, notes: '' },
     { id: 900018, date: '2026-08-29', day: 'Ноги', exercise: 'Присід', weight: 60, sets: 3, reps: 6, repsLabel: '6', rpe: null, notes: '' },
     { id: 900019, date: '2026-08-29', day: 'Ноги', exercise: 'Румунська тяга', weight: 70, sets: 3, reps: 8, repsLabel: '8', rpe: null, notes: '' },
-    { id: 900020, date: '2026-08-29', day: 'Ноги', exercise: 'Випади болгарські', weight: 15, sets: 3, reps: 6, repsLabel: '6', rpe: null, notes: 'рука' },
+    { id: 900020, date: '2026-08-29', day: 'Ноги', exercise: 'Випади', weight: 15, sets: 3, reps: 6, repsLabel: '6', rpe: null, notes: 'рука' },
     { id: 900021, date: '2026-08-29', day: 'Ноги', exercise: 'Підйом на ікри', weight: 70, sets: 4, reps: 15, repsLabel: '15', rpe: null, notes: '' },
     { id: 900022, date: '2026-08-29', day: 'Ноги', exercise: 'Шраги з гантелями', weight: 20, sets: 3, reps: 12, repsLabel: '12', rpe: null, notes: 'рука' }
   ];
@@ -216,7 +218,7 @@
     "Ноги": [
       { name: "Присід", sets: 3, reps: "6", weight: 60 },
       { name: "Румунська тяга", sets: 3, reps: "8", weight: 60 },
-      { name: "Випади болгарські", sets: 3, reps: "10", weight: 15 },
+      { name: "Випади", sets: 3, reps: "10", weight: 15 },
       { name: "Жим ногами", sets: 3, reps: "12", weight: 140 },
       { name: "Підйом на ікри", sets: 4, reps: "15", weight: 70 },
       { name: "Шраги у Сміті", sets: 3, reps: "12", weight: 30 },
@@ -301,10 +303,11 @@
 
     // Одноразове виправлення назв вправ, які зберігались із різним написанням
     // (напр. "Жим у хамері" vs "Жим в хамері") — обʼєднуємо в одну вправу.
-    const NAME_FIXES_VERSION = 1;
+    const NAME_FIXES_VERSION = 2;
     const NAME_FIXES_KEY = 'name_fixes_version';
     const NAME_FIXES = [
-      ['Жим у хамері над головою', 'Жим в хамері над головою']
+      ['Жим у хамері над головою', 'Жим в хамері над головою'],
+      ['Випади болгарські', 'Випади']
     ];
     let nameFixVersion = 0;
     try {
