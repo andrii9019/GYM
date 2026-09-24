@@ -48,6 +48,9 @@
   .wj-label { font-size: 12px; color: var(--text-secondary, #666); margin-bottom: 4px; display: block; }
   .wj-row { display: flex; gap: 8px; }
   .wj-tabs { display: flex; gap: 6px; margin-bottom: 1rem; flex-wrap: wrap; }
+  .view-panel { transition: transform 0.26s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.22s ease; }
+  .view-panel.slide-in-right { transform: translateX(28px); opacity: 0; }
+  .view-panel.slide-in-left { transform: translateX(-28px); opacity: 0; }
   .wj-tab { flex: 1; min-width: 70px; text-align: center; padding: 9px 4px; border-radius: 20px; font-size: 13px; font-weight: 500; cursor: pointer; border: 0.5px solid var(--border-strong, #ccc); background: var(--surface-1); transition: background 0.15s, box-shadow 0.15s; }
   .wj-tab.active { background: var(--accent); color: var(--accent-text); border-color: var(--accent); font-weight: 600; box-shadow: 0 2px 8px rgba(23,201,143,0.35); }
   .ex-row { display: grid; grid-template-columns: 1fr; gap: 6px; padding: 10px 0; border-bottom: 0.5px solid var(--border, #e5e5e0); }
@@ -115,7 +118,7 @@
     <div class="wj-tab" data-tab="progress" id="tab-progress">Progress</div>
   </div>
 
-  <div id="view-program">
+  <div id="view-program" class="view-panel">
     <div class="wj-card" id="program-day-header" style="margin-bottom: 12px; display:flex; align-items:center; gap:14px;">
       <div id="program-day-icon" style="height:64px; flex-shrink:0; display:flex; align-items:center;"></div>
       <select class="wj-select" id="program-day-select" style="flex:1; height:auto; padding:10px 12px; font-size:19px; font-weight:600; border:none; background:var(--surface-1);"></select>
@@ -159,8 +162,8 @@
     <button class="wj-btn wj-btn-success" id="btn-add-exercise" style="width:100%; margin-top:10px;">+ Add exercise</button>
   </div>
 
-  <div id="view-log" style="display:none;">
-    <div class="wj-row" style="margin-bottom: 10px; gap:8px; align-items:center;">
+  <div id="view-log" class="view-panel" style="display:none;">
+    <div class="wj-row" id="log-day-header" style="margin-bottom: 10px; gap:8px; align-items:center;">
       <div id="log-day-icon" style="height:30px; flex-shrink:0; display:flex; align-items:center;"></div>
       <select class="wj-select" id="log-day-select" style="flex:2;"></select>
       <input type="date" class="wj-input" id="log-date" style="flex:1;" />
@@ -171,7 +174,7 @@
     <button class="wj-btn wj-btn-primary" id="btn-save-workout" style="width:100%;">✓ Finish workout & save</button>
   </div>
 
-  <div id="view-history" style="display:none;">
+  <div id="view-history" class="view-panel" style="display:none;">
     <div class="wj-card" style="margin-bottom: 1rem;">
       <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 10px;">
         <button class="wj-btn" id="btn-cal-prev" aria-label="Previous month">‹</button>
@@ -192,7 +195,7 @@
     <div id="history-list"></div>
   </div>
 
-  <div id="view-progress" style="display:none;">
+  <div id="view-progress" class="view-panel" style="display:none;">
     <div class="wj-card" style="margin-bottom: 1rem;">
       <div style="font-weight:500; font-size:15px; margin-bottom: 10px;">Workouts by muscle group</div>
       <div id="training-count-list" style="display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px;"></div>
@@ -474,10 +477,25 @@
   function dayNames(){ return Object.keys(program); }
 
   function switchTab(tab){
-    ['program','log','history','progress'].forEach(t=>{
+    const activeBefore = TAB_ORDER.find(t => document.getElementById('tab-'+t).classList.contains('active')) || 'program';
+    const idxOld = TAB_ORDER.indexOf(activeBefore);
+    const idxNew = TAB_ORDER.indexOf(tab);
+    const dir = idxNew > idxOld ? 'right' : (idxNew < idxOld ? 'left' : null);
+
+    TAB_ORDER.forEach(t=>{
       document.getElementById('tab-'+t).classList.toggle('active', t===tab);
       document.getElementById('view-'+t).style.display = (t===tab) ? 'block' : 'none';
     });
+
+    const activeEl = document.getElementById('view-'+tab);
+    if(dir && activeEl){
+      activeEl.classList.add(dir === 'right' ? 'slide-in-right' : 'slide-in-left');
+      void activeEl.offsetWidth; // форсуємо reflow, щоб transition спрацював
+      requestAnimationFrame(()=>{
+        activeEl.classList.remove('slide-in-right', 'slide-in-left');
+      });
+    }
+
     if(tab==='log') renderLog();
     if(tab==='history') renderHistory();
     if(tab==='progress'){ renderProgress(); renderTrainingCounts(); }
