@@ -991,8 +991,17 @@
             <input class="wj-input" type="number" min="0" step="0.5" inputmode="decimal" data-log-field="weight" data-log-i="${i}" value="${ex.weight}" />
           </div>
         </div>
+        <button class="wj-btn wj-btn-danger" data-log-del="${i}" style="justify-self: end; width: auto; padding: 5px 12px; font-size: 12px; margin-top: 6px;" aria-label="Remove exercise from this day">✕ Delete</button>
       </div>
     `).join('');
+    list.querySelectorAll('button[data-log-del]').forEach(btn=>{
+      btn.addEventListener('click', async ()=>{
+        const i = parseInt(btn.getAttribute('data-log-del'));
+        program[day].splice(i, 1);
+        await saveProgram();
+        renderLog();
+      });
+    });
   }
 
   function groupRecoveryStatus(group){
@@ -1536,29 +1545,38 @@
       const canvas = document.getElementById('daycount-chart-'+id);
       if(!canvas || sortedDates.length === 0) return;
 
+      const vals = sortedDates.map(d => Math.round(volMap[d]));
+      const vMin = Math.min(...vals), vMax = Math.max(...vals);
+      const vRange = vMax - vMin;
+      // Розтягуємо шкалу під фактичний діапазон значень (замість 0..max),
+      // щоб навіть невеликі коливання обʼєму давали виразну, "живу" криву.
+      const pad = vRange > 0 ? vRange * 0.35 : Math.max(vMax * 0.15, 1);
+      const yMin = Math.max(0, vMin - pad);
+      const yMax = vMax + pad;
+
       const chart = new Chart(canvas.getContext('2d'), {
         type: 'line',
         data: {
           labels: sortedDates,
           datasets: [{
-            data: sortedDates.map(d => Math.round(volMap[d])),
+            data: vals,
             borderColor: color,
             backgroundColor: color + '33',
             pointBackgroundColor: color,
             pointBorderColor: '#0b2622',
             pointBorderWidth: 1.5,
             tension: 0.3,
-            fill: true,
+            fill: 'start',
             pointRadius: 3,
             pointHoverRadius: 5,
-            borderWidth: 2
+            borderWidth: 2.5
           }]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
           plugins: { legend: { display: false }, tooltip: { enabled: true } },
-          scales: { y: { display: false }, x: { display: false } }
+          scales: { y: { display: false, min: yMin, max: yMax }, x: { display: false } }
         }
       });
       dayCountChartInstances.push(chart);
