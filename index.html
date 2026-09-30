@@ -248,39 +248,6 @@
   const PROGRAM_VERSION = 3;
   const PROGRAM_VERSION_KEY = 'program_version';
 
-  const ENTRIES_SEED_VERSION = 1;
-  const ENTRIES_SEED_KEY = 'entries_seed_version';
-
-  const SEED_ENTRIES = [
-    // 26.08.2026 — ноги/плечі/спина (найближче до Дня 3)
-    { id: 900001, date: '2026-08-26', day: 'Легкі ноги Дельти', exercise: 'Розгинання ніг', weight: 60, sets: 4, reps: 12, repsLabel: '12', rpe: null, notes: '' },
-    { id: 900002, date: '2026-08-26', day: 'Легкі ноги Дельти', exercise: 'Згинання ніг', weight: 40, sets: 4, reps: 12, repsLabel: '12', rpe: null, notes: '' },
-    { id: 900003, date: '2026-08-26', day: 'Легкі ноги Дельти', exercise: 'Жим ногами', weight: 100, sets: 4, reps: 10, repsLabel: '10', rpe: null, notes: '100+ кг (за записом)' },
-    { id: 900004, date: '2026-08-26', day: 'Легкі ноги Дельти', exercise: 'Жим в хамері над головою', weight: 25, sets: 3, reps: 10, repsLabel: '10', rpe: null, notes: '25 кг/рука' },
-    { id: 900005, date: '2026-08-26', day: 'Легкі ноги Дельти', exercise: 'Тяга в тренажері до грудей', weight: 45, sets: 3, reps: 12, repsLabel: '12', rpe: null, notes: '' },
-    { id: 900006, date: '2026-08-26', day: 'Легкі ноги Дельти', exercise: 'Махи в сторони', weight: 10, sets: 3, reps: 15, repsLabel: '15', rpe: null, notes: '' },
-    { id: 900007, date: '2026-08-26', day: 'Легкі ноги Дельти', exercise: 'Face Pull', weight: 35, sets: 3, reps: 15, repsLabel: '15', rpe: null, notes: '' },
-
-    // 28.08.2026 — спина/руки (Спина Трицепс)
-    { id: 900008, date: '2026-08-28', day: 'Спина Трицепс', exercise: 'Гіперекстензія', weight: 0, sets: 2, reps: 15, repsLabel: '15', rpe: null, notes: '' },
-    { id: 900009, date: '2026-08-28', day: 'Спина Трицепс', exercise: 'Верхня тяга хамер широкий хват', weight: 50, sets: 3, reps: 12, repsLabel: '12', rpe: null, notes: '' },
-    { id: 900010, date: '2026-08-28', day: 'Спина Трицепс', exercise: 'Верхня тяга хамер середнім хватом', weight: 60, sets: 3, reps: 12, repsLabel: '12', rpe: null, notes: '' },
-    { id: 900011, date: '2026-08-28', day: 'Спина Трицепс', exercise: 'Нижня тяга в хамері', weight: 40, sets: 3, reps: 12, repsLabel: '12', rpe: null, notes: 'рука' },
-    { id: 900012, date: '2026-08-28', day: 'Спина Трицепс', exercise: 'Горизонтальна тяга до грудей в хамері', weight: 50, sets: 3, reps: 12, repsLabel: '12', rpe: null, notes: '' },
-    { id: 900013, date: '2026-08-28', day: 'Спина Трицепс', exercise: 'Пуловер', weight: 45, sets: 3, reps: 12, repsLabel: '12', rpe: null, notes: '' },
-    { id: 900014, date: '2026-08-28', day: 'Спина Трицепс', exercise: 'Face Pull', weight: 0, sets: 3, reps: 12, repsLabel: '12', rpe: null, notes: '' },
-    { id: 900015, date: '2026-08-28', day: 'Спина Трицепс', exercise: 'Французький жим', weight: 35, sets: 4, reps: 10, repsLabel: '10', rpe: null, notes: '' },
-    { id: 900016, date: '2026-08-28', day: 'Спина Трицепс', exercise: 'Розгинання рук на блоці з канатом', weight: 25, sets: 3, reps: 15, repsLabel: '15', rpe: null, notes: '' },
-
-    // 29.08.2026 — ноги (Ноги)
-    { id: 900017, date: '2026-08-29', day: 'Ноги', exercise: 'Жим ногами', weight: 140, sets: 4, reps: 8, repsLabel: '8', rpe: null, notes: '' },
-    { id: 900018, date: '2026-08-29', day: 'Ноги', exercise: 'Присід', weight: 60, sets: 3, reps: 6, repsLabel: '6', rpe: null, notes: '' },
-    { id: 900019, date: '2026-08-29', day: 'Ноги', exercise: 'Румунська тяга', weight: 70, sets: 3, reps: 8, repsLabel: '8', rpe: null, notes: '' },
-    { id: 900020, date: '2026-08-29', day: 'Ноги', exercise: 'Випади', weight: 15, sets: 3, reps: 6, repsLabel: '6', rpe: null, notes: 'рука' },
-    { id: 900021, date: '2026-08-29', day: 'Ноги', exercise: 'Підйом на ікри', weight: 70, sets: 4, reps: 15, repsLabel: '15', rpe: null, notes: '' },
-    { id: 900022, date: '2026-08-29', day: 'Ноги', exercise: 'Шраги з гантелями', weight: 20, sets: 3, reps: 12, repsLabel: '12', rpe: null, notes: 'рука' }
-  ];
-
   const DEFAULT_PROGRAM = {
     "Ноги": [
       { name: "Присід", sets: 3, reps: "6", weight: 60 },
@@ -400,19 +367,6 @@
       const res2 = await storage.get(ENTRIES_KEY, false);
       entries = res2 && res2.value ? JSON.parse(res2.value) : [];
     } catch(e){ entries = []; }
-
-    let seedVersion = 0;
-    try {
-      const sRes = await storage.get(ENTRIES_SEED_KEY, false);
-      seedVersion = sRes && sRes.value ? parseInt(sRes.value) : 0;
-    } catch(e){ seedVersion = 0; }
-    if(seedVersion < ENTRIES_SEED_VERSION){
-      entries = entries.concat(SEED_ENTRIES);
-      entries.sort((a,b)=> a.date.localeCompare(b.date));
-      await saveEntries();
-      try { await storage.set(ENTRIES_SEED_KEY, String(ENTRIES_SEED_VERSION), false); }
-      catch(e){ console.error('Помилка збереження версії посіву записів', e); }
-    }
 
     // Одноразове виправлення назв вправ, які зберігались із різним написанням
     // (напр. "Жим у хамері" vs "Жим в хамері") — обʼєднуємо в одну вправу.
