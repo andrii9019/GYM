@@ -248,47 +248,7 @@
   const PROGRAM_VERSION = 3;
   const PROGRAM_VERSION_KEY = 'program_version';
 
-  const DEFAULT_PROGRAM = {
-    "Ноги": [
-      { name: "Присід", sets: 3, reps: "6", weight: 60 },
-      { name: "Румунська тяга", sets: 3, reps: "8", weight: 60 },
-      { name: "Випади", sets: 3, reps: "10", weight: 15 },
-      { name: "Жим ногами", sets: 3, reps: "12", weight: 140 },
-      { name: "Підйом на ікри", sets: 4, reps: "15", weight: 70 },
-      { name: "Шраги у Сміті", sets: 3, reps: "12", weight: 30 },
-      { name: "Згинання ніг", sets: 3, reps: "15", weight: 0 },
-      { name: "Розгинання ніг", sets: 3, reps: "15", weight: 0 }
-    ],
-    "Груди Біцепс": [
-      { name: "Жим", sets: 4, reps: "8", weight: 70 },
-      { name: "Бруси (+ додаткова вага)", sets: 3, reps: "10", weight: 15 },
-      { name: "Жим гантелей під кутом", sets: 3, reps: "12", weight: 25 },
-      { name: "Кросовер (або пекдек)", sets: 3, reps: "12", weight: 15 },
-      { name: "Махи в сторони", sets: 4, reps: "12", weight: 10 },
-      { name: "Підйом штанги на біцепс", sets: 3, reps: "12", weight: 30 },
-      { name: "Підйом гантелі на біцепс сидячи", sets: 3, reps: "12", weight: 10 }
-    ],
-    "Легкі ноги Дельти": [
-      { name: "Розгинання ніг", sets: 4, reps: "12", weight: 60 },
-      { name: "Згинання ніг", sets: 4, reps: "12", weight: 40 },
-      { name: "Присід", sets: 4, reps: "10", weight: 50 },
-      { name: "Підйом на ікри", sets: 4, reps: "15", weight: 60 },
-      { name: "Жим в хамері над головою", sets: 3, reps: "8-10", weight: 21 },
-      { name: "Махи в сторони", sets: 3, reps: "15", weight: 10 },
-      { name: "Face Pull", sets: 3, reps: "15", weight: 35 }
-    ],
-    "Спина Трицепс": [
-      { name: "Гіперекстензія", sets: 2, reps: "15", weight: 0 },
-      { name: "Верхня тяга хамер широкий хват", sets: 3, reps: "12", weight: 50 },
-      { name: "Верхня тяга хамер середнім хватом", sets: 3, reps: "12", weight: 60 },
-      { name: "Нижня тяга в хамері", sets: 3, reps: "12", weight: 40 },
-      { name: "Горизонтальна тяга до грудей в хамері", sets: 3, reps: "12", weight: 50 },
-      { name: "Пуловер", sets: 3, reps: "12", weight: 45 },
-      { name: "Face Pull", sets: 3, reps: "12", weight: 0 },
-      { name: "Французький жим", sets: 4, reps: "10", weight: 35 },
-      { name: "Розгинання рук на блоці з канатом", sets: 3, reps: "15", weight: 25 }
-    ]
-  };
+  const DEFAULT_PROGRAM = {};
 
   function todayStr(){ return new Date().toISOString().slice(0,10); }
   document.getElementById('log-date').value = todayStr();
@@ -526,6 +486,14 @@
     const day = document.getElementById('program-day-select').value || dayNames()[0];
     updateProgramDayIcon(day);
     const list = document.getElementById('program-list');
+    const hasDay = !!day;
+    document.getElementById('btn-edit-day').disabled = !hasDay;
+    document.getElementById('btn-delete-day').disabled = !hasDay;
+    document.getElementById('btn-add-exercise').disabled = !hasDay;
+    if(!hasDay){
+      list.innerHTML = '<p style="color:var(--text-secondary,#666); font-size:14px; text-align:center; padding:1rem 0;">No training days yet. Tap "+ Add day" above to create your first one.</p>';
+      return;
+    }
     const exercises = program[day] || [];
     if(exercises.length === 0){
       list.innerHTML = '<p style="color:var(--text-secondary,#666); font-size:14px; text-align:center; padding:1rem 0;">No exercises for this day.</p>';
@@ -625,6 +593,10 @@
 
   document.getElementById('btn-add-exercise').addEventListener('click', async ()=>{
     const day = document.getElementById('program-day-select').value || dayNames()[0];
+    if(!day){
+      showToast('Add a training day first.');
+      return;
+    }
     program[day].push({ name: '', sets: 3, reps: '10', weight: 0 });
     await saveProgram();
     renderProgram();
@@ -792,7 +764,10 @@
   document.getElementById('btn-delete-day').addEventListener('click', async ()=>{
     const sel = document.getElementById('program-day-select');
     const day = sel.value;
-    if(!day) return;
+    if(!day){
+      showToast('Add a training day first.');
+      return;
+    }
     const remaining = dayNames().filter(d => d !== day);
     if(remaining.length === 0){
       showToast('Cannot delete the last day in the program.');
@@ -817,7 +792,10 @@
 
   document.getElementById('btn-edit-day').addEventListener('click', ()=>{
     const day = document.getElementById('program-day-select').value;
-    if(!day) return;
+    if(!day){
+      showToast('Add a training day first.');
+      return;
+    }
     document.getElementById('add-day-form').style.display = 'none';
     const form = document.getElementById('edit-day-form');
     const isHidden = form.style.display === 'none';
@@ -924,6 +902,12 @@
     const list = document.getElementById('log-list');
     const exercises = program[day] || [];
     renderLogRecoveryBanner(day, exercises);
+    const saveBtn = document.getElementById('btn-save-workout');
+    if(saveBtn) saveBtn.disabled = !day;
+    if(!day){
+      list.innerHTML = '<p style="color:var(--text-secondary,#666); font-size:14px; text-align:center; padding:1rem 0;">No training days yet. Create one in the "Program" tab first.</p>';
+      return;
+    }
     if(exercises.length === 0){
       list.innerHTML = '<p style="color:var(--text-secondary,#666); font-size:14px; text-align:center; padding:1rem 0;">No exercises for this day. Add them in the "Program" tab.</p>';
       return;
