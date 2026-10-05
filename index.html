@@ -16,91 +16,141 @@
 <body>
 <style>
   :root {
-    --surface-1: #0b211d;
-    --surface-2: #071613;
-    --text-primary: #eafaf4;
-    --text-secondary: #7fa89b;
-    --border: #16332c;
-    --border-strong: #234c41;
+    --surface-1: #0f2622;
+    --surface-2: #091b17;
+    --surface-3: #0c1f1b;
+    --text-primary: #f2fbf7;
+    --text-secondary: #86aea0;
+    --text-tertiary: #5c7c71;
+    --border: #18372f;
+    --border-strong: #275347;
     --text-danger: #ff6b6b;
     --text-success: #34d399;
     --accent: #17c98f;
+    --accent-2: #22dba0;
     --accent-text: #04211f;
+    --radius-lg: 22px;
+    --radius-md: 16px;
+    --radius-sm: 12px;
+    --nav-h: 76px;
   }
-  body { margin: 0; background: radial-gradient(120% 90% at 50% -10%, #06201b 0%, #020a08 55%, #010504 100%) fixed; background-color: #010504; color: #eafaf4; min-height: 100vh; }
-  .wj-btn { background: var(--surface-1); border: 0.5px solid var(--border-strong, #ccc); border-radius: 20px; padding: 8px 16px; font-size: 14px; font-weight: 500; cursor: pointer; color: var(--text-primary, #1a1a1a); transition: background 0.15s, box-shadow 0.15s, transform 0.1s; letter-spacing: 0.1px; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: radial-gradient(120% 90% at 50% -10%, #07251f 0%, #020b09 55%, #010504 100%) fixed;
+    background-color: #010504;
+    color: var(--text-primary);
+    min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---------- Типографіка ---------- */
+  .eyebrow { font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); margin: 0 0 4px; }
+  .page-title { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; margin: 0; color: var(--text-primary); }
+  .page-header { padding: 4px 2px 20px; }
+  .section-label { font-size: 13px; font-weight: 700; color: var(--text-primary); letter-spacing: -0.01em; }
+
+  /* ---------- Кнопки ---------- */
+  .wj-btn { background: var(--surface-1); border: 1px solid var(--border-strong); border-radius: 999px; padding: 10px 18px; font-size: 14px; font-weight: 600; cursor: pointer; color: var(--text-primary); transition: background 0.15s, box-shadow 0.15s, transform 0.1s; letter-spacing: 0.1px; }
   .wj-btn:hover { background: var(--border); }
   .wj-btn:active { transform: scale(0.96); }
   .wj-btn:disabled { opacity: 0.3; cursor: default; }
   .wj-btn:disabled:active { transform: none; }
-  .wj-btn-primary { background: linear-gradient(180deg, #22dba0 0%, var(--accent) 55%, #13b47f 100%); color: var(--accent-text); border: none; font-weight: 600; box-shadow: 0 3px 10px rgba(23,201,143,0.35); }
-  .wj-btn-primary:hover { background: #1fdb9c; box-shadow: 0 3px 12px rgba(23,201,143,0.45); }
-  .wj-btn-primary:active { box-shadow: 0 1px 4px rgba(23,201,143,0.3); }
-  .wj-btn-danger { background: rgba(255,107,107,0.12); border: 1px solid rgba(255,107,107,0.35); color: #ff8a8a; font-weight: 500; }
-  .wj-btn-danger:hover { background: rgba(255,107,107,0.2); border-color: rgba(255,107,107,0.5); }
-  .wj-btn-danger:active { background: rgba(255,107,107,0.28); }
-  .wj-btn-success { background: linear-gradient(180deg, #22dba0 0%, var(--accent) 55%, #13b47f 100%); border: 1px solid var(--accent); color: var(--accent-text); font-weight: 600; box-shadow: 0 3px 10px rgba(23,201,143,0.35); }
-  .wj-btn-success:hover { background: #1fdb9c; box-shadow: 0 3px 12px rgba(23,201,143,0.45); }
-  .wj-btn-success:active { box-shadow: 0 1px 4px rgba(23,201,143,0.3); }
-  .wj-input, .wj-select { height: 38px; border: 0.5px solid var(--border-strong, #ccc); border-radius: 14px; padding: 0 12px; font-size: 14px; width: 100%; box-sizing: border-box; background: var(--surface-2, #fff); color: var(--text-primary, #1a1a1a); transition: border-color 0.15s; }
-  .wj-input:focus, .wj-select:focus { outline: none; border-color: var(--accent); }
-  .wj-card { background: var(--surface-2, #fff); border: 0.5px solid var(--border, #e5e5e0); border-radius: 18px; padding: 1rem 1.25rem; box-shadow: 0 6px 20px rgba(0,0,0,0.22), 0 1px 2px rgba(0,0,0,0.15); }
-  .wj-label { font-size: 12px; color: var(--text-secondary, #666); margin-bottom: 4px; display: block; }
+  .wj-btn-primary { background: linear-gradient(180deg, var(--accent-2) 0%, var(--accent) 55%, #0fae7c 100%); color: var(--accent-text); border: none; font-weight: 700; box-shadow: 0 6px 18px rgba(23,201,143,0.4); }
+  .wj-btn-primary:hover { box-shadow: 0 6px 22px rgba(23,201,143,0.5); }
+  .wj-btn-primary:active { box-shadow: 0 2px 8px rgba(23,201,143,0.35); }
+  .wj-btn-danger { background: rgba(255,107,107,0.1); border: 1px solid rgba(255,107,107,0.3); color: #ff8a8a; font-weight: 600; }
+  .wj-btn-danger:hover { background: rgba(255,107,107,0.18); border-color: rgba(255,107,107,0.48); }
+  .wj-btn-danger:active { background: rgba(255,107,107,0.26); }
+  .wj-btn-success { background: linear-gradient(180deg, var(--accent-2) 0%, var(--accent) 55%, #0fae7c 100%); border: none; color: var(--accent-text); font-weight: 700; box-shadow: 0 6px 18px rgba(23,201,143,0.4); }
+  .wj-btn-success:hover { box-shadow: 0 6px 22px rgba(23,201,143,0.5); }
+  .wj-btn-success:active { box-shadow: 0 2px 8px rgba(23,201,143,0.35); }
+
+  /* ---------- Поля вводу ---------- */
+  .wj-input, .wj-select { height: 44px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: 0 14px; font-size: 15px; width: 100%; box-sizing: border-box; background: var(--surface-2); color: var(--text-primary); transition: border-color 0.15s, box-shadow 0.15s; }
+  .wj-input:focus, .wj-select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(23,201,143,0.18); }
+  .wj-label { font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display: block; }
   .wj-row { display: flex; gap: 8px; }
-  .wj-tabs { display: flex; gap: 6px; margin-bottom: 1rem; flex-wrap: wrap; }
-  .view-panel { transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.16s ease-out; will-change: transform, opacity; }
+
+  /* ---------- Картки ---------- */
+  .wj-card { background: linear-gradient(180deg, var(--surface-1), var(--surface-2)); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.1rem 1.25rem; box-shadow: 0 10px 28px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.03); }
+
+  /* ---------- Сторінки / фоновий акцент ---------- */
+  #app-root { max-width: 720px; margin: 0 auto; padding: 18px 16px calc(var(--nav-h) + 22px); }
+  .view-panel { position: relative; transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.16s ease-out; will-change: transform, opacity; }
+  .view-panel::before { content: ''; position: absolute; top: -70px; left: -24px; right: -24px; height: 300px; pointer-events: none; filter: blur(30px); opacity: 0.55; z-index: 0; }
+  #view-program::before, #view-log::before { background: radial-gradient(60% 100% at 18% 0%, var(--day-glow, #17c98f) 0%, transparent 72%); }
+  #view-history::before { background: radial-gradient(55% 100% at 82% 0%, #8f6ae8 0%, transparent 72%); }
+  #view-progress::before { background: radial-gradient(60% 100% at 50% 0%, #17c98f 0%, #52c7b8 35%, transparent 75%); }
+  .view-panel > * { position: relative; z-index: 1; }
   .view-panel.slide-in-right { transform: translateX(18px) scale(0.99); opacity: 0; }
   .view-panel.slide-in-left { transform: translateX(-18px) scale(0.99); opacity: 0; }
-  .wj-tab { flex: 1; min-width: 70px; text-align: center; padding: 9px 4px; border-radius: 20px; font-size: 13px; font-weight: 500; cursor: pointer; border: 0.5px solid var(--border-strong, #ccc); background: var(--surface-1); transition: background 0.15s, box-shadow 0.15s; }
-  .wj-tab.active { background: linear-gradient(180deg, #22dba0 0%, var(--accent) 55%, #13b47f 100%); color: var(--accent-text); border-color: var(--accent); font-weight: 600; box-shadow: 0 2px 8px rgba(23,201,143,0.35); }
-  .ex-row { display: grid; grid-template-columns: 1fr; gap: 6px; padding: 10px 0; border-bottom: 0.5px solid var(--border, #e5e5e0); }
-  .ex-row:last-child { border-bottom: none; }
+
+  /* ---------- Нижня навігація ---------- */
+  .wj-tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 700; display: flex; justify-content: center; gap: 0; padding: 8px 10px calc(10px + env(safe-area-inset-bottom, 0px)); background: rgba(6,20,17,0.82); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); border-top: 1px solid var(--border); }
+  .wj-tabs-inner { display: flex; width: 100%; max-width: 680px; gap: 4px; }
+  .wj-tab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; text-align: center; padding: 7px 4px; border-radius: 16px; font-size: 11px; font-weight: 600; cursor: pointer; border: none; background: transparent; color: var(--text-tertiary); transition: color 0.15s, background 0.15s; }
+  .wj-tab svg { width: 22px; height: 22px; stroke: currentColor; transition: transform 0.15s; }
+  .wj-tab.active { color: var(--accent); background: rgba(23,201,143,0.1); }
+  .wj-tab.active svg { transform: translateY(-1px); }
+  .wj-tab:active { transform: scale(0.94); }
+
+  /* ---------- Рядки вправ ---------- */
+  .ex-row { display: grid; grid-template-columns: 1fr; gap: 6px; padding: 14px 14px 14px 18px; margin-bottom: 10px; border-radius: var(--radius-md); background: var(--surface-1); border-left: 4px solid var(--accent); box-shadow: 0 3px 14px rgba(0,0,0,0.3); transition: box-shadow .2s, border-color .2s, background .2s; }
+  .ex-row:last-child { margin-bottom: 0; }
   .ex-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 6px; }
-  .ex-mini-label { font-size: 11px; color: var(--text-secondary, #666); }
+  .ex-mini-label { font-size: 11px; color: var(--text-secondary); font-weight: 500; }
   .color-swatch { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; box-sizing: border-box; box-shadow: 0 1px 3px rgba(0,0,0,0.35); transition: transform 0.15s; }
   .color-swatch:active { transform: scale(0.92); }
   .color-swatch.selected { border-color: #fff; box-shadow: 0 0 0 2px var(--accent), 0 1px 3px rgba(0,0,0,0.35); }
-  .ex-field-sets { background: rgba(23,201,143,0.10); border-radius: 12px; padding: 6px 8px; }
-  .ex-field-sets .ex-mini-label { color: #5ee0b8; font-weight: 500; }
+  .ex-field-sets { background: rgba(23,201,143,0.10); border-radius: var(--radius-sm); padding: 7px 9px; }
+  .ex-field-sets .ex-mini-label { color: #5ee0b8; }
   .ex-field-sets input { border-color: rgba(23,201,143,0.3); border-radius: 10px; }
-  .ex-field-reps { background: rgba(23,201,143,0.18); border-radius: 12px; padding: 6px 8px; }
-  .ex-field-reps .ex-mini-label { color: #17c98f; font-weight: 500; }
+  .ex-field-reps { background: rgba(23,201,143,0.18); border-radius: var(--radius-sm); padding: 7px 9px; }
+  .ex-field-reps .ex-mini-label { color: #17c98f; }
   .ex-field-reps input { border-color: rgba(23,201,143,0.45); border-radius: 10px; }
-  .ex-field-weight { background: rgba(23,201,143,0.28); border-radius: 12px; padding: 6px 8px; }
-  .ex-field-weight .ex-mini-label { color: #0e8f66; font-weight: 600; }
+  .ex-field-weight { background: rgba(23,201,143,0.28); border-radius: var(--radius-sm); padding: 7px 9px; }
+  .ex-field-weight .ex-mini-label { color: #0e8f66; font-weight: 700; }
   .ex-field-weight input { border-color: rgba(23,201,143,0.6); border-radius: 10px; }
-  .cal-cell { aspect-ratio: 1 / 1; display:flex; flex-direction: column; align-items:center; justify-content:center; border-radius: 12px; font-size: 12px; cursor: default; position: relative; color: var(--text-primary,#1a1a1a); background: var(--surface-1,#f4f4f2); box-sizing: border-box; }
+
+  /* ---------- Календар ---------- */
+  .cal-cell { aspect-ratio: 1 / 1; display:flex; flex-direction: column; align-items:center; justify-content:center; border-radius: var(--radius-sm); font-size: 12px; cursor: default; position: relative; color: var(--text-primary); background: var(--surface-1); box-sizing: border-box; }
   .cal-cell.empty { background: transparent; }
-  .cal-cell.trained { color: #fff; cursor: pointer; font-weight: 500; gap: 1px; box-shadow: 0 1px 4px rgba(0,0,0,0.3); text-shadow: 0 1px 3px rgba(0,0,0,0.7); }
+  .cal-cell.trained { color: #fff; cursor: pointer; font-weight: 500; gap: 1px; box-shadow: 0 1px 4px rgba(0,0,0,0.3); text-shadow: 0 1px 3px rgba(0,0,0,0.7); overflow: hidden; }
   .cal-cell.selected { outline: 2px solid var(--accent); outline-offset: 1px; }
   .cal-cell.today-marker::after { content:''; position:absolute; bottom:2px; width:4px; height:4px; border-radius:50%; background: currentColor; opacity:0.7; }
+  .cal-cell.trained.today-marker::after { bottom: auto; top: 5px; right: 6px; }
   .cal-cell-day { line-height: 1; }
-  .cal-cell.trained { overflow: hidden; }
   .cal-cell.trained .cal-cell-day { position: absolute; top: 3px; left: 6px; font-size: 12px; font-weight: 700; line-height: 1; }
   .cal-cell.trained .cal-cell-volume { position: absolute; bottom: 2px; left: 0; right: 0; text-align: center; font-size: 8.5px; font-weight: 500; line-height: 1; opacity: 1; }
-  .cal-cell.trained.today-marker::after { bottom: auto; top: 5px; right: 6px; }
   .cal-cell-volume { font-size: 8.5px; font-weight: 400; line-height: 1; opacity: 0.9; }
-  .ex-progress-row { padding: 12px 0; border-bottom: 0.5px solid var(--border, #e5e5e0); }
-  .ex-progress-row:last-child { border-bottom: none; }
+
+  /* ---------- Прогрес по вправах ---------- */
+  .ex-progress-row { padding: 14px 16px; margin-bottom: 10px; border-radius: var(--radius-md); background: var(--surface-1); border: 1px solid var(--border); }
+  .ex-progress-row:last-child { margin-bottom: 0; }
   .ex-progress-top { display:flex; align-items:center; gap:10px; }
   .ex-progress-info { flex: 1; min-width: 0; }
-  .ex-progress-name { font-size: 14px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .ex-progress-meta { font-size: 12px; color: var(--text-secondary, #666); margin-top: 2px; }
+  .ex-progress-name { font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ex-progress-meta { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
   .ex-progress-trend { font-size: 11px; margin-top: 4px; line-height: 1.5; }
   .ex-progress-count { width: 36px; flex-shrink: 0; text-align: center; }
   .ex-progress-count-num { font-size: 19px; font-weight: 700; line-height: 1; }
-  .ex-progress-count-label { font-size: 9px; color: var(--text-secondary, #666); margin-top: 1px; }
-  .ex-progress-legend { display:flex; gap:10px; margin-top: 10px; font-size: 10px; font-weight: 500; flex-wrap: wrap; }
+  .ex-progress-count-label { font-size: 9px; color: var(--text-secondary); margin-top: 1px; }
+  .ex-progress-legend { display:flex; gap:10px; margin-top: 10px; font-size: 10px; font-weight: 600; flex-wrap: wrap; }
   .ex-progress-legend span { display: inline-flex; align-items: center; gap: 4px; }
   .ex-progress-legend .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
   .ex-progress-chart-combo { position: relative; height: 64px; margin-top: 4px; }
-  .period-btn.active { background: linear-gradient(180deg, #22dba0 0%, var(--accent) 55%, #13b47f 100%); color: var(--accent-text); border-color: var(--accent); font-weight: 600; box-shadow: 0 2px 8px rgba(23,201,143,0.35); }
-  #wj-toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(20px); background: var(--accent); color: var(--accent-text); padding: 10px 18px; border-radius: 20px; font-size: 13px; font-weight: 500; max-width: 90vw; text-align: center; opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.2s; z-index: 9999; box-shadow: 0 4px 14px rgba(0,0,0,0.35); }
+
+  .period-btn { border-radius: 999px !important; }
+  .period-btn.active { background: linear-gradient(180deg, var(--accent-2) 0%, var(--accent) 55%, #0fae7c 100%); color: var(--accent-text); border-color: var(--accent); font-weight: 700; box-shadow: 0 2px 8px rgba(23,201,143,0.35); }
+
+  #wj-toast { position: fixed; left: 50%; bottom: calc(var(--nav-h) + 14px); transform: translateX(-50%) translateY(20px); background: var(--accent); color: var(--accent-text); padding: 10px 18px; border-radius: 999px; font-size: 13px; font-weight: 600; max-width: 90vw; text-align: center; opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.2s; z-index: 9999; box-shadow: 0 4px 14px rgba(0,0,0,0.35); }
   #wj-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
   #confirm-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 10000; padding: 20px; box-sizing: border-box; }
   #confirm-modal-overlay.show { display: flex; }
-  #confirm-modal-box { background: var(--surface-2, #1c1c1c); border-radius: 18px; padding: 1.25rem; max-width: 360px; width: 100%; }
-  #confirm-modal-text { font-size: 14px; margin: 0 0 1rem; color: var(--text-primary, #f0f0f0); }
+  #confirm-modal-box { background: var(--surface-2); border-radius: var(--radius-lg); padding: 1.25rem; max-width: 360px; width: 100%; border: 1px solid var(--border); }
+  #confirm-modal-text { font-size: 14px; margin: 0 0 1rem; color: var(--text-primary); }
 </style>
 <div id="wj-toast"></div>
 <div id="confirm-modal-overlay">
@@ -112,17 +162,32 @@
     </div>
   </div>
 </div>
-<div id="app-root" style="max-width: 720px; margin: 0 auto; font-family: system-ui, sans-serif; padding: 1rem 0;">
+<div id="app-root">
   <h2 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;">Workout journal with a customizable training program, exercise editing, history, and progress charts</h2>
 
   <div class="wj-tabs">
-    <div class="wj-tab active" data-tab="program" id="tab-program">Program</div>
-    <div class="wj-tab" data-tab="log" id="tab-log">Train</div>
-    <div class="wj-tab" data-tab="history" id="tab-history">History</div>
-    <div class="wj-tab" data-tab="progress" id="tab-progress">Progress</div>
+    <div class="wj-tabs-inner">
+      <div class="wj-tab active" data-tab="program" id="tab-program">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1.3" fill="currentColor" stroke="none"/><circle cx="4.5" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="4.5" cy="18" r="1.3" fill="currentColor" stroke="none"/></svg>
+        <span>Program</span>
+      </div>
+      <div class="wj-tab" data-tab="log" id="tab-log">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M10.2 8.5l5.5 3.5-5.5 3.5v-7z" fill="currentColor" stroke="none"/></svg>
+        <span>Train</span>
+      </div>
+      <div class="wj-tab" data-tab="history" id="tab-history">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>
+        <span>History</span>
+      </div>
+      <div class="wj-tab" data-tab="progress" id="tab-progress">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V11M11 19V5M18 19v-6"/><path d="M2 19h20"/></svg>
+        <span>Progress</span>
+      </div>
+    </div>
   </div>
 
   <div id="view-program" class="view-panel">
+    <div class="page-header"><div class="eyebrow">Program</div><h1 class="page-title">Build your plan</h1></div>
     <div class="wj-card" id="program-day-header" style="margin-bottom: 12px; display:flex; align-items:center; gap:14px;">
       <div id="program-day-icon" style="height:64px; flex-shrink:0; display:flex; align-items:center;"></div>
       <select class="wj-select" id="program-day-select" style="flex:1; height:auto; padding:10px 12px; font-size:19px; font-weight:600; border:none; background:var(--surface-1);"></select>
@@ -162,23 +227,25 @@
       <button class="wj-btn wj-btn-primary" id="btn-confirm-add-day">Add</button>
     </div>
     <div id="add-day-error" style="color: var(--text-danger, #c0392b); font-size: 13px; margin-bottom: 8px; display:none;"></div>
-    <div class="wj-card" id="program-list"></div>
+    <div id="program-list"></div>
     <button class="wj-btn wj-btn-success" id="btn-add-exercise" style="width:100%; margin-top:10px;">+ Add exercise</button>
   </div>
 
   <div id="view-log" class="view-panel" style="display:none;">
-    <div class="wj-row" id="log-day-header" style="margin-bottom: 10px; gap:8px; align-items:center;">
+    <div class="page-header"><div class="eyebrow">Train</div><h1 class="page-title">Today's session</h1></div>
+    <div class="wj-row" id="log-day-header" style="margin-bottom: 10px; gap:8px; align-items:center; border-radius: 18px; padding: 0.85rem 1.1rem; background: var(--surface-1); box-sizing: border-box;">
       <div id="log-day-icon" style="height:30px; flex-shrink:0; display:flex; align-items:center;"></div>
       <select class="wj-select" id="log-day-select" style="flex:2;"></select>
       <input type="date" class="wj-input" id="log-date" style="flex:1;" />
     </div>
     <div id="log-recovery-banner" style="margin-bottom: 10px;"></div>
-    <div class="wj-card" id="log-list" style="margin-bottom: 1rem;"></div>
+    <div id="log-list" style="margin-bottom: 1rem;"></div>
     <div id="log-error" style="color: var(--text-danger, #c0392b); font-size: 13px; margin-bottom: 8px; display: none;"></div>
     <button class="wj-btn wj-btn-primary" id="btn-save-workout" style="width:100%;">✓ Finish workout & save</button>
   </div>
 
   <div id="view-history" class="view-panel" style="display:none;">
+    <div class="page-header"><div class="eyebrow">History</div><h1 class="page-title">Your journey</h1></div>
     <div class="wj-card" style="margin-bottom: 1rem;">
       <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 10px;">
         <button class="wj-btn" id="btn-cal-prev" aria-label="Previous month">‹</button>
@@ -200,14 +267,15 @@
   </div>
 
   <div id="view-progress" class="view-panel" style="display:none;">
+    <div class="page-header"><div class="eyebrow">Progress</div><h1 class="page-title">See how far you've come</h1></div>
     <div class="wj-card" style="margin-bottom: 1rem;">
-      <div style="font-weight:500; font-size:15px; margin-bottom: 10px;">Workouts by muscle group</div>
+      <div class="section-label" style="margin-bottom: 10px;">Workouts by muscle group</div>
       <div id="training-count-list" style="display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px;"></div>
     </div>
 
     <div class="wj-card" style="margin-bottom: 1rem;">
       <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 10px; gap:8px;">
-        <div style="font-weight:500; font-size:15px;">Exercise progress</div>
+        <div class="section-label">Exercise progress</div>
         <div style="display:flex; gap:4px;" id="period-switcher">
           <button class="wj-btn period-btn" data-period="1m" style="padding:4px 8px; font-size:12px;">Month</button>
           <button class="wj-btn period-btn" data-period="3m" style="padding:4px 8px; font-size:12px;">3 mo</button>
@@ -482,21 +550,44 @@
     iconEl.innerHTML = renderGroupIconsCombined(getDayIconKeys(day), 64, '#17c98f');
   }
 
+  // Кольорова "неонова" підсвітка картки: смужка зліва + легке світіння + ледь помітний відтінок фону.
+  function applyGlow(el, color){
+    if(!el) return;
+    if(!color){
+      el.style.borderLeft = '';
+      el.style.boxShadow = '';
+      el.style.background = 'var(--surface-1)';
+      return;
+    }
+    el.style.borderLeft = `5px solid ${color}`;
+    el.style.boxShadow = `0 0 24px ${color}66, 0 6px 22px ${color}3d, 0 2px 6px rgba(0,0,0,0.4)`;
+    el.style.background = `linear-gradient(135deg, ${color}38, var(--surface-1) 60%)`;
+  }
+
+  function glowExerciseRows(containerEl, color){
+    if(!containerEl) return;
+    containerEl.querySelectorAll('.ex-row').forEach(row => applyGlow(row, color));
+  }
+
   function renderProgram(){
     const day = document.getElementById('program-day-select').value || dayNames()[0];
     updateProgramDayIcon(day);
+    const colorMap = getDayColorMap();
+    const dayColor = (day && colorMap[day]) || '#17c98f';
+    applyGlow(document.getElementById('program-day-header'), dayColor);
+    document.getElementById('view-program').style.setProperty('--day-glow', dayColor);
     const list = document.getElementById('program-list');
     const hasDay = !!day;
     document.getElementById('btn-edit-day').disabled = !hasDay;
     document.getElementById('btn-delete-day').disabled = !hasDay;
     document.getElementById('btn-add-exercise').disabled = !hasDay;
     if(!hasDay){
-      list.innerHTML = '<p style="color:var(--text-secondary,#666); font-size:14px; text-align:center; padding:1rem 0;">No training days yet. Tap "+ Add day" above to create your first one.</p>';
+      list.innerHTML = '<div class="wj-card"><p style="color:var(--text-secondary,#666); font-size:14px; text-align:center; margin:0;">No training days yet. Tap "+ Add day" above to create your first one.</p></div>';
       return;
     }
     const exercises = program[day] || [];
     if(exercises.length === 0){
-      list.innerHTML = '<p style="color:var(--text-secondary,#666); font-size:14px; text-align:center; padding:1rem 0;">No exercises for this day.</p>';
+      list.innerHTML = '<div class="wj-card"><p style="color:var(--text-secondary,#666); font-size:14px; text-align:center; margin:0;">No exercises for this day.</p></div>';
       return;
     }
     list.innerHTML = exercises.map((ex, i) => `
@@ -523,6 +614,7 @@
         <button class="wj-btn wj-btn-danger" data-del="${i}" style="justify-self: end; width: auto; padding: 5px 12px; font-size: 12px;" aria-label="Delete exercise">✕ Delete</button>
       </div>
     `).join('');
+    glowExerciseRows(list, dayColor);
 
     list.querySelectorAll('input[data-field]').forEach(inp=>{
       const handleFieldCommit = async ()=>{
@@ -893,23 +985,25 @@
 
   function renderLog(){
     const day = document.getElementById('log-day-select').value || dayNames()[0];
+    const colorMap = getDayColorMap();
+    const dayColor = (day && colorMap[day]) || '#17c98f';
     const iconEl = document.getElementById('log-day-icon');
     if(iconEl){
-      const colorMap = getDayColorMap();
-      const color = (day && colorMap[day]) || '#17c98f';
-      iconEl.innerHTML = day ? renderGroupIconsCombined(getDayIconKeys(day), 30, color) : '';
+      iconEl.innerHTML = day ? renderGroupIconsCombined(getDayIconKeys(day), 30, dayColor) : '';
     }
+    applyGlow(document.getElementById('log-day-header'), day ? dayColor : null);
+    document.getElementById('view-log').style.setProperty('--day-glow', dayColor);
     const list = document.getElementById('log-list');
     const exercises = program[day] || [];
     renderLogRecoveryBanner(day, exercises);
     const saveBtn = document.getElementById('btn-save-workout');
     if(saveBtn) saveBtn.disabled = !day;
     if(!day){
-      list.innerHTML = '<p style="color:var(--text-secondary,#666); font-size:14px; text-align:center; padding:1rem 0;">No training days yet. Create one in the "Program" tab first.</p>';
+      list.innerHTML = '<div class="wj-card"><p style="color:var(--text-secondary,#666); font-size:14px; text-align:center; margin:0;">No training days yet. Create one in the "Program" tab first.</p></div>';
       return;
     }
     if(exercises.length === 0){
-      list.innerHTML = '<p style="color:var(--text-secondary,#666); font-size:14px; text-align:center; padding:1rem 0;">No exercises for this day. Add them in the "Program" tab.</p>';
+      list.innerHTML = '<div class="wj-card"><p style="color:var(--text-secondary,#666); font-size:14px; text-align:center; margin:0;">No exercises for this day. Add them in the "Program" tab.</p></div>';
       return;
     }
     list.innerHTML = exercises.map((ex, i) => `
@@ -931,6 +1025,7 @@
         </div>
       </div>
     `).join('');
+    glowExerciseRows(list, dayColor);
   }
 
   function groupRecoveryStatus(group){
@@ -1290,7 +1385,7 @@
         const badgesHtml = extraIcons.length > 0
           ? `<span style="position:absolute; top:3px; right:3px; display:flex; gap:2px;">${extraIcons.map(k => renderGroupIconSvg(k, 14, color)).join('')}</span>`
           : '';
-        html += `<div class="cal-cell trained${isToday ? ' today-marker' : ''}${isSelected ? ' selected' : ''}" style="${bgStyle} border: 2px solid ${color}; color:#fff;" data-date="${iso}">${badgesHtml}<span class="cal-cell-day">${d}</span><span class="cal-cell-volume">${volLabel}</span></div>`;
+        html += `<div class="cal-cell trained${isToday ? ' today-marker' : ''}${isSelected ? ' selected' : ''}" style="${bgStyle} border: 2px solid ${color}; box-shadow: 0 0 20px ${color}80, 0 2px 8px rgba(0,0,0,0.4); color:#fff;" data-date="${iso}">${badgesHtml}<span class="cal-cell-day">${d}</span><span class="cal-cell-volume">${volLabel}</span></div>`;
       } else {
         html += `<div class="cal-cell${isToday ? ' today-marker' : ''}" data-date="${iso}">${d}</div>`;
       }
@@ -1360,9 +1455,9 @@
     const dayLabel = dayEntries[0].day || 'Без назви';
     const totalVol = Math.round(volumeForEntries(dayEntries));
     list.innerHTML = `
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-        <div style="font-weight:500; font-size:15px;">${escapeHtml(dayLabel)} · ${selectedCalDate}</div>
-        <div style="font-size:13px; color:var(--text-secondary,#666);">Volume: ${totalVol} kg</div>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <div class="section-label">${escapeHtml(dayLabel)} · ${selectedCalDate}</div>
+        <div style="font-size:13px; color:var(--text-secondary,#666); font-weight:600;">${totalVol} kg</div>
       </div>
     ` + dayEntries.map(e => `
       <div class="wj-card" style="margin-bottom: 8px; display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
@@ -1450,7 +1545,7 @@
       const id = slugify(day);
       const iconSvg = renderGroupIconsCombined(getDayIconKeys(day), 52, color);
       return `
-        <div style="border-radius: 14px; padding: 12px; background: ${color}1a; border: 1px solid ${color}55;">
+        <div style="border-radius: 14px; padding: 12px; background: linear-gradient(135deg, ${color}33, ${color}0d 70%); border: 1px solid ${color}70; box-shadow: 0 0 22px ${color}55, 0 3px 12px rgba(0,0,0,0.3);">
           <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
             ${iconSvg}
             <div style="min-width:0;">
