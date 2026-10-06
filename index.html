@@ -80,13 +80,14 @@
 
   /* ---------- Сторінки / фоновий акцент ---------- */
   #app-root { width: 100%; max-width: 1100px; margin: 0 auto; padding: 10px 12px calc(var(--nav-h) + 10px); }
-  .view-panel { position: relative; transition: opacity 0.12s ease-out; will-change: opacity; }
+  .view-panel { position: relative; transition: transform 0.16s cubic-bezier(0.25, 0.8, 0.5, 1), opacity 0.14s ease-out; will-change: transform, opacity; }
   .view-panel::before { content: ''; position: absolute; top: -70px; left: -24px; right: -24px; height: 300px; pointer-events: none; filter: blur(30px); opacity: 0.55; z-index: 0; }
   #view-program::before, #view-log::before { background: radial-gradient(60% 100% at 18% 0%, var(--day-glow, #17c98f) 0%, transparent 72%); }
   #view-history::before { background: radial-gradient(55% 100% at 82% 0%, #8f6ae8 0%, transparent 72%); }
   #view-progress::before { background: radial-gradient(60% 100% at 50% 0%, #17c98f 0%, #52c7b8 35%, transparent 75%); }
   .view-panel > * { position: relative; z-index: 1; }
-  .view-panel.slide-in-right, .view-panel.slide-in-left { opacity: 0; }
+  .view-panel.slide-in-right { transform: translateX(16px); opacity: 0; }
+  .view-panel.slide-in-left { transform: translateX(-16px); opacity: 0; }
 
   /* ---------- Нижня навігація ---------- */
   .wj-tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 700; display: flex; justify-content: center; gap: 0; padding: 8px 10px calc(10px + env(safe-area-inset-bottom, 0px)); background: rgba(6,20,17,0.82); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); border-top: 1px solid var(--border); }
@@ -188,7 +189,20 @@
   </div>
 
   <div id="view-program" class="view-panel">
-    <div class="page-header"><div class="eyebrow">Program</div><h1 class="page-title">Build your plan</h1></div>
+    <div class="page-header" style="display:flex; align-items:flex-end; justify-content:space-between; gap:10px;">
+      <div><div class="eyebrow">Program</div><h1 class="page-title">Build your plan</h1></div>
+      <button class="wj-btn" id="btn-backup-toggle" aria-label="Backup & restore" style="flex-shrink:0; padding:8px 10px; font-size:16px; line-height:1;">💾</button>
+    </div>
+    <div class="wj-card" id="backup-panel" style="display:none; margin-bottom: 8px; gap:8px; flex-direction:column;">
+      <div class="section-label">Backup &amp; restore</div>
+      <div style="font-size:12px; color:var(--text-secondary); line-height:1.4;">Everything is stored only on this device. Save a backup file regularly, or before clearing browser data — so you never lose your history again.</div>
+      <div class="wj-row" style="gap:8px;">
+        <button class="wj-btn wj-btn-success" id="btn-export-data" style="flex:1;">⬇ Save backup</button>
+        <button class="wj-btn" id="btn-import-data" style="flex:1;">⬆ Restore backup</button>
+      </div>
+      <input type="file" id="import-file-input" accept="application/json" style="display:none;" />
+      <div id="backup-status" style="font-size:12px; color:var(--text-secondary); display:none;"></div>
+    </div>
     <div class="wj-card" id="program-day-header" style="margin-bottom: 8px; display:flex; align-items:center; gap:10px;">
       <div id="program-day-icon" style="height:42px; flex-shrink:0; display:flex; align-items:center;"></div>
       <select class="wj-select" id="program-day-select" style="flex:1; height:auto; padding:6px 8px; font-size:16px; font-weight:700; border:none; background:var(--surface-1);"></select>
@@ -338,13 +352,14 @@
     toastTimer = setTimeout(()=>{ el.classList.remove('show'); }, 3000);
   }
 
-  function showConfirm(message){
+  function showConfirm(message, okLabel){
     return new Promise((resolve)=>{
       const overlay = document.getElementById('confirm-modal-overlay');
       const textEl = document.getElementById('confirm-modal-text');
       const okBtn = document.getElementById('confirm-modal-ok');
       const cancelBtn = document.getElementById('confirm-modal-cancel');
       textEl.textContent = message;
+      okBtn.textContent = okLabel || 'Delete';
       overlay.classList.add('show');
 
       function cleanup(result){
@@ -792,6 +807,82 @@
     } else {
       hint.style.display = 'none';
     }
+  });
+
+  // --- Резервна копія: експорт у файл / відновлення з файлу ---
+  function showBackupStatus(msg, isError){
+    const el = document.getElementById('backup-status');
+    el.textContent = msg;
+    el.style.color = isError ? 'var(--text-danger)' : 'var(--text-success)';
+    el.style.display = 'block';
+  }
+
+  document.getElementById('btn-backup-toggle').addEventListener('click', ()=>{
+    const panel = document.getElementById('backup-panel');
+    panel.style.display = (panel.style.display === 'none') ? 'flex' : 'none';
+    document.getElementById('backup-status').style.display = 'none';
+  });
+
+  document.getElementById('btn-export-data').addEventListener('click', ()=>{
+    const payload = {
+      app: 'Repwave',
+      backupVersion: 1,
+      exportedAt: new Date().toISOString(),
+      program,
+      entries,
+      dayColors,
+      dayIcons
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const stamp = todayStr();
+    a.href = url;
+    a.download = `repwave-backup-${stamp}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(()=> URL.revokeObjectURL(url), 2000);
+    showBackupStatus('Backup saved to your downloads.', false);
+  });
+
+  document.getElementById('btn-import-data').addEventListener('click', ()=>{
+    document.getElementById('import-file-input').click();
+  });
+
+  document.getElementById('import-file-input').addEventListener('change', async (e)=>{
+    const file = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if(!file) return;
+    let data;
+    try {
+      const text = await file.text();
+      data = JSON.parse(text);
+    } catch(err){
+      showBackupStatus('This file could not be read. Make sure it is a Repwave backup.', true);
+      return;
+    }
+    if(!data || typeof data !== 'object' || !('program' in data) || !('entries' in data)){
+      showBackupStatus('This does not look like a valid Repwave backup file.', true);
+      return;
+    }
+    const confirmed = await showConfirm('Restore this backup? It will replace everything currently on this device.', 'Restore');
+    if(!confirmed) return;
+
+    program = (data.program && typeof data.program === 'object') ? data.program : {};
+    entries = Array.isArray(data.entries) ? data.entries : [];
+    dayColors = (data.dayColors && typeof data.dayColors === 'object') ? data.dayColors : {};
+    dayIcons = (data.dayIcons && typeof data.dayIcons === 'object') ? data.dayIcons : {};
+
+    await saveProgram();
+    await saveEntries();
+    await saveDayColors();
+    await saveDayIcons();
+
+    fillDaySelects();
+    renderProgram();
+    showBackupStatus('Backup restored successfully.', false);
+    showToast('Backup restored.');
   });
 
   document.getElementById('btn-add-day').addEventListener('click', ()=>{
@@ -1544,10 +1635,10 @@
       const count = datesByDay[day] ? datesByDay[day].size : 0;
       const color = colorMap[day] || '#17c98f';
       const id = slugify(day);
-      const iconSvg = renderGroupIconsCombined(getDayIconKeys(day), 38, color);
+      const iconSvg = renderGroupIconsCombined(getDayIconKeys(day), 36, color);
       return `
-        <div style="border-radius: 12px; padding: 8px; background: linear-gradient(135deg, ${color}33, ${color}0d 70%); border: 1px solid ${color}70; box-shadow: 0 0 16px ${color}55, 0 2px 8px rgba(0,0,0,0.3);">
-          <div style="display:flex; align-items:center; gap:7px; margin-bottom:4px;">
+        <div style="border-radius: 16px; padding: 10px; background: linear-gradient(135deg, ${color}33, ${color}0d 70%); border: 1px solid ${color}70; box-shadow: 0 0 16px ${color}55, 0 2px 8px rgba(0,0,0,0.3);">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
             ${iconSvg}
             <div style="min-width:0;">
               <div style="font-size:11px; color: var(--text-secondary,#666); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(day)}</div>
@@ -1557,7 +1648,7 @@
               </div>
             </div>
           </div>
-          <div style="position:relative; height:24px;"><canvas id="daycount-chart-${id}"></canvas></div>
+          <div style="position:relative; height:74px;"><canvas id="daycount-chart-${id}"></canvas></div>
         </div>
       `;
     }).join('');
@@ -1575,7 +1666,7 @@
       const vRange = vMax - vMin;
       // Розтягуємо шкалу під фактичний діапазон значень (замість 0..max),
       // щоб навіть невеликі коливання обʼєму давали виразну, "живу" криву.
-      const pad = vRange > 0 ? vRange * 0.35 : Math.max(vMax * 0.15, 1);
+      const pad = vRange > 0 ? vRange * 0.5 : Math.max(vMax * 0.15, 1);
       const yMin = Math.max(0, vMin - pad);
       const yMax = vMax + pad;
 
@@ -1589,12 +1680,12 @@
             backgroundColor: color + '33',
             pointBackgroundColor: color,
             pointBorderColor: '#0b2622',
-            pointBorderWidth: 1.5,
-            tension: 0.3,
+            pointBorderWidth: 2,
+            tension: 0.35,
             fill: 'start',
-            pointRadius: 3,
-            pointHoverRadius: 5,
-            borderWidth: 2.5
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            borderWidth: 3
           }]
         },
         options: {
