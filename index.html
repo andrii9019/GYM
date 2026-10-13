@@ -184,6 +184,12 @@
   .rpe-chip.selected[data-lvl="mid"] { background: #e0a030; border-color: #e0a030; color: #2b1d00; }
   .rpe-chip.selected[data-lvl="high"] { background: #f0716a; border-color: #f0716a; color: #2b0705; }
 
+  .log-cycle-banner { margin-bottom: 8px; padding: 8px 10px; border-radius: 14px; background: linear-gradient(135deg, rgba(77,182,172,0.28), rgba(224,160,48,0.12)); border: 1px solid var(--accent); }
+  .log-cycle-banner .t { font-size: 12px; font-weight: 800; color: var(--text-primary); }
+  .log-cycle-banner .d { font-size: 11px; color: var(--text-secondary); margin-top: 2px; line-height: 1.35; }
+  .ex-hint { font-size: 11px; line-height: 1.35; }
+  .ex-hint .tg { color: var(--accent-2); font-weight: 700; }
+  .ex-hint .ls { color: var(--text-secondary); }
   .cyc-weeks { display:flex; gap:4px; margin-bottom:8px; }
   .cyc-week { flex:1; min-width:0; border-radius:12px; padding:6px 4px; text-align:center; background: var(--surface-3); border:1px solid var(--border); cursor:pointer; color: var(--text-secondary); transition: background .12s, transform .1s; }
   .cyc-week:active { transform: scale(0.96); }
@@ -334,6 +340,7 @@
       <select class="wj-select" id="log-day-select" style="flex:2;"></select>
       <input type="date" class="wj-input" id="log-date" style="flex:1;" />
     </div>
+    <div id="log-cycle-banner"></div>
     <div id="log-recovery-banner" style="margin-bottom: 8px;"></div>
     <div id="log-list" style="margin-bottom: 8px;"></div>
     <div id="log-error" style="color: var(--text-danger, #c0392b); font-size: 13px; margin-bottom: 8px; display: none;"></div>
@@ -656,8 +663,8 @@
     try {
       const cyRes = await storage.get(CYCLE_KEY, false);
       const cy = cyRes && cyRes.value ? JSON.parse(cyRes.value) : null;
-      if(cy && typeof cy === 'object') cycle = { start: cy.start || null, mainLifts: Array.isArray(cy.mainLifts) ? cy.mainLifts : null };
-    } catch(e){ cycle = { start: null, mainLifts: null }; }
+      if(cy && typeof cy === 'object') cycle = { start: cy.start || null, mainLifts: Array.isArray(cy.mainLifts) ? cy.mainLifts : null, active: (typeof cy.active === 'number') ? cy.active : null };
+    } catch(e){ cycle = { start: null, mainLifts: null, active: null }; }
 
     try {
       const res = await storage.get(PROGRAM_KEY, false);
@@ -1145,8 +1152,8 @@
     await saveDayColors();
     await saveDayIcons();
     cycle = (data.cycle && typeof data.cycle === 'object')
-      ? { start: data.cycle.start || null, mainLifts: Array.isArray(data.cycle.mainLifts) ? data.cycle.mainLifts : null }
-      : { start: null, mainLifts: null };
+      ? { start: data.cycle.start || null, mainLifts: Array.isArray(data.cycle.mainLifts) ? data.cycle.mainLifts : null, active: (typeof data.cycle.active === 'number') ? data.cycle.active : null }
+      : { start: null, mainLifts: null, active: null };
     await saveCycle();
 
     fillDaySelects();
@@ -1347,6 +1354,12 @@
 
   const RPE_VALUES = [6, 7, 7.5, 8, 8.5, 9, 9.5, 10];
   document.getElementById('log-list').addEventListener('click', (ev)=>{
+    const showBtn = ev.target.closest('#btn-show-optional');
+    if(showBtn){
+      document.querySelectorAll('#log-list .ex-optional').forEach(r => { r.style.display = ''; });
+      showBtn.remove();
+      return;
+    }
     const chip = ev.target.closest('.rpe-chip');
     if(!chip) return;
     const row = chip.closest('.ex-row');
@@ -1379,21 +1392,46 @@
       list.innerHTML = '<div class="wj-card"><p style="color:var(--text-secondary,#666); font-size:14px; text-align:center; margin:0;">No exercises for this day. Add them in the "Program" tab.</p></div>';
       return;
     }
-    list.innerHTML = exercises.map((ex, i) => `
-      <div class="ex-row">
+    const wkIdx = (typeof cycle.active === 'number') ? cycle.active : null;
+    const mainSet = mainLiftsList();
+    const banner = document.getElementById('log-cycle-banner');
+    if(banner){
+      if(wkIdx !== null){
+        const wk = CYCLE_WEEKS[wkIdx];
+        banner.innerHTML = `<div class="log-cycle-banner"><div class="t">Week ${wkIdx + 1} · ${escapeHtml(wk.name)} · target RPE ${wk.rpe}</div><div class="d">${wkIdx === 2 ? 'Main lifts only. Other exercises are optional (tap the button below the list).' : escapeHtml(wk.desc)}</div></div>`;
+      } else { banner.innerHTML = ''; }
+    }
+    let optionalCount = 0;
+    const rowsHtml = exercises.map((ex, i) => {
+      const sg = suggestForExercise(ex.name);
+      const lastE = lastLoggedFor(ex.name);
+      const optional = (wkIdx === 2 && !mainSet.includes(ex.name));
+      let t = (wkIdx !== null && !optional) ? cycleTarget(wkIdx, ex) : null;
+      if(t && (wkIdx === 0 || wkIdx === 1) && sg && typeof sg.weight === 'number') t = { ...t, weight: sg.weight };
+      if(optional) optionalCount++;
+      const vSets = t ? t.sets : ex.sets;
+      const vReps = t ? t.reps : ex.reps;
+      const vWeight = t ? t.weight : ex.weight;
+      const hintTarget = t ? `<span class="tg">Target ${t.sets}×${escapeHtml(String(t.reps))} · ${fmtKg(t.weight)} kg · RPE ${t.rpe}</span>${t.sub ? ' <span class="ls">(' + escapeHtml(t.sub) + ')</span>' : ''}` : '';
+      const hintLast = (wkIdx !== null && lastE) ? `<span class="ls">Last: ${lastE.weight} kg × ${lastE.sets}×${escapeHtml(String(lastE.repsLabel || lastE.reps))}${typeof lastE.rpe === 'number' ? ' · RPE ' + lastE.rpe : ''}</span>` : '';
+      const hintAdvice = (sg && !optional) ? `<span class="ls"> · ${escapeHtml(sg.text)}</span>` : '';
+      const hint = (hintTarget || hintLast) ? `<div class="ex-hint">${hintTarget}${hintTarget && hintLast ? '<br>' : ''}${hintLast}${hintAdvice}</div>` : '';
+      return `
+      <div class="ex-row${optional ? ' ex-optional' : ''}"${optional ? ' style="display:none;"' : ''}>
         <div style="font-weight:500; font-size:14px;">${escapeHtml(ex.name || '(без назви)')}</div>
+        ${hint}
         <div class="ex-grid">
           <div class="ex-field-sets">
             <div class="ex-mini-label">Sets</div>
-            <input class="wj-input" type="number" min="1" step="1" inputmode="numeric" data-log-field="sets" data-log-i="${i}" value="${ex.sets}" />
+            <input class="wj-input" type="number" min="1" step="1" inputmode="numeric" data-log-field="sets" data-log-i="${i}" value="${vSets}" />
           </div>
           <div class="ex-field-reps">
             <div class="ex-mini-label">Reps</div>
-            <input class="wj-input" data-log-field="reps" data-log-i="${i}" value="${escapeHtml(String(ex.reps))}" />
+            <input class="wj-input" data-log-field="reps" data-log-i="${i}" value="${escapeHtml(String(vReps))}" />
           </div>
           <div class="ex-field-weight">
             <div class="ex-mini-label">Weight, kg</div>
-            <input class="wj-input" type="number" min="0" step="0.5" inputmode="decimal" data-log-field="weight" data-log-i="${i}" value="${ex.weight}" />
+            <input class="wj-input" type="number" min="0" step="0.5" inputmode="decimal" data-log-field="weight" data-log-i="${i}" value="${vWeight}" />
           </div>
         </div>
         <div class="rpe-row">
@@ -1403,7 +1441,8 @@
           </div>
         </div>
       </div>
-    `).join('');
+    `; }).join('');
+    list.innerHTML = rowsHtml + (optionalCount ? `<button type="button" class="wj-btn" id="btn-show-optional" style="width:100%; margin-bottom:6px;">+ ${optionalCount} optional exercise(s)</button>` : '');
     glowExerciseRows(list, dayColor);
   }
 
@@ -1497,6 +1536,7 @@
     let hasError = false;
     const newEntries = [];
     rows.forEach((row, i) => {
+      if(row.classList.contains('ex-optional') && row.style.display === 'none') return;
       const setsInp = row.querySelector('[data-log-field="sets"]');
       const repsInp = row.querySelector('[data-log-field="reps"]');
       const weightInp = row.querySelector('[data-log-field="weight"]');
@@ -1676,7 +1716,7 @@
   const DAY_ICONS_KEY = 'day_icons';
   let dayIcons = {};
   const CYCLE_KEY = 'cycle';
-  let cycle = { start: null, mainLifts: null };
+  let cycle = { start: null, mainLifts: null, active: null };
   let cyclePreviewWeek = null;
   let calendarCursor = null; // { year, month } month is 0-indexed
   let selectedCalDate = null;
@@ -2040,16 +2080,16 @@
     const base = { name };
 
     if(rpe !== null && prevRpe !== null && rpe >= 9.5 && prevRpe >= 9.5){
-      return { ...base, type: 'reduce', title: name, text: 'Two near-max workouts in a row (RPE ' + rpe + '). Drop to about ' + fmtKg(last.weight * 0.92) + ' kg and rebuild.' };
+      return { ...base, type: 'reduce', title: name, weight: roundLoad(last.weight * 0.92), text: 'Two near-max workouts in a row (RPE ' + rpe + '). Drop to about ' + fmtKg(last.weight * 0.92) + ' kg and rebuild.' };
     }
     if(rpe !== null && (rpe >= 9.5 || (rpe >= 9 && last.reps < tgt.min))){
-      return { ...base, type: 'hold', title: name, text: 'Keep ' + fmtKg(last.weight) + ' kg (RPE ' + rpe + '). Add reps before adding weight.' };
+      return { ...base, type: 'hold', title: name, weight: last.weight, text: 'Keep ' + fmtKg(last.weight) + ' kg (RPE ' + rpe + '). Add reps before adding weight.' };
     }
     if(hitTop && ((rpe !== null && rpe <= 8) || (rpe === null && prev.reps >= tgt.max && prev.weight === last.weight))){
-      return { ...base, type: 'up', title: name, text: 'Add weight: try ' + fmtKg(last.weight + step) + ' kg (hit ' + last.reps + ' reps' + (rpe !== null ? ', RPE ' + rpe : '; log RPE for sharper advice') + ').' };
+      return { ...base, type: 'up', title: name, weight: last.weight + step, text: 'Add weight: try ' + fmtKg(last.weight + step) + ' kg (hit ' + last.reps + ' reps' + (rpe !== null ? ', RPE ' + rpe : '; log RPE for sharper advice') + ').' };
     }
     if(rpe !== null && rpe <= 7 && !hitTop){
-      return { ...base, type: 'up', title: name, text: 'Felt easy (RPE ' + rpe + '). Try ' + fmtKg(last.weight + step) + ' kg or add a rep.' };
+      return { ...base, type: 'up', title: name, weight: last.weight + step, text: 'Felt easy (RPE ' + rpe + '). Try ' + fmtKg(last.weight + step) + ' kg or add a rep.' };
     }
     if(data.length >= 3){
       const a = data[data.length - 3];
@@ -2175,7 +2215,9 @@
     if(weekIdx === 3){
       return { sets: Math.max(2, baseSets - 1), reps, weight: roundLoad(baseW * 0.85), rpe: '6', sub: '' };
     }
-    return { sets: baseSets, reps, weight: baseW, rpe: weekIdx === 0 ? '7' : '8', sub: '' };
+    const sg = suggestForExercise(ex.name);
+    const w = (sg && typeof sg.weight === 'number') ? sg.weight : baseW;
+    return { sets: baseSets, reps, weight: w, rpe: weekIdx === 0 ? '7' : '8', sub: '' };
   }
 
   function renderCycle(){
@@ -2185,7 +2227,7 @@
     const pos = null;
 
     // --- План тижня ---
-    const shownIdx = (cyclePreviewWeek !== null) ? cyclePreviewWeek : (pos ? pos.w : 0);
+    const shownIdx = (cyclePreviewWeek !== null) ? cyclePreviewWeek : (typeof cycle.active === 'number' ? cycle.active : 0);
     const main = mainLiftsList();
     const colorMap = getDayColorMap();
     const shown = CYCLE_WEEKS[shownIdx];
@@ -2211,8 +2253,12 @@
     planEl.innerHTML = `
       <div class="section-label" style="margin-bottom:8px;">Week plan</div>
       <div class="cyc-weeks">${CYCLE_WEEKS.map((w, i) => `
-        <div class="cyc-week${(pos && pos.w === i) ? ' current' : ''}${i === shownIdx ? ' selected' : ''}" data-cyc-w="${i}"><div class="w">W${i + 1}</div><div class="n">${escapeHtml(w.name)}</div></div>`).join('')}
+        <div class="cyc-week${cycle.active === i ? ' current' : ''}${i === shownIdx ? ' selected' : ''}" data-cyc-w="${i}"><div class="w">W${i + 1}</div><div class="n">${escapeHtml(w.name)}</div></div>`).join('')}
       </div>
+      ${cycle.active === shownIdx
+        ? `<button class="wj-btn wj-btn-success" id="btn-cycle-off" style="width:100%; margin-bottom:8px;">✓ Used in Train · tap to turn off</button>`
+        : `<button class="wj-btn wj-btn-primary" id="btn-cycle-apply" style="width:100%; margin-bottom:8px;">Use W${shownIdx + 1} ${escapeHtml(shown.name)} in Train</button>`}
+      ${(typeof cycle.active === 'number' && cycle.active !== shownIdx) ? `<div class="cyc-muted" style="margin-bottom:6px;">Train now uses W${cycle.active + 1} ${escapeHtml(CYCLE_WEEKS[cycle.active].name)}.</div>` : ''}
       <div class="cyc-muted">Target RPE ${shown.rpe}. Weights are based on your last logged workout${shownIdx === 2 ? ' and an estimated max' : ''}. Round numbers to what your equipment allows.</div>
       ${daysHtml}`;
 
@@ -2224,6 +2270,10 @@
       <div class="cyc-chips">${allNames.map(n => `<button type="button" class="cyc-chip${main.includes(n) ? ' on' : ''}" data-cyc-main="${escapeHtml(n)}">${escapeHtml(n)}</button>`).join('') || '<span class="cyc-muted">No exercises yet.</span>'}</div>`;
 
     // --- Події ---
+    const applyBtn = document.getElementById('btn-cycle-apply');
+    if(applyBtn) applyBtn.addEventListener('click', async () => { cycle.active = shownIdx; await saveCycle(); renderCycle(); renderLog(); showToast('Week ' + (shownIdx + 1) + ' is now used in Train.'); });
+    const offBtn = document.getElementById('btn-cycle-off');
+    if(offBtn) offBtn.addEventListener('click', async () => { cycle.active = null; await saveCycle(); renderCycle(); renderLog(); showToast('Train uses your Program again.'); });
     planEl.querySelectorAll('[data-cyc-w]').forEach(el => el.addEventListener('click', () => {
       cyclePreviewWeek = parseInt(el.getAttribute('data-cyc-w'));
       renderCycle();
