@@ -1369,7 +1369,35 @@
     else { chip.classList.add('selected'); row.dataset.rpe = chip.getAttribute('data-rpe'); }
   });
 
+  function renderLogWeekBar(){
+    const banner = document.getElementById('log-cycle-banner');
+    if(!banner) return;
+    const act = (typeof cycle.active === 'number') ? cycle.active : null;
+    const chips = `<div class="cyc-weeks" style="margin-bottom:6px;">
+      <div class="cyc-week${act === null ? ' selected' : ''}" data-log-w="off"><div class="w">OFF</div><div class="n">Program</div></div>
+      ${CYCLE_WEEKS.map((w, i) => `<div class="cyc-week${act === i ? ' selected' : ''}" data-log-w="${i}"><div class="w">W${i + 1}</div><div class="n">${escapeHtml(w.name)}</div></div>`).join('')}
+    </div>`;
+    let info;
+    if(act !== null){
+      const wk = CYCLE_WEEKS[act];
+      info = `<div class="t">Week ${act + 1} · ${escapeHtml(wk.name)} · target RPE ${wk.rpe}</div><div class="d">${act === 2 ? 'Main lifts only. Other exercises are optional (tap the button below the list).' : escapeHtml(wk.desc)}</div>`;
+    } else {
+      info = '<div class="d" style="margin-top:0;">Choose a week to fill in sets, reps and weight automatically. Now: your Program values.</div>';
+    }
+    banner.innerHTML = `<div class="log-cycle-banner">${chips}${info}</div>`;
+  }
+  document.getElementById('log-cycle-banner').addEventListener('click', async (ev) => {
+    const el = ev.target.closest('[data-log-w]');
+    if(!el) return;
+    const v = el.getAttribute('data-log-w');
+    cycle.active = (v === 'off') ? null : parseInt(v);
+    await saveCycle();
+    renderLog();
+    renderCycle();
+  });
+
   function renderLog(){
+    renderLogWeekBar();
     const day = document.getElementById('log-day-select').value || dayNames()[0];
     const colorMap = getDayColorMap();
     const dayColor = (day && colorMap[day]) || '#4db6ac';
@@ -1394,13 +1422,6 @@
     }
     const wkIdx = (typeof cycle.active === 'number') ? cycle.active : null;
     const mainSet = mainLiftsList();
-    const banner = document.getElementById('log-cycle-banner');
-    if(banner){
-      if(wkIdx !== null){
-        const wk = CYCLE_WEEKS[wkIdx];
-        banner.innerHTML = `<div class="log-cycle-banner"><div class="t">Week ${wkIdx + 1} · ${escapeHtml(wk.name)} · target RPE ${wk.rpe}</div><div class="d">${wkIdx === 2 ? 'Main lifts only. Other exercises are optional (tap the button below the list).' : escapeHtml(wk.desc)}</div></div>`;
-      } else { banner.innerHTML = ''; }
-    }
     let optionalCount = 0;
     const rowsHtml = exercises.map((ex, i) => {
       const sg = suggestForExercise(ex.name);
