@@ -364,10 +364,6 @@
 
   <div id="view-progress" class="view-panel" style="display:none;">
     <div class="page-header"><div class="eyebrow">Progress</div><h1 class="page-title">See how far you've come</h1></div>
-    <div class="wj-card" id="reco-card" style="margin-bottom: 8px;">
-      <div class="section-label" style="margin-bottom: 8px;">Recommendations</div>
-      <div id="reco-list"></div>
-    </div>
     <div class="wj-card" style="margin-bottom: 8px;">
       <div class="section-label" style="margin-bottom: 10px;">Workouts by muscle group</div>
       <div id="training-count-list" style="display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 6px;"></div>
@@ -388,7 +384,10 @@
 
   <div id="view-cycle" class="view-panel" style="display:none;">
     <div class="page-header"><div class="eyebrow">Periodization</div><h1 class="page-title">Your training cycle</h1></div>
-    <div class="wj-card" id="cycle-status" style="margin-bottom: 8px;"></div>
+    <div class="wj-card" id="reco-card" style="margin-bottom: 8px;">
+      <div class="section-label" style="margin-bottom: 8px;">Recommendations</div>
+      <div id="reco-list"></div>
+    </div>
     <div class="wj-card" id="cycle-plan" style="margin-bottom: 8px;"></div>
     <div class="wj-card" id="cycle-main" style="margin-bottom: 8px;"></div>
   </div>
@@ -503,7 +502,6 @@
     const totalSets = fullData.reduce((s, e) => s + e.sets, 0);
     const rpeVals = fullData.filter(e => typeof e.rpe === 'number').map(e => e.rpe);
     const avgRpe = rpeVals.length ? Math.round(rpeVals.reduce((a,b)=>a+b,0) / rpeVals.length * 10) / 10 : null;
-    const sugg = suggestForExercise(name);
 
     document.getElementById('detail-modal-stats').innerHTML = `
       <div class="detail-stat"><div class="detail-stat-label">Max weight</div><div class="detail-stat-value">${maxWeight} kg</div></div>
@@ -517,7 +515,6 @@
       ${rpeVals.length ? '<span><span class="dot" style="background:#f0716a;"></span>RPE</span>' : ''}
     `;
     document.getElementById('detail-modal-list').innerHTML =
-      (sugg ? `<div class="reco-item" style="cursor:default;"><div class="reco-ico" style="background:${RECO_STYLE[sugg.type].bg};">${RECO_STYLE[sugg.type].ico}</div><div class="reco-text" style="margin:0; color:var(--text-primary);">${escapeHtml(sugg.text)}</div></div>` : '') +
       `<div style="margin-bottom:6px; font-size:12px;">${buildTrendHtml(fullData)}</div>` +
       fullData.slice().reverse().slice(0, 8).map(e => `
         <div class="detail-list-row"><span class="name">${escapeHtml(e.date)}</span><span class="val">${e.weight} kg × ${e.sets} × ${e.reps}${typeof e.rpe === 'number' ? ' · RPE ' + e.rpe : ''}</span></div>
@@ -768,7 +765,7 @@
     if(tab==='history') renderHistory();
     if(tab==='progress'){ renderProgress(); renderTrainingCounts(); }
     if(tab==='program') renderProgram();
-    if(tab==='cycle') renderCycle();
+    if(tab==='cycle'){ renderCycle(); renderRecommendations(); }
   }
   document.getElementById('tab-program').addEventListener('click', ()=>switchTab('program'));
   document.getElementById('tab-log').addEventListener('click', ()=>switchTab('log'));
@@ -2182,36 +2179,10 @@
   }
 
   function renderCycle(){
-    const statusEl = document.getElementById('cycle-status');
     const planEl = document.getElementById('cycle-plan');
     const mainEl = document.getElementById('cycle-main');
-    if(!statusEl || !planEl || !mainEl) return;
-    const pos = cyclePosition();
-
-    // --- Статус ---
-    if(!pos){
-      statusEl.innerHTML = `
-        <div class="section-label" style="margin-bottom:6px;">Start a 4-week cycle</div>
-        <div class="reco-text" style="margin-bottom:10px;">Two volume weeks, one strength week with fewer exercises and heavier weights, then a deload week. After that it repeats.</div>
-        <button class="wj-btn wj-btn-primary" id="btn-cycle-start" style="width:100%;">Start Week 1 today</button>`;
-    } else {
-      const wk = CYCLE_WEEKS[pos.w];
-      const warn = (pos.w !== 3) ? suggestDeload() : null;
-      statusEl.innerHTML = `
-        <div style="display:flex; justify-content:space-between; align-items:baseline; gap:8px;">
-          <div class="section-label">Cycle ${pos.cycleNo} · Week ${pos.w + 1} of 4</div>
-          <div style="font-size:12px; font-weight:700; color: var(--accent);">${escapeHtml(wk.name)}</div>
-        </div>
-        <div class="cyc-bar">${[0,1,2,3].map(i => `<span class="${i < pos.w ? 'done' : (i === pos.w ? 'now' : '')}"></span>`).join('')}</div>
-        <div class="cyc-muted">${pos.future > 0 ? 'Starts in ' + pos.future + ' day(s). ' : 'Day ' + (pos.dayInWeek + 1) + ' of 7. '}Target RPE ${wk.rpe}.</div>
-        <div class="reco-text" style="margin-top:6px;">${escapeHtml(wk.desc)}</div>
-        ${warn ? `<div class="reco-item" style="margin-top:8px; cursor:default;"><div class="reco-ico" style="background:#f0955d;">!</div><div class="reco-text" style="margin:0; color:var(--text-primary);">${escapeHtml(warn.text)}</div></div>
-          <button class="wj-btn" id="btn-cycle-deload" style="width:100%; margin-top:6px;">Switch to deload now</button>` : ''}
-        <div class="wj-row" style="margin-top:10px;">
-          <button class="wj-btn" id="btn-cycle-next" style="flex:1;">Next week</button>
-          <button class="wj-btn" id="btn-cycle-restart" style="flex:1;">Restart today</button>
-        </div>`;
-    }
+    if(!planEl || !mainEl) return;
+    const pos = null;
 
     // --- План тижня ---
     const shownIdx = (cyclePreviewWeek !== null) ? cyclePreviewWeek : (pos ? pos.w : 0);
@@ -2253,25 +2224,6 @@
       <div class="cyc-chips">${allNames.map(n => `<button type="button" class="cyc-chip${main.includes(n) ? ' on' : ''}" data-cyc-main="${escapeHtml(n)}">${escapeHtml(n)}</button>`).join('') || '<span class="cyc-muted">No exercises yet.</span>'}</div>`;
 
     // --- Події ---
-    const startBtn = document.getElementById('btn-cycle-start');
-    if(startBtn) startBtn.addEventListener('click', async () => { cycle.start = todayStr(); cyclePreviewWeek = null; await saveCycle(); renderCycle(); });
-    const restartBtn = document.getElementById('btn-cycle-restart');
-    if(restartBtn) restartBtn.addEventListener('click', async () => {
-      const ok = await showConfirm('Restart the cycle from Week 1 today?', 'Restart');
-      if(!ok) return;
-      cycle.start = todayStr(); cyclePreviewWeek = null; await saveCycle(); renderCycle();
-    });
-    const nextBtn = document.getElementById('btn-cycle-next');
-    if(nextBtn) nextBtn.addEventListener('click', async () => {
-      const d = parseLocalDate(cycle.start); d.setDate(d.getDate() - 7);
-      cycle.start = fmtLocalDate(d); cyclePreviewWeek = null; await saveCycle(); renderCycle();
-    });
-    const deloadBtn = document.getElementById('btn-cycle-deload');
-    if(deloadBtn) deloadBtn.addEventListener('click', async () => {
-      const p = cyclePosition();
-      const d = new Date(); d.setDate(d.getDate() - 7 * (4 * (p.cycleNo - 1) + 3));
-      cycle.start = fmtLocalDate(d); cyclePreviewWeek = null; await saveCycle(); renderCycle();
-    });
     planEl.querySelectorAll('[data-cyc-w]').forEach(el => el.addEventListener('click', () => {
       cyclePreviewWeek = parseInt(el.getAttribute('data-cyc-w'));
       renderCycle();
