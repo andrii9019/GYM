@@ -542,24 +542,24 @@
               label: 'Weight', data: weightVals, yAxisID: 'y',
               borderColor: color, backgroundColor: color + '33',
               pointBackgroundColor: color, pointBorderColor: '#00403f', pointBorderWidth: 2,
-              tension: 0.3, fill: 'start', pointRadius: 4, pointHoverRadius: 6, borderWidth: 3
+              tension: 0.3, fill: 'start', pointRadius: 6, pointHoverRadius: 10, pointHitRadius: 32, pointHoverBorderWidth: 3, borderWidth: 3
             },
             {
               label: 'Tonnage', data: volumeVals, yAxisID: 'y1',
               borderColor: '#e0a030', backgroundColor: 'transparent',
               pointBackgroundColor: '#e0a030', pointBorderColor: '#00403f', pointBorderWidth: 1.5,
-              tension: 0.3, pointRadius: 3, pointHoverRadius: 5, borderWidth: 2, borderDash: [4, 3]
+              tension: 0.3, pointRadius: 4, pointHoverRadius: 8, pointHitRadius: 32, borderWidth: 2, borderDash: [4, 3]
             }
           ].concat(rpeVals.length ? [{
               label: 'RPE', data: fullData.map(e => (typeof e.rpe === 'number') ? e.rpe : null), yAxisID: 'y2',
               borderColor: '#f0716a', backgroundColor: 'transparent', spanGaps: true,
               pointBackgroundColor: '#f0716a', pointBorderColor: '#00403f', pointBorderWidth: 1.5,
-              tension: 0.3, pointRadius: 4, pointHoverRadius: 6, borderWidth: 2
+              tension: 0.3, pointRadius: 6, pointHoverRadius: 10, pointHitRadius: 32, pointHoverBorderWidth: 3, borderWidth: 2
             }] : [])
         },
         options: {
           responsive: true, maintainAspectRatio: false,
-          interaction: { mode: 'index', intersect: false },
+          interaction: { mode: 'index', axis: 'x', intersect: false },
           plugins: { legend: { display: false }, tooltip: { enabled: true } },
           scales: {
             y: { position: 'left', ticks: { color: 'rgba(255,255,255,0.55)', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.08)' } },
@@ -626,11 +626,12 @@
             label: 'Tonnage', data: vals,
             borderColor: color, backgroundColor: color + '33',
             pointBackgroundColor: color, pointBorderColor: '#00403f', pointBorderWidth: 2,
-            tension: 0.35, fill: 'start', pointRadius: 4, pointHoverRadius: 6, borderWidth: 3
+            tension: 0.35, fill: 'start', pointRadius: 6, pointHoverRadius: 10, pointHitRadius: 32, pointHoverBorderWidth: 3, borderWidth: 3
           }]
         },
         options: {
           responsive: true, maintainAspectRatio: false,
+          interaction: { mode: 'nearest', axis: 'x', intersect: false },
           plugins: { legend: { display: false }, tooltip: { enabled: true } },
           scales: {
             y: { min: yMin, max: yMax, ticks: { color: 'rgba(255,255,255,0.55)', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.08)' } },
