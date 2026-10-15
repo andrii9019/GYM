@@ -542,19 +542,19 @@
               label: 'Weight', data: weightVals, yAxisID: 'y',
               borderColor: color, backgroundColor: color + '33',
               pointBackgroundColor: color, pointBorderColor: '#00403f', pointBorderWidth: 2,
-              tension: 0.3, fill: 'start', pointRadius: 6, pointHoverRadius: 10, pointHitRadius: 32, pointHoverBorderWidth: 3, borderWidth: 3
+              tension: 0.3, cubicInterpolationMode: 'monotone', fill: 'start', pointRadius: 6, pointHoverRadius: 10, pointHitRadius: 32, pointHoverBorderWidth: 3, borderWidth: 3
             },
             {
               label: 'Tonnage', data: volumeVals, yAxisID: 'y1',
               borderColor: '#e0a030', backgroundColor: 'transparent',
               pointBackgroundColor: '#e0a030', pointBorderColor: '#00403f', pointBorderWidth: 1.5,
-              tension: 0.3, pointRadius: 4, pointHoverRadius: 8, pointHitRadius: 32, borderWidth: 2, borderDash: [4, 3]
+              tension: 0.3, cubicInterpolationMode: 'monotone', pointRadius: 4, pointHoverRadius: 8, pointHitRadius: 32, borderWidth: 2, borderDash: [4, 3]
             }
           ].concat(rpeVals.length ? [{
               label: 'RPE', data: fullData.map(e => (typeof e.rpe === 'number') ? e.rpe : null), yAxisID: 'y2',
               borderColor: '#f0716a', backgroundColor: 'transparent', spanGaps: true,
               pointBackgroundColor: '#f0716a', pointBorderColor: '#00403f', pointBorderWidth: 1.5,
-              tension: 0.3, pointRadius: 6, pointHoverRadius: 10, pointHitRadius: 32, pointHoverBorderWidth: 3, borderWidth: 2
+              tension: 0.3, cubicInterpolationMode: 'monotone', pointRadius: 6, pointHoverRadius: 10, pointHitRadius: 32, pointHoverBorderWidth: 3, borderWidth: 2
             }] : [])
         },
         options: {
@@ -604,7 +604,10 @@
       <div class="detail-stat"><div class="detail-stat-label">Avg tonnage</div><div class="detail-stat-value">${avgVol}</div></div>
     `;
     document.getElementById('detail-modal-legend').innerHTML =
-      `<span><span class="dot" style="background:${color};"></span>Tonnage per workout</span>`;
+      `<span><span class="dot" style="background:#5ee0c8;"></span>▲ rise</span>
+       <span><span class="dot" style="background:#f0716a;"></span>▼ drop</span>
+       <span><span class="dot" style="background:#ffd166;"></span>best</span>
+       <span style="color:var(--text-secondary);">- - average</span>`;
     document.getElementById('detail-modal-list').innerHTML = topExercises.map(([ex, count]) => `
         <div class="detail-list-row"><span class="name">${escapeHtml(ex)}</span><span class="val">${count}×</span></div>
       `).join('');
@@ -614,27 +617,86 @@
       const canvas = document.getElementById('detail-modal-chart');
       const vMin = Math.min(...vals), vMax = Math.max(...vals);
       const vRange = vMax - vMin;
-      const pad = vRange > 0 ? vRange * 0.4 : Math.max(vMax * 0.15, 1);
-      const yMin = Math.max(0, vMin - pad);
-      const yMax = vMax + pad;
+      // Шкала щільно під фактичний діапазон + запас зверху під підписи значень
+      const yMin = Math.max(0, vMin - (vRange > 0 ? vRange * 0.25 : Math.max(vMax * 0.15, 1)));
+      const yMax = vMax + (vRange > 0 ? vRange * 0.3 : Math.max(vMax * 0.15, 1));
+      const UP = '#5ee0c8', DOWN = '#f0716a', BEST = '#ffd166';
+      const maxI = vals.indexOf(vMax);
+      const lastI = vals.length - 1;
+      const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+      const fmt = (n) => Math.round(n).toLocaleString('uk-UA');
+
+      const valueLabels = {
+        id: 'valueLabels',
+        afterDatasetsDraw(chart){
+          const meta = chart.getDatasetMeta(0);
+          const area = chart.chartArea;
+          const c = chart.ctx;
+          c.save();
+          c.textAlign = 'center';
+          meta.data.forEach((pt, i) => {
+            const key = (i === maxI || i === lastI);
+            if(!key && vals.length > 7) return;
+            c.font = (key ? '700 12px' : '600 10px') + ' -apple-system, BlinkMacSystemFont, sans-serif';
+            const isLow = (i > 0 && vals[i] < vals[i - 1]) && (i === lastI || vals[i] < vals[i + 1]);
+            let y = isLow ? pt.y + 24 : pt.y - 14;
+            if(y < area.top + 10) y = pt.y + 24;
+            const x = Math.min(Math.max(pt.x, area.left + 22), area.right - 22);
+            const txt = fmt(vals[i]);
+            c.lineJoin = 'round'; c.lineWidth = 4; c.strokeStyle = '#00403f';
+            c.strokeText(txt, x, y);
+            c.fillStyle = (i === maxI) ? BEST : 'rgba(255,255,255,0.92)';
+            c.fillText(txt, x, y);
+          });
+          c.restore();
+        }
+      };
 
       detailChartInstance = new Chart(canvas.getContext('2d'), {
         type: 'line',
+        plugins: [valueLabels],
         data: {
           labels: sortedDates,
-          datasets: [{
-            label: 'Tonnage', data: vals,
-            borderColor: color, backgroundColor: color + '33',
-            pointBackgroundColor: color, pointBorderColor: '#00403f', pointBorderWidth: 2,
-            tension: 0.35, fill: 'start', pointRadius: 6, pointHoverRadius: 10, pointHitRadius: 32, pointHoverBorderWidth: 3, borderWidth: 3
-          }]
+          datasets: [
+            {
+              label: 'Tonnage', data: vals,
+              borderColor: color, backgroundColor: color + '22',
+              segment: { borderColor: (ctx) => (ctx.p1.parsed.y >= ctx.p0.parsed.y ? UP : DOWN) },
+              pointBackgroundColor: vals.map((v, i) => i === maxI ? BEST : (i === 0 ? '#cfeee8' : (v >= vals[i - 1] ? UP : DOWN))),
+              pointBorderColor: '#00403f', pointBorderWidth: 2,
+              pointRadius: vals.map((v, i) => (i === maxI || i === lastI) ? 9 : 6),
+              pointHoverRadius: 11, pointHitRadius: 32, pointHoverBorderWidth: 3,
+              cubicInterpolationMode: 'monotone', tension: 0.4, fill: 'start', borderWidth: 3.5
+            },
+            {
+              label: 'Average', data: vals.map(() => avg),
+              borderColor: 'rgba(255,255,255,0.4)', backgroundColor: 'transparent',
+              borderDash: [5, 4], borderWidth: 1.5, pointRadius: 0, pointHitRadius: 0, pointHoverRadius: 0, fill: false
+            }
+          ]
         },
         options: {
           responsive: true, maintainAspectRatio: false,
           interaction: { mode: 'nearest', axis: 'x', intersect: false },
-          plugins: { legend: { display: false }, tooltip: { enabled: true } },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              enabled: true,
+              filter: (item) => item.datasetIndex === 0,
+              callbacks: {
+                label: (ctx) => 'Tonnage: ' + fmt(ctx.parsed.y),
+                afterLabel: (ctx) => {
+                  const i = ctx.dataIndex;
+                  if(i === 0) return 'first workout';
+                  const d = vals[i] - vals[i - 1];
+                  const pct = vals[i - 1] ? Math.round(d / vals[i - 1] * 1000) / 10 : 0;
+                  return (d >= 0 ? '▲ +' : '▼ ') + fmt(d) + ' (' + (d >= 0 ? '+' : '') + pct + '%) vs previous';
+                }
+              }
+            }
+          },
           scales: {
-            y: { min: yMin, max: yMax, ticks: { color: 'rgba(255,255,255,0.55)', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.08)' } },
+            y: { suggestedMin: yMin, suggestedMax: yMax, ticks: { color: 'rgba(255,255,255,0.55)', font: { size: 10 }, callback: (v) => fmt(v) }, grid: { color: 'rgba(255,255,255,0.08)' } },
             x: { ticks: { color: 'rgba(255,255,255,0.4)', font: { size: 9 }, maxRotation: 0, autoSkip: true }, grid: { display: false } }
           }
         }
