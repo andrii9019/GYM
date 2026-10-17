@@ -2136,11 +2136,15 @@
     return isNaN(n) ? null : { min: n, max: n };
   }
   function targetRepsFor(name){
+    // Верх діапазону береться з рекомендованого діапазону вправи (як у підказках і тижнях циклу)
+    const tr = tableRange(name);
+    if(tr) return { min: tr[0], max: tr[1] };
     for(const day of Object.keys(program)){
       const ex = (program[day] || []).find(x => x.name === name);
-      if(ex){ const r = parseRepRange(ex.reps); if(r) return r; }
+      if(ex){ const r = parseRepRange(ex.reps); if(r && r.min < r.max) return r; }
     }
-    return null;
+    const g = repRangeFor(name);
+    return g ? { min: g[0], max: g[1] } : null;
   }
   function fmtLocalDate(dt){
     return dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2,'0') + '-' + String(dt.getDate()).padStart(2,'0');
@@ -2305,13 +2309,41 @@
     'вертикальний жим в хамері': [8, 12], 'підйом штанги до підборідка': [10, 12], 'фейс пул': [15, 20]
   };
   function normExName(n){ return String(n || '').toLowerCase().replace(/[.,]/g, ' ').replace(/\s+/g, ' ').trim(); }
-  // Діапазон для вправи: точний збіг, інакше за ключовими словами (щоб підказка була всюди)
-  function repRangeFor(name){
+  function editDist(a, b){
+    const m = a.length, n = b.length;
+    let prev = Array.from({length: n + 1}, (_, j) => j);
+    for(let i = 1; i <= m; i++){
+      const cur = [i];
+      for(let j = 1; j <= n; j++){
+        cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      }
+      prev = cur;
+    }
+    return prev[n];
+  }
+  // Діапазон з таблиці: точний збіг, або дуже схожа назва (одруківка, інший порядок літер)
+  function tableRange(name){
     const k = normExName(name);
     if(!k) return null;
     if(REP_RANGES[k]) return REP_RANGES[k];
+    let best = null, bestD = 99;
+    Object.keys(REP_RANGES).forEach(key => {
+      if(Math.abs(key.length - k.length) > 3 || k.length < 8) return;
+      const d = editDist(k, key);
+      if(d < bestD){ bestD = d; best = key; }
+    });
+    return (best && bestD <= 3) ? REP_RANGES[best] : null;
+  }
+  // Діапазон для вправи: таблиця, інакше за ключовими словами (щоб підказка була всюди)
+  function repRangeFor(name){
+    const k = normExName(name);
+    if(!k) return null;
+    const t = tableRange(name);
+    if(t) return t;
+    if(/верхня тяга.*вузьк|вузьк.*верхня/.test(k)) return [8, 12];
+    if(/верхня тяга|тяга верхня|нижня тяга|тяга нижня|підтягуван/.test(k)) return [6, 10];
     if(/присід|жим ногами|румунськ|станов|тяга штанги|мертв/.test(k)) return [6, 10];
-    if(/жим|бруси|віджим|підтягуван|тяга|верхня|нижня/.test(k)) return [8, 12];
+    if(/жим|бруси|віджим|тяга/.test(k)) return [8, 12];
     if(/ікр|шраг/.test(k)) return [10, 15];
     if(/пекдек|фейс|задн|розведен|махи|зведення|дельт/.test(k)) return [12, 20];
     return [10, 15];
@@ -2322,7 +2354,7 @@
   }
   // Повтори тижня: W1 нижня частина діапазону, W2 середина, W3 верх, W5 як W1
   function weekReps(weekIdx, ex){
-    let r = REP_RANGES[normExName(ex.name)];
+    let r = tableRange(ex.name);
     let lo, hi;
     if(r){ lo = r[0]; hi = r[1]; }
     else {
