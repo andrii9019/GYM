@@ -190,6 +190,7 @@
   .ex-hint { font-size: 11px; line-height: 1.35; }
   .ex-hint .tg { color: var(--accent-2); font-weight: 700; }
   .ex-hint .ls { color: var(--text-secondary); }
+  .reps-hint { font-size: 11px; font-weight: 700; letter-spacing: 0; text-transform: none; color: var(--accent-2); opacity: .85; margin-left: 4px; white-space: nowrap; }
   .cyc-weeks { display:flex; gap:4px; margin-bottom:8px; }
   .cyc-week { flex:1; min-width:0; border-radius:12px; padding:6px 4px; text-align:center; background: var(--surface-3); border:1px solid var(--border); cursor:pointer; color: var(--text-secondary); transition: background .12s, transform .1s; }
   .cyc-week:active { transform: scale(0.96); }
@@ -954,7 +955,7 @@
             <input class="wj-input" type="number" min="1" step="1" inputmode="numeric" data-field="sets" data-i="${i}" value="${ex.sets}" />
           </div>
           <div class="ex-field-reps">
-            <div class="ex-mini-label">Reps</div>
+            <div class="ex-mini-label">Reps ${repsHint(ex.name)}</div>
             <input class="wj-input" data-field="reps" data-i="${i}" value="${escapeHtml(String(ex.reps))}" />
           </div>
           <div class="ex-field-weight">
@@ -2303,15 +2304,31 @@
     'підйом на ікри': [10, 15], 'шраги': [8, 12], 'присід в тренажері': [8, 12],
     'вертикальний жим в хамері': [8, 12], 'підйом штанги до підборідка': [10, 12], 'фейс пул': [15, 20]
   };
+  function normExName(n){ return String(n || '').toLowerCase().replace(/[.,]/g, ' ').replace(/\s+/g, ' ').trim(); }
+  // Діапазон для вправи: точний збіг, інакше за ключовими словами (щоб підказка була всюди)
+  function repRangeFor(name){
+    const k = normExName(name);
+    if(!k) return null;
+    if(REP_RANGES[k]) return REP_RANGES[k];
+    if(/присід|жим ногами|румунськ|станов|тяга штанги|мертв/.test(k)) return [6, 10];
+    if(/жим|бруси|віджим|підтягуван|тяга|верхня|нижня/.test(k)) return [8, 12];
+    if(/ікр|шраг/.test(k)) return [10, 15];
+    if(/пекдек|фейс|задн|розведен|махи|зведення|дельт/.test(k)) return [12, 20];
+    return [10, 15];
+  }
+  function repsHint(name){
+    const r = repRangeFor(name);
+    return r ? '<span class="reps-hint">' + r[0] + '–' + r[1] + '</span>' : '';
+  }
   // Повтори тижня: W1 нижня частина діапазону, W2 середина, W3 верх, W5 як W1
   function weekReps(weekIdx, ex){
-    let r = REP_RANGES[String(ex.name || '').trim().toLowerCase()];
+    let r = REP_RANGES[normExName(ex.name)];
     let lo, hi;
     if(r){ lo = r[0]; hi = r[1]; }
     else {
       const pr = parseRepRange(ex.reps);
-      if(!pr || pr.min >= pr.max) return String(ex.reps);
-      lo = pr.min; hi = pr.max;
+      if(pr && pr.min < pr.max){ lo = pr.min; hi = pr.max; }
+      else { const g = repRangeFor(ex.name); if(!g) return String(ex.reps); lo = g[0]; hi = g[1]; }
     }
     const span = hi - lo;
     if(weekIdx === 1) return String(lo + Math.round(span * 0.6));
