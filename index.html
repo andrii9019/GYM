@@ -2292,6 +2292,32 @@
     const data = entries.filter(e => e.exercise === name).sort((a,b)=>a.date.localeCompare(b.date));
     return data.length ? data[data.length - 1] : null;
   }
+  // Діапазони повторів для гіпертрофії (використовуються для цільових повторів по тижнях)
+  const REP_RANGES = {
+    'жим': [5, 8], 'жим гантелей під кутом': [8, 12], 'бруси': [8, 12], 'зведення батерфляй': [12, 15],
+    'підйом штанги на біцепс': [8, 10], 'підйом гантелей на біцепс': [10, 12], 'махи в сторони': [12, 20],
+    'верхня тяга широкий вх': [6, 10], 'верхня тяга вузький хв': [8, 12], 'тяга нижня хамер': [6, 10],
+    'тяга до грудей в тренажері': [8, 12], 'пуловр': [12, 15], 'пекдек': [15, 20], 'французький жим': [8, 12],
+    'трицепс канат': [12, 15], 'присід': [6, 10], 'румунська тяга': [6, 10], 'жим ногами': [10, 15],
+    'випади в тренажері': [10, 12], 'розгинання бедра': [12, 20], 'згинання бедра': [10, 15],
+    'підйом на ікри': [10, 15], 'шраги': [8, 12], 'присід в тренажері': [8, 12],
+    'вертикальний жим в хамері': [8, 12], 'підйом штанги до підборідка': [10, 12], 'фейс пул': [15, 20]
+  };
+  // Повтори тижня: W1 нижня частина діапазону, W2 середина, W3 верх, W5 як W1
+  function weekReps(weekIdx, ex){
+    let r = REP_RANGES[String(ex.name || '').trim().toLowerCase()];
+    let lo, hi;
+    if(r){ lo = r[0]; hi = r[1]; }
+    else {
+      const pr = parseRepRange(ex.reps);
+      if(!pr || pr.min >= pr.max) return String(ex.reps);
+      lo = pr.min; hi = pr.max;
+    }
+    const span = hi - lo;
+    if(weekIdx === 1) return String(lo + Math.round(span * 0.6));
+    if(weekIdx === 2) return String(hi);
+    return String(lo + Math.round(span * 0.25)); // W1 і W5
+  }
   function cycleTarget(weekIdx, ex){
     const last = lastLoggedFor(ex.name);
     const baseW = last ? last.weight : (parseFloat(ex.weight) || 0);
@@ -2303,15 +2329,15 @@
       return { sets: 4, reps: '4', weight: roundLoad(e1 * 0.88), rpe: '8–9', sub: 'est. max ' + Math.round(e1) + ' kg' };
     }
     if(weekIdx === DELOAD_IDX){
-      return { sets: Math.max(2, baseSets - 1), reps, weight: roundLoad(baseW * 0.85), rpe: '6', sub: '' };
+      return { sets: Math.max(2, baseSets - 1), reps: weekReps(weekIdx, ex), weight: roundLoad(baseW * 0.85), rpe: '6', sub: '' };
     }
     const sg = suggestForExercise(ex.name);
     const w = (sg && typeof sg.weight === 'number') ? sg.weight : baseW;
     if(weekIdx === 2){
       const isMain = mainLiftsList().includes(ex.name);
-      return { sets: isMain ? Math.min(6, baseSets + 1) : baseSets, reps, weight: w, rpe: '8–9', sub: isMain ? '+1 set' : '' };
+      return { sets: isMain ? Math.min(6, baseSets + 1) : baseSets, reps: weekReps(weekIdx, ex), weight: w, rpe: '8–9', sub: isMain ? '+1 set' : '' };
     }
-    return { sets: baseSets, reps, weight: w, rpe: weekIdx === 0 ? '7' : '8', sub: '' };
+    return { sets: baseSets, reps: weekReps(weekIdx, ex), weight: w, rpe: weekIdx === 0 ? '7' : '8', sub: '' };
   }
 
   function renderCycle(){
