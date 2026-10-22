@@ -330,6 +330,7 @@
       <button class="wj-btn wj-btn-primary" id="btn-confirm-add-day">Add</button>
     </div>
     <div id="add-day-error" style="color: var(--text-danger, #c0392b); font-size: 13px; margin-bottom: 8px; display:none;"></div>
+    <button type="button" class="wj-btn" id="btn-add-ul" style="width:100%; margin-bottom:8px; display:none;">＋ Add 4-day plan: Upper / Lower</button>
     <div id="program-list"></div>
     <button class="wj-btn wj-btn-success" id="btn-add-exercise" style="width:100%; margin-top:10px;">+ Add exercise</button>
   </div>
@@ -798,6 +799,18 @@
       catch(e){ console.error('Помилка збереження версії перейменування днів', e); }
     }
 
+    // Одноразово додаємо 4-денний план Upper/Lower окремими днями (лише коли програма вже є)
+    const UL_FLAG_KEY = 'ul_plan_added';
+    let ulFlag = null;
+    try { const ufRes = await storage.get(UL_FLAG_KEY, false); ulFlag = ufRes && ufRes.value ? ufRes.value : null; } catch(e){ ulFlag = null; }
+    if(!ulFlag && Object.keys(program).length > 0){
+      let added = [];
+      try { added = await addUlDays(); } catch(e){ console.error('Не вдалося додати Upper/Lower', e); }
+      try { await storage.set(UL_FLAG_KEY, '1', false); } catch(e){}
+      fillDaySelects();
+      if(added.length) setTimeout(() => showToast('Added 4 new days: ' + added.join(', ') + '.'), 600);
+    }
+
     renderAll();
   }
 
@@ -921,9 +934,86 @@
     containerEl.querySelectorAll('.ex-row').forEach(row => applyGlow(row, color));
   }
 
+  // --- Шаблон: 4-денний Upper / Lower (додається окремими днями, існуючі дні не чіпає) ---
+  const UL_TEMPLATE = {
+    'Upper A': { color: '#f0955d', icons: ['chest','back'], ex: [
+      ['Жим', 4], ['Верхня тяга широкий вх', 4], ['Вертикальний жим в хамері', 3], ['Тяга нижня хамер', 3],
+      ['Махи в сторони', 2], ['Підйом штанги на біцепс', 2], ['Французький жим', 2] ] },
+    'Lower A': { color: '#e4636b', icons: ['legs','calves'], ex: [
+      ['Присід', 4], ['Жим ногами', 3], ['Розгинання бедра', 3], ['Згинання бедра', 3], ['Підйом на ікри', 4] ] },
+    'Upper B': { color: '#9b7fe0', icons: ['back','shoulders'], ex: [
+      ['Жим гантелей під кутом', 3], ['Тяга до грудей в тренажері', 3], ['Бруси', 3], ['Пуловр', 3],
+      ['Зведення батерфляй', 2], ['Махи в сторони', 4], ['Пекдек', 3], ['Підйом гантелей на біцепс', 3], ['Трицепс канат', 3] ] },
+    'Lower B': { color: '#7b87e0', icons: ['hamstrings','calves'], ex: [
+      ['Румунська тяга', 3], ['Згинання бедра', 3], ['Випади в тренажері', 2], ['Розгинання бедра', 2],
+      ['Підйом на ікри', 3], ['Шраги', 3] ] }
+  };
+  function ulMissingDays(){ return Object.keys(UL_TEMPLATE).filter(d => !program[d]); }
+  // Підбирає назву з твоєї програми/історії, якщо вона схожа (одруківки), інакше бере назву шаблону
+  function resolveExName(name){
+    const k = normExName(name);
+    const pool = [...new Set([
+      ...Object.values(program).flat().map(e => e.name),
+      ...entries.map(e => e.exercise)
+    ].filter(Boolean))];
+    const exact = pool.find(n => normExName(n) === k);
+    if(exact) return exact;
+    let best = null, bestD = 99;
+    pool.forEach(n => {
+      const nk = normExName(n);
+      if(Math.abs(nk.length - k.length) > 3 || k.length < 8) return;
+      const d = editDist(k, nk);
+      if(d < bestD){ bestD = d; best = n; }
+    });
+    return (best && bestD <= 2) ? best : name;
+  }
+  function programWeightFor(name){
+    for(const d of Object.keys(program)){
+      const f = (program[d] || []).find(e => e.name === name);
+      if(f) return parseFloat(f.weight) || 0;
+    }
+    return null;
+  }
+  async function addUlDays(){
+    const missing = ulMissingDays();
+    if(missing.length === 0) return missing;
+    const lat = resolveExName('Верхня тяга широкий вх');
+    missing.forEach(day => {
+      const t = UL_TEMPLATE[day];
+      program[day] = t.ex.map(([nm, sets]) => {
+        const name = resolveExName(nm);
+        const last = lastLoggedFor(name);
+        const w = last ? last.weight : (programWeightFor(name) || 0);
+        return { name, sets, reps: parseInt(weekReps(0, { name, reps: '10' })) || 10, weight: w };
+      });
+      dayColors[day] = t.color;
+      dayIcons[day] = t.icons.slice();
+    });
+    // Якщо головні вправи ще не налаштовані вручну: базові, але жим ногами не береться (навантаження на коліна)
+    const mains = (cycle.mainLifts !== null ? cycle.mainLifts : defaultMainLifts().filter(n => !/^жим ногами$/i.test(n.trim()))).slice();
+    if(!mains.includes(lat)) mains.push(lat);
+    cycle.mainLifts = mains;
+    await saveProgram(); await saveDayColors(); await saveDayIcons(); await saveCycle();
+    return missing;
+  }
+  async function addUpperLowerPlan(){
+    const missing = ulMissingDays();
+    if(missing.length === 0) return;
+    const ok = await showConfirm('Add ' + missing.length + ' new training day(s): ' + missing.join(', ') + '? Your current days stay as they are.', 'Add');
+    if(!ok) return;
+    await addUlDays();
+    fillDaySelects();
+    const sel = document.getElementById('program-day-select');
+    if(sel) sel.value = missing[0];
+    renderAll();
+    showToast('Added: ' + missing.join(', ') + '. Edit weights in Program.');
+  }
+  document.getElementById('btn-add-ul').addEventListener('click', addUpperLowerPlan);
+
   function renderProgram(){
     const day = document.getElementById('program-day-select').value || dayNames()[0];
     updateProgramDayIcon(day);
+    { const ub = document.getElementById('btn-add-ul'); if(ub) ub.style.display = ulMissingDays().length > 0 ? '' : 'none'; }
     const colorMap = getDayColorMap();
     const dayColor = (day && colorMap[day]) || '#4db6ac';
     applyGlow(document.getElementById('program-day-header'), dayColor);
