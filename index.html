@@ -2538,6 +2538,28 @@
       <div class="cyc-muted">Only these are trained in the strength week. Tap to change.</div>
       <div class="cyc-chips">${allNames.map(n => `<button type="button" class="cyc-chip${main.includes(n) ? ' on' : ''}" data-cyc-main="${escapeHtml(n)}">${escapeHtml(n)}</button>`).join('') || '<span class="cyc-muted">No exercises yet.</span>'}</div>`;
 
+    // --- Дата старту циклу (від неї рахується тиждень в Історії) ---
+    const cwNow = cycleWeekForDate(todayStr());
+    mainEl.innerHTML += `
+      <div class="section-label" style="margin-top:16px;">Cycle start</div>
+      <div class="cyc-muted">W1 begins on this date; History labels each workout with its week.${cwNow ? ' Today: Cycle ' + cwNow.cycleNo + ' · W' + (cwNow.w + 1) + ' ' + escapeHtml(CYCLE_WEEKS[cwNow.w].name) + '.' : ''}</div>
+      <div style="display:flex; gap:8px; margin-top:8px; align-items:center;">
+        <input type="date" id="cyc-start-input" class="wj-input" value="${escapeHtml(cycle.start || '')}" style="flex:1;" />
+        <button type="button" class="wj-btn" id="btn-cyc-start-today" style="flex-shrink:0;">Today</button>
+      </div>`;
+    const setCycStart = async (v) => {
+      if(!v) return;
+      cycle.start = v;
+      await saveCycle();
+      renderCycle();
+      if(typeof renderHistory === 'function') renderHistory();
+      showToast('Cycle starts ' + v);
+    };
+    const csi = document.getElementById('cyc-start-input');
+    if(csi) csi.addEventListener('change', () => setCycStart(csi.value));
+    const cst = document.getElementById('btn-cyc-start-today');
+    if(cst) cst.addEventListener('click', () => setCycStart(todayStr()));
+
     // --- Події ---
     const applyBtn = document.getElementById('btn-cycle-apply');
     if(applyBtn) applyBtn.addEventListener('click', async () => { cycle.active = shownIdx; await saveCycle(); renderCycle(); renderLog(); showToast('Week ' + (shownIdx + 1) + ' is now used in Train.'); });
