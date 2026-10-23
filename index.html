@@ -2060,12 +2060,14 @@
     }
     const dayLabel = dayEntries[0].day || 'Без назви';
     const totalVol = Math.round(volumeForEntries(dayEntries));
+    const cw = cycleWeekForDate(selectedCalDate);
+    const cwHtml = cw ? `<div style="font-size:12px; color:var(--accent-2); font-weight:600; margin:-4px 0 10px;">Cycle ${cw.cycleNo} · W${cw.w + 1} ${escapeHtml(CYCLE_WEEKS[cw.w].name)} · RPE ${escapeHtml(CYCLE_WEEKS[cw.w].rpe)}</div>` : '';
     list.innerHTML = `
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
         <div class="section-label">${escapeHtml(dayLabel)} · ${selectedCalDate}</div>
         <div style="font-size:13px; color:var(--text-secondary,#666); font-weight:600;">${totalVol} kg</div>
       </div>
-    ` + dayEntries.map(e => `
+    ` + cwHtml + dayEntries.map(e => `
       <div class="wj-card" style="margin-bottom: 8px; display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
         <div>
           <div style="font-weight:500; font-size:15px;">${escapeHtml(e.exercise)}</div>
@@ -2359,6 +2361,14 @@
     if(days < 0) return { future: -days, weekIdx: 0, w: 0, cycleNo: 1, dayInWeek: 0 };
     const weekIdx = Math.floor(days / 7);
     return { future: 0, weekIdx, w: weekIdx % 5, cycleNo: Math.floor(weekIdx / 5) + 1, dayInWeek: days % 7 };
+  }
+  // Тиждень циклу для довільної дати (за датою старту циклу)
+  function cycleWeekForDate(dateStr){
+    if(!cycle.start || !dateStr) return null;
+    const days = Math.floor((parseLocalDate(dateStr) - parseLocalDate(cycle.start)) / 86400000);
+    if(days < 0) return null;
+    const weekIdx = Math.floor(days / 7);
+    return { w: weekIdx % 5, cycleNo: Math.floor(weekIdx / 5) + 1 };
   }
   function roundLoad(x){
     const step = x >= 20 ? 2.5 : 1;
