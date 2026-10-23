@@ -2060,14 +2060,12 @@
     }
     const dayLabel = dayEntries[0].day || 'Без назви';
     const totalVol = Math.round(volumeForEntries(dayEntries));
-    const cw = cycleWeekForDate(selectedCalDate);
-    const cwHtml = cw ? `<div style="font-size:12px; color:var(--accent-2); font-weight:600; margin:-4px 0 10px;">Cycle ${cw.cycleNo} · W${cw.w + 1} ${escapeHtml(CYCLE_WEEKS[cw.w].name)} · RPE ${escapeHtml(CYCLE_WEEKS[cw.w].rpe)}</div>` : '';
     list.innerHTML = `
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
         <div class="section-label">${escapeHtml(dayLabel)} · ${selectedCalDate}</div>
         <div style="font-size:13px; color:var(--text-secondary,#666); font-weight:600;">${totalVol} kg</div>
       </div>
-    ` + cwHtml + dayEntries.map(e => `
+    ` + dayEntries.map(e => `
       <div class="wj-card" style="margin-bottom: 8px; display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
         <div>
           <div style="font-weight:500; font-size:15px;">${escapeHtml(e.exercise)}</div>
@@ -2362,14 +2360,6 @@
     const weekIdx = Math.floor(days / 7);
     return { future: 0, weekIdx, w: weekIdx % 5, cycleNo: Math.floor(weekIdx / 5) + 1, dayInWeek: days % 7 };
   }
-  // Тиждень циклу для довільної дати (за датою старту циклу)
-  function cycleWeekForDate(dateStr){
-    if(!cycle.start || !dateStr) return null;
-    const days = Math.floor((parseLocalDate(dateStr) - parseLocalDate(cycle.start)) / 86400000);
-    if(days < 0) return null;
-    const weekIdx = Math.floor(days / 7);
-    return { w: weekIdx % 5, cycleNo: Math.floor(weekIdx / 5) + 1 };
-  }
   function roundLoad(x){
     const step = x >= 20 ? 2.5 : 1;
     return Math.max(step, Math.round(x / step) * step);
@@ -2537,28 +2527,6 @@
       <div class="section-label">Main lifts</div>
       <div class="cyc-muted">Only these are trained in the strength week. Tap to change.</div>
       <div class="cyc-chips">${allNames.map(n => `<button type="button" class="cyc-chip${main.includes(n) ? ' on' : ''}" data-cyc-main="${escapeHtml(n)}">${escapeHtml(n)}</button>`).join('') || '<span class="cyc-muted">No exercises yet.</span>'}</div>`;
-
-    // --- Дата старту циклу (від неї рахується тиждень в Історії) ---
-    const cwNow = cycleWeekForDate(todayStr());
-    mainEl.innerHTML += `
-      <div class="section-label" style="margin-top:16px;">Cycle start</div>
-      <div class="cyc-muted">W1 begins on this date; History labels each workout with its week.${cwNow ? ' Today: Cycle ' + cwNow.cycleNo + ' · W' + (cwNow.w + 1) + ' ' + escapeHtml(CYCLE_WEEKS[cwNow.w].name) + '.' : ''}</div>
-      <div style="display:flex; gap:8px; margin-top:8px; align-items:center;">
-        <input type="date" id="cyc-start-input" class="wj-input" value="${escapeHtml(cycle.start || '')}" style="flex:1;" />
-        <button type="button" class="wj-btn" id="btn-cyc-start-today" style="flex-shrink:0;">Today</button>
-      </div>`;
-    const setCycStart = async (v) => {
-      if(!v) return;
-      cycle.start = v;
-      await saveCycle();
-      renderCycle();
-      if(typeof renderHistory === 'function') renderHistory();
-      showToast('Cycle starts ' + v);
-    };
-    const csi = document.getElementById('cyc-start-input');
-    if(csi) csi.addEventListener('change', () => setCycStart(csi.value));
-    const cst = document.getElementById('btn-cyc-start-today');
-    if(cst) cst.addEventListener('click', () => setCycStart(todayStr()));
 
     // --- Події ---
     const applyBtn = document.getElementById('btn-cycle-apply');
