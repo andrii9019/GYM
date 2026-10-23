@@ -148,6 +148,11 @@
   .period-btn.active { background: linear-gradient(180deg, var(--accent-2) 0%, var(--accent) 55%, #26a69a 100%); color: var(--accent-text); border-color: var(--accent); font-weight: 700; box-shadow: 0 2px 8px rgba(77,182,172,0.35); }
 
   #wj-toast { position: fixed; left: 50%; bottom: calc(var(--nav-h) + 10px); transform: translateX(-50%) translateY(20px); background: var(--accent); color: var(--accent-text); padding: 10px 18px; border-radius: 999px; font-size: 13px; font-weight: 600; max-width: 90vw; text-align: center; opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.2s; z-index: 9999; box-shadow: 0 4px 14px rgba(0,0,0,0.35); }
+  #wj-toast.has-undo { pointer-events: auto; }
+  #wj-toast .undo-btn { margin-left: 12px; background: rgba(0,0,0,0.22); color: inherit; border: 0; border-radius: 999px; padding: 4px 12px; font-weight: 700; font-size: 13px; cursor: pointer; }
+  #move-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 10000; padding: 20px; box-sizing: border-box; }
+  #move-modal-overlay.show { display: flex; }
+  #move-modal-box { background: var(--surface-2); border-radius: var(--radius-lg); padding: 1.25rem; max-width: 360px; width: 100%; border: 1px solid var(--border); }
   #wj-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
   #confirm-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 10000; padding: 20px; box-sizing: border-box; }
   #confirm-modal-overlay.show { display: flex; }
@@ -223,6 +228,17 @@
   .ex-progress-row:active, .training-count-card:active { transform: scale(0.985); }
 </style>
 <div id="wj-toast"></div>
+<div id="move-modal-overlay">
+  <div id="move-modal-box">
+    <p id="move-modal-text" style="font-size:14px; margin:0 0 .75rem; color:var(--text-primary);"></p>
+    <select id="move-modal-select" class="wj-input" style="width:100%; margin-bottom:1rem;"></select>
+    <div style="display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap;">
+      <button class="wj-btn" id="move-modal-cancel">Cancel</button>
+      <button class="wj-btn" id="move-modal-copy">Copy</button>
+      <button class="wj-btn" id="move-modal-move" style="background:var(--accent); color:var(--accent-text);">Move</button>
+    </div>
+  </div>
+</div>
 <div id="confirm-modal-overlay">
   <div id="confirm-modal-box">
     <p id="confirm-modal-text"></p>
@@ -330,7 +346,6 @@
       <button class="wj-btn wj-btn-primary" id="btn-confirm-add-day">Add</button>
     </div>
     <div id="add-day-error" style="color: var(--text-danger, #c0392b); font-size: 13px; margin-bottom: 8px; display:none;"></div>
-    <button type="button" class="wj-btn" id="btn-add-ul" style="width:100%; margin-bottom:8px; display:none;">＋ Add 4-day plan: Upper / Lower</button>
     <div id="program-list"></div>
     <button class="wj-btn wj-btn-success" id="btn-add-exercise" style="width:100%; margin-top:10px;">+ Add exercise</button>
   </div>
@@ -446,10 +461,53 @@
   function showToast(message){
     const el = document.getElementById('wj-toast');
     if(!el) return;
+    el.classList.remove('has-undo');
     el.textContent = message;
     el.classList.add('show');
     if(toastTimer) clearTimeout(toastTimer);
     toastTimer = setTimeout(()=>{ el.classList.remove('show'); }, 3000);
+  }
+  function showUndoToast(message, onUndo){
+    const el = document.getElementById('wj-toast');
+    if(!el) return;
+    el.textContent = message + ' ';
+    const b = document.createElement('button');
+    b.className = 'undo-btn'; b.textContent = 'Undo';
+    b.addEventListener('click', async ()=>{
+      el.classList.remove('show','has-undo');
+      if(toastTimer) clearTimeout(toastTimer);
+      await onUndo();
+    });
+    el.appendChild(b);
+    el.classList.add('show','has-undo');
+    if(toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=>{ el.classList.remove('show','has-undo'); }, 7000);
+  }
+  // Вибір дня для перенесення/копіювання вправи. -> {action:'move'|'copy', day} | null
+  function pickMoveTarget(exName, fromDay){
+    return new Promise((resolve)=>{
+      const overlay = document.getElementById('move-modal-overlay');
+      const sel = document.getElementById('move-modal-select');
+      document.getElementById('move-modal-text').textContent = '"' + exName + '" → ';
+      sel.innerHTML = Object.keys(program).filter(d => d !== fromDay)
+        .map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join('');
+      overlay.classList.add('show');
+      const mv = document.getElementById('move-modal-move');
+      const cp = document.getElementById('move-modal-copy');
+      const ca = document.getElementById('move-modal-cancel');
+      function done(r){
+        overlay.classList.remove('show');
+        mv.removeEventListener('click', onMv); cp.removeEventListener('click', onCp);
+        ca.removeEventListener('click', onCa); overlay.removeEventListener('click', onOv);
+        resolve(r);
+      }
+      function onMv(){ done(sel.value ? {action:'move', day: sel.value} : null); }
+      function onCp(){ done(sel.value ? {action:'copy', day: sel.value} : null); }
+      function onCa(){ done(null); }
+      function onOv(e){ if(e.target === overlay) done(null); }
+      mv.addEventListener('click', onMv); cp.addEventListener('click', onCp);
+      ca.addEventListener('click', onCa); overlay.addEventListener('click', onOv);
+    });
   }
 
   function showConfirm(message, okLabel){
@@ -799,18 +857,6 @@
       catch(e){ console.error('Помилка збереження версії перейменування днів', e); }
     }
 
-    // Одноразово додаємо 4-денний план Upper/Lower окремими днями (лише коли програма вже є)
-    const UL_FLAG_KEY = 'ul_plan_added';
-    let ulFlag = null;
-    try { const ufRes = await storage.get(UL_FLAG_KEY, false); ulFlag = ufRes && ufRes.value ? ufRes.value : null; } catch(e){ ulFlag = null; }
-    if(!ulFlag && Object.keys(program).length > 0){
-      let added = [];
-      try { added = await addUlDays(); } catch(e){ console.error('Не вдалося додати Upper/Lower', e); }
-      try { await storage.set(UL_FLAG_KEY, '1', false); } catch(e){}
-      fillDaySelects();
-      if(added.length) setTimeout(() => showToast('Added 4 new days: ' + added.join(', ') + '.'), 600);
-    }
-
     renderAll();
   }
 
@@ -934,86 +980,9 @@
     containerEl.querySelectorAll('.ex-row').forEach(row => applyGlow(row, color));
   }
 
-  // --- Шаблон: 4-денний Upper / Lower (додається окремими днями, існуючі дні не чіпає) ---
-  const UL_TEMPLATE = {
-    'Upper A': { color: '#f0955d', icons: ['chest','back'], ex: [
-      ['Жим', 4], ['Верхня тяга широкий вх', 4], ['Вертикальний жим в хамері', 3], ['Тяга нижня хамер', 3],
-      ['Махи в сторони', 2], ['Підйом штанги на біцепс', 2], ['Французький жим', 2] ] },
-    'Lower A': { color: '#e4636b', icons: ['legs','calves'], ex: [
-      ['Присід', 4], ['Жим ногами', 3], ['Розгинання бедра', 3], ['Згинання бедра', 3], ['Підйом на ікри', 4] ] },
-    'Upper B': { color: '#9b7fe0', icons: ['back','shoulders'], ex: [
-      ['Жим гантелей під кутом', 3], ['Тяга до грудей в тренажері', 3], ['Бруси', 3], ['Пуловр', 3],
-      ['Зведення батерфляй', 2], ['Махи в сторони', 4], ['Пекдек', 3], ['Підйом гантелей на біцепс', 3], ['Трицепс канат', 3] ] },
-    'Lower B': { color: '#7b87e0', icons: ['hamstrings','calves'], ex: [
-      ['Румунська тяга', 3], ['Згинання бедра', 3], ['Випади в тренажері', 2], ['Розгинання бедра', 2],
-      ['Підйом на ікри', 3], ['Шраги', 3] ] }
-  };
-  function ulMissingDays(){ return Object.keys(UL_TEMPLATE).filter(d => !program[d]); }
-  // Підбирає назву з твоєї програми/історії, якщо вона схожа (одруківки), інакше бере назву шаблону
-  function resolveExName(name){
-    const k = normExName(name);
-    const pool = [...new Set([
-      ...Object.values(program).flat().map(e => e.name),
-      ...entries.map(e => e.exercise)
-    ].filter(Boolean))];
-    const exact = pool.find(n => normExName(n) === k);
-    if(exact) return exact;
-    let best = null, bestD = 99;
-    pool.forEach(n => {
-      const nk = normExName(n);
-      if(Math.abs(nk.length - k.length) > 3 || k.length < 8) return;
-      const d = editDist(k, nk);
-      if(d < bestD){ bestD = d; best = n; }
-    });
-    return (best && bestD <= 2) ? best : name;
-  }
-  function programWeightFor(name){
-    for(const d of Object.keys(program)){
-      const f = (program[d] || []).find(e => e.name === name);
-      if(f) return parseFloat(f.weight) || 0;
-    }
-    return null;
-  }
-  async function addUlDays(){
-    const missing = ulMissingDays();
-    if(missing.length === 0) return missing;
-    const lat = resolveExName('Верхня тяга широкий вх');
-    missing.forEach(day => {
-      const t = UL_TEMPLATE[day];
-      program[day] = t.ex.map(([nm, sets]) => {
-        const name = resolveExName(nm);
-        const last = lastLoggedFor(name);
-        const w = last ? last.weight : (programWeightFor(name) || 0);
-        return { name, sets, reps: parseInt(weekReps(0, { name, reps: '10' })) || 10, weight: w };
-      });
-      dayColors[day] = t.color;
-      dayIcons[day] = t.icons.slice();
-    });
-    // Якщо головні вправи ще не налаштовані вручну: базові, але жим ногами не береться (навантаження на коліна)
-    const mains = (cycle.mainLifts !== null ? cycle.mainLifts : defaultMainLifts().filter(n => !/^жим ногами$/i.test(n.trim()))).slice();
-    if(!mains.includes(lat)) mains.push(lat);
-    cycle.mainLifts = mains;
-    await saveProgram(); await saveDayColors(); await saveDayIcons(); await saveCycle();
-    return missing;
-  }
-  async function addUpperLowerPlan(){
-    const missing = ulMissingDays();
-    if(missing.length === 0) return;
-    const ok = await showConfirm('Add ' + missing.length + ' new training day(s): ' + missing.join(', ') + '? Your current days stay as they are.', 'Add');
-    if(!ok) return;
-    await addUlDays();
-    fillDaySelects();
-    const sel = document.getElementById('program-day-select');
-    if(sel) sel.value = missing[0];
-    renderAll();
-    showToast('Added: ' + missing.join(', ') + '. Edit weights in Program.');
-  }
-  document.getElementById('btn-add-ul').addEventListener('click', addUpperLowerPlan);
-
   function renderProgram(){
     const day = document.getElementById('program-day-select').value || dayNames()[0];
     updateProgramDayIcon(day);
-    { const ub = document.getElementById('btn-add-ul'); if(ub) ub.style.display = ulMissingDays().length > 0 ? '' : 'none'; }
     const colorMap = getDayColorMap();
     const dayColor = (day && colorMap[day]) || '#4db6ac';
     applyGlow(document.getElementById('program-day-header'), dayColor);
@@ -1053,7 +1022,10 @@
             <input class="wj-input" type="number" min="0" step="0.5" inputmode="decimal" data-field="weight" data-i="${i}" value="${ex.weight}" />
           </div>
         </div>
-        <button class="wj-btn wj-btn-danger" data-del="${i}" style="justify-self: end; width: auto; padding: 5px 12px; font-size: 12px;" aria-label="Delete exercise">✕ Delete</button>
+        <div style="display:flex; gap:8px; justify-content:flex-end;">
+          <button class="wj-btn" data-xfer="${i}" style="width: auto; padding: 5px 12px; font-size: 12px;" aria-label="Move or copy to another day" ${Object.keys(program).length < 2 ? 'disabled' : ''}>⇄ Move</button>
+          <button class="wj-btn wj-btn-danger" data-del="${i}" style="width: auto; padding: 5px 12px; font-size: 12px;" aria-label="Delete exercise">✕ Delete</button>
+        </div>
       </div>
     `).join('');
     glowExerciseRows(list, dayColor);
@@ -1094,6 +1066,34 @@
       // не завжди надійно шлють 'change' для текстових полів.
       inp.addEventListener('change', handleFieldCommit);
       inp.addEventListener('blur', handleFieldCommit);
+    });
+    list.querySelectorAll('button[data-xfer]').forEach(btn=>{
+      btn.addEventListener('click', async ()=>{
+        const i = parseInt(btn.getAttribute('data-xfer'));
+        const ex = program[day][i];
+        if(!ex) return;
+        const r = await pickMoveTarget(ex.name || 'Exercise', day);
+        if(!r) return;
+        const target = program[r.day];
+        if(!target) return;
+        const dup = ex.name && target.some(e => e.name.trim().toLowerCase() === ex.name.trim().toLowerCase());
+        if(dup){
+          showToast('"' + ex.name + '" already exists in ' + r.day);
+          return;
+        }
+        const copy = Object.assign({}, ex);
+        target.push(copy);
+        if(r.action === 'move') program[day].splice(i, 1);
+        await saveProgram();
+        renderProgram();
+        showUndoToast((r.action === 'move' ? 'Moved to ' : 'Copied to ') + r.day, async ()=>{
+          const k = target.indexOf(copy);
+          if(k >= 0) target.splice(k, 1);
+          if(r.action === 'move' && program[day]) program[day].splice(Math.min(i, program[day].length), 0, ex);
+          await saveProgram();
+          renderProgram();
+        });
+      });
     });
     list.querySelectorAll('button[data-del]').forEach(btn=>{
       btn.addEventListener('click', async ()=>{
