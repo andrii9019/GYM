@@ -118,6 +118,12 @@
 
   /* ---------- Календар ---------- */
   .cal-cell { aspect-ratio: 1 / 0.8; display:flex; flex-direction: column; align-items:center; justify-content:center; border-radius: 10px; font-size: 12px; cursor: default; position: relative; color: var(--text-primary); background: var(--surface-1); box-sizing: border-box; }
+  .cal-cell[data-date] { cursor: pointer; }
+  .cal-cell.planned { font-weight: 600; gap: 1px; }
+  .cal-cell.planned .plan-tag { font-size: 8px; line-height: 1; opacity: .9; max-width: 94%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .plan-box { border-radius: var(--radius-sm); padding: 8px 10px; margin: 8px 0; font-size: 13px; line-height: 1.4; }
+  .plan-box.ok { background: rgba(94,224,200,0.10); border: 1px solid rgba(94,224,200,0.4); }
+  .plan-box.warn { background: rgba(255,107,107,0.10); border: 1px solid rgba(255,107,107,0.4); }
   .cal-cell.empty { background: transparent; }
   .cal-cell.trained { color: #fff; cursor: pointer; font-weight: 500; gap: 1px; box-shadow: 0 1px 4px rgba(0,0,0,0.3); text-shadow: 0 1px 3px rgba(0,0,0,0.7); overflow: hidden; }
   .cal-cell.selected { outline: 2px solid var(--accent); outline-offset: 1px; }
@@ -861,6 +867,11 @@
     } catch(e){ dayIcons = {}; }
 
     try {
+      const plRes = await storage.get(PLANS_KEY, false);
+      plans = normPlans(plRes && plRes.value ? JSON.parse(plRes.value) : null);
+    } catch(e){ plans = {}; }
+
+    try {
       const rcRes = await storage.get(RECOVERY_KEY, false);
       const rc = rcRes && rcRes.value ? JSON.parse(rcRes.value) : null;
       if(rc && typeof rc.ts === 'number') recoveryResetTs = rc.ts;
@@ -1508,7 +1519,8 @@
       dayColors,
       dayIcons,
       cycle,
-      library: exLibrary
+      library: exLibrary,
+      plans
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -1594,6 +1606,8 @@
     cycle = normCycle(data.cycle);
     await saveCycle();
     exLibrary = normLibrary(data.library);
+    plans = normPlans(data.plans);
+    await savePlans();
     syncLibraryFromProgram();
     await saveLibrary();
 
@@ -1915,6 +1929,17 @@
 
   // Простий облік відновлення: фіксований час на групу мʼязів від моменту останнього тренування.
   // Враховуються лише тренування після скидання (recoveryResetTs).
+  const PLANS_KEY = 'plans';
+  let plans = {}; // { 'YYYY-MM-DD': 'Day name' }
+  async function savePlans(){
+    try { await storage.set(PLANS_KEY, JSON.stringify(plans), false); }
+    catch(e){ console.error('Помилка збереження планів', e); }
+  }
+  function normPlans(o){
+    const r = {};
+    if(o && typeof o === 'object') Object.keys(o).forEach(k => { if(/^\d{4}-\d{2}-\d{2}$/.test(k) && typeof o[k] === 'string') r[k] = o[k]; });
+    return r;
+  }
   const RECOVERY_KEY = 'recovery_reset';
   let recoveryResetTs = null;
   function startOfTodayMs(){ const d = new Date(); d.setHours(0,0,0,0); return d.getTime(); }
@@ -2329,13 +2354,18 @@
           ? `<span style="position:absolute; top:3px; right:3px; display:flex; gap:2px;">${extraIcons.map(k => renderGroupIconSvg(k, 14, color)).join('')}</span>`
           : '';
         html += `<div class="cal-cell trained${isToday ? ' today-marker' : ''}${isSelected ? ' selected' : ''}" style="${bgStyle} border: 2px solid ${color}; box-shadow: 0 0 20px ${color}80, 0 2px 8px rgba(0,0,0,0.4); color:#fff;" data-date="${iso}">${badgesHtml}<span class="cal-cell-day">${d}</span><span class="cal-cell-volume">${volLabel}</span></div>`;
+      } else if(plans[iso]){
+        const pDay = plans[iso];
+        const pColor = colorMap[pDay] || '#4db6ac';
+        const pIcon = getDayIconKeys(pDay)[0];
+        html += `<div class="cal-cell planned${isToday ? ' today-marker' : ''}${isSelected ? ' selected' : ''}" style="border: 2px dashed ${pColor}; background: ${pColor}26; box-shadow: 0 0 10px ${pColor}40;" data-date="${iso}"><span class="cal-cell-day">${d}</span><span class="plan-tag" style="color:${pColor};">${escapeHtml(pDay)}</span></div>`;
       } else {
-        html += `<div class="cal-cell${isToday ? ' today-marker' : ''}" data-date="${iso}">${d}</div>`;
+        html += `<div class="cal-cell${isToday ? ' today-marker' : ''}${isSelected ? ' selected' : ''}" data-date="${iso}">${d}</div>`;
       }
     }
     grid.innerHTML = html;
 
-    grid.querySelectorAll('.cal-cell.trained').forEach(cell=>{
+    grid.querySelectorAll('.cal-cell[data-date]').forEach(cell=>{
       cell.addEventListener('click', ()=>{
         selectedCalDate = cell.getAttribute('data-date');
         renderHistory();
@@ -2379,6 +2409,85 @@
     renderSelectedDayDetails();
   }
 
+  // --- Планування тренувань у календарі + попередження про відновлення на обрану дату ---
+  function plannedStartMs(iso){ return new Date(iso + 'T18:00:00').getTime(); }
+  function recoveryAt(group, dateIso){
+    const now = Date.now();
+    let target = new Date(dateIso + 'T18:00:00').getTime();
+    if(dateIso === todayStr() && target < now) target = now;
+    const hours = RECOVERY_HOURS_FIXED[group] || RECOVERY_HOURS_FIXED['Other'];
+    // фактичні тренування (після скидання): для кожної дати найпізніший час збереження
+    const byDate = {};
+    entries.forEach(e => {
+      if(e.date >= dateIso || getMuscleGroup(e.exercise) !== group || !entryCountsForRecovery(e)) return;
+      let t = plannedStartMs(e.date);
+      if(typeof e.id === 'number' && e.id > 1e12){
+        const d = new Date(e.id);
+        if(d.getFullYear() + '-' + pad2(d.getMonth()+1) + '-' + pad2(d.getDate()) === e.date) t = e.id;
+      }
+      byDate[e.date] = Math.max(byDate[e.date] || 0, t);
+    });
+    let best = null;
+    Object.keys(byDate).forEach(d => { const o = { t: byDate[d], date: d, planned: false }; if(!best || o.t > best.t) best = o; });
+    // заплановані тренування раніше цієї дати (де ще немає записів)
+    Object.keys(plans).forEach(d => {
+      if(d >= dateIso || entries.some(e => e.date === d)) return;
+      if(d < todayStr()) return; // пропущені плани не рахуються
+      const ex = program[plans[d]] || [];
+      if(!ex.some(e => getMuscleGroup(e.name) === group)) return;
+      const o = { t: plannedStartMs(d), date: d, planned: true };
+      if(!best || o.t > best.t) best = o;
+    });
+    if(!best) return { ok: true, trained: false };
+    const readyAt = best.t + hours * 3600000;
+    const shortH = Math.ceil((readyAt - target) / 3600000);
+    return { ok: shortH <= 3, trained: true, shortH: Math.max(0, shortH), from: best.date, planned: best.planned }; // до 3 год. недобору не рахуємо
+  }
+  function fmtHours(h){ return h >= 24 ? Math.floor(h / 24) + 'd ' + (h % 24) + 'h' : h + 'h'; }
+  function planWarningHtml(dayName, dateIso){
+    const ex = program[dayName] || [];
+    const groups = [...new Set(ex.map(e => getMuscleGroup(e.name)))];
+    const res = groups.map(g => ({ g, r: recoveryAt(g, dateIso) }));
+    const bad = res.filter(x => !x.r.ok);
+    if(bad.length === 0) return `<div class="plan-box ok">✓ Muscles for ${escapeHtml(dayName)} will be recovered by this date.</div>`;
+    return `<div class="plan-box warn"><b>⚠ Not fully recovered by this date:</b>` + bad.map(x =>
+      `<div style="display:flex; justify-content:space-between; gap:8px; margin-top:3px;"><span>${escapeHtml(x.g)} <span style="color:var(--text-secondary); font-size:11px;">· ${x.r.planned ? 'planned' : 'trained'} ${fmtShortDate(x.r.from)}</span></span><span style="color:#ff6b6b; white-space:nowrap;">~${fmtHours(x.r.shortH)} short</span></div>`).join('') + `</div>`;
+  }
+  function renderPlanPanel(list, dateIso){
+    const days = dayNames();
+    const dObj = new Date(dateIso + 'T00:00:00');
+    const title = `${dateIso} · ${WEEKDAYS_UK[(dObj.getDay() + 6) % 7]}`;
+    const isPast = dateIso < todayStr();
+    const cur = plans[dateIso];
+    if(days.length === 0){ list.innerHTML = ''; return; }
+    if(isPast && !cur){
+      list.innerHTML = `<div class="section-label" style="margin-bottom:6px;">${title}</div><p class="cyc-muted">No workout logged on this day.</p>`;
+      return;
+    }
+    // за замовчуванням: наступний день за колом після останнього проведеного
+    let def = cur && days.includes(cur) ? cur : days[0];
+    if(!cur){
+      const last = [...entries].sort((a, b) => (a.date + a.id).localeCompare(b.date + b.id)).pop();
+      if(last && days.includes(last.day)) def = days[(days.indexOf(last.day) + 1) % days.length];
+    }
+    list.innerHTML = `
+      <div class="section-label" style="margin-bottom:6px;">${title} ${isPast ? '· missed plan' : '· plan workout'}</div>
+      <select class="wj-select" id="plan-day-select" style="width:100%;" ${isPast ? 'disabled' : ''}>${days.map(d => `<option value="${escapeHtml(d)}"${d === def ? ' selected' : ''}>${escapeHtml(d)}</option>`).join('')}</select>
+      <div id="plan-warning"></div>
+      <div style="display:flex; gap:8px;">
+        ${isPast ? '' : `<button class="wj-btn wj-btn-primary" id="btn-plan-save" style="flex:1;">${cur ? 'Update plan' : 'Plan workout'}</button>`}
+        ${cur ? '<button class="wj-btn wj-btn-danger" id="btn-plan-remove" style="flex:1;">Remove plan</button>' : ''}
+      </div>`;
+    const sel = document.getElementById('plan-day-select');
+    const warn = document.getElementById('plan-warning');
+    const upd = () => { warn.innerHTML = isPast ? '' : planWarningHtml(sel.value, dateIso); };
+    sel.addEventListener('change', upd); upd();
+    const sv = document.getElementById('btn-plan-save');
+    if(sv) sv.addEventListener('click', async () => { plans[dateIso] = sel.value; await savePlans(); renderHistory(); showToast('Planned: ' + sel.value); });
+    const rm = document.getElementById('btn-plan-remove');
+    if(rm) rm.addEventListener('click', async () => { delete plans[dateIso]; await savePlans(); renderHistory(); showToast('Plan removed.'); });
+  }
+
   function renderSelectedDayDetails(){
     const list = document.getElementById('history-list');
     if(!selectedCalDate){
@@ -2392,7 +2501,7 @@
     }
     const dayEntries = entries.filter(e => e.date === selectedCalDate);
     if(dayEntries.length === 0){
-      list.innerHTML = '';
+      renderPlanPanel(list, selectedCalDate);
       return;
     }
     const dayLabel = dayEntries[0].day || 'Без назви';
