@@ -224,6 +224,8 @@
   #view-program .ex-row .wj-btn { padding: 3px 9px !important; font-size: 11px !important; }
   #view-log .rpe-chip { height: 22px; }
   #view-log .rpe-row { margin-top: 0; }
+  .ex-group-row { display: flex; align-items: center; gap: 8px; }
+  .ex-group-row .grp-sel { height: 24px !important; width: auto !important; font-size: 12px; padding: 0 8px; border-radius: 999px; flex: 0 1 auto; }
   .zoom-ctl { display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; }
   .zoom-ctl .wj-btn { padding: 4px 9px; font-size: 12px; line-height: 1; }
   .zoom-ctl .zv { font-size: 11px; color: var(--text-secondary); min-width: 34px; text-align: center; }
@@ -867,6 +869,11 @@
     } catch(e){ dayIcons = {}; }
 
     try {
+      const mgRes = await storage.get(MUSCLE_KEY, false);
+      muscleOverrides = normMuscle(mgRes && mgRes.value ? JSON.parse(mgRes.value) : null);
+    } catch(e){ muscleOverrides = {}; }
+
+    try {
       const plRes = await storage.get(PLANS_KEY, false);
       plans = normPlans(plRes && plRes.value ? JSON.parse(plRes.value) : null);
     } catch(e){ plans = {}; }
@@ -1150,9 +1157,25 @@
             <input class="wj-input" type="number" min="0" step="0.5" inputmode="decimal" data-field="weight" data-i="${i}" value="${ex.weight}" />
           </div>
         </div>
+        <div class="ex-group-row">
+          <span class="ex-mini-label">Muscle</span>
+          <select class="wj-select grp-sel" data-grp="${i}">
+            <option value="">Auto: ${autoMuscleGroup(ex.name)}</option>
+            ${MUSCLE_GROUPS.map(g => `<option value="${g}"${muscleOverrides[(ex.name || '').trim()] === g ? ' selected' : ''}>${g}</option>`).join('')}
+          </select>
+        </div>
       </div>
     `).join('');
     glowExerciseRows(list, dayColor);
+    list.querySelectorAll('select[data-grp]').forEach(sel => sel.addEventListener('change', async () => {
+      const ex = program[day][parseInt(sel.getAttribute('data-grp'))];
+      const nm = ex && (ex.name || '').trim();
+      if(!nm) return;
+      if(sel.value) muscleOverrides[nm] = sel.value; else delete muscleOverrides[nm];
+      await saveMuscleOverrides();
+      renderLog();
+      showToast(nm + ' → ' + getMuscleGroup(nm));
+    }));
 
     list.querySelectorAll('input[data-field]').forEach(inp=>{
       const handleFieldCommit = async ()=>{
@@ -1167,6 +1190,7 @@
           const newName = val.trim();
           if(oldName === newName) return;
           program[day][i].name = newName;
+          if(muscleOverrides[oldName]){ muscleOverrides[newName] = muscleOverrides[oldName]; delete muscleOverrides[oldName]; await saveMuscleOverrides(); }
           if(exLibrary.hidden.includes(newName)){ exLibrary.hidden = exLibrary.hidden.filter(h => h !== newName); await saveLibrary(); }
           await saveProgram();
           if(oldName && newName){
@@ -1520,7 +1544,8 @@
       dayIcons,
       cycle,
       library: exLibrary,
-      plans
+      plans,
+      muscleGroups: muscleOverrides
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -1608,6 +1633,8 @@
     exLibrary = normLibrary(data.library);
     plans = normPlans(data.plans);
     await savePlans();
+    muscleOverrides = normMuscle(data.muscleGroups);
+    await saveMuscleOverrides();
     syncLibraryFromProgram();
     await saveLibrary();
 
@@ -1929,6 +1956,18 @@
 
   // Простий облік відновлення: фіксований час на групу мʼязів від моменту останнього тренування.
   // Враховуються лише тренування після скидання (recoveryResetTs).
+  const MUSCLE_KEY = 'muscle_groups';
+  let muscleOverrides = {}; // { 'назва вправи': 'Legs' } — ручний вибір групи мʼязів
+  const MUSCLE_GROUPS = ['Chest', 'Back', 'Shoulders', 'Arms', 'Legs', 'Calves', 'Core', 'Other'];
+  async function saveMuscleOverrides(){
+    try { await storage.set(MUSCLE_KEY, JSON.stringify(muscleOverrides), false); }
+    catch(e){ console.error('Помилка збереження груп мʼязів', e); }
+  }
+  function normMuscle(o){
+    const r = {};
+    if(o && typeof o === 'object') Object.keys(o).forEach(k => { if(MUSCLE_GROUPS.includes(o[k])) r[k] = o[k]; });
+    return r;
+  }
   const PLANS_KEY = 'plans';
   let plans = {}; // { 'YYYY-MM-DD': 'Day name' }
   async function savePlans(){
@@ -1980,7 +2019,7 @@
     const banner = document.getElementById('log-recovery-banner');
     if(!exercises || exercises.length === 0){ banner.innerHTML = ''; return; }
 
-    const groups = [...new Set(exercises.map(ex => getMuscleGroup(ex.name)))];
+    const groups = primaryGroupsOf(exercises).map(x => x.group);
     const statuses = groups.map(g => ({ group: g, status: groupRecoveryStatus(g) }));
     const notReady = statuses.filter(s => s.status.trained && !s.status.ready);
     const resetBtn = '<button type="button" class="wj-btn" id="btn-reset-recovery" style="padding:3px 10px; font-size:11px; margin-top:6px;">↺ Reset recovery</button>';
@@ -2410,6 +2449,23 @@
   }
 
   // --- Планування тренувань у календарі + попередження про відновлення на обрану дату ---
+  // Основні групи дня: група враховується, якщо на неї припадає не менше 25% підходів дня.
+  // Повертає [{ group, names: [вправи] }]. Решта (1–2 допоміжні вправи) попереджень не викликає.
+  function primaryGroupsOf(exercises){
+    const tot = {}, names = {};
+    let all = 0;
+    (exercises || []).forEach(e => {
+      if(!e.name) return;
+      const g = getMuscleGroup(e.name);
+      const n = Math.max(1, parseInt(e.sets) || 1);
+      tot[g] = (tot[g] || 0) + n; all += n;
+      (names[g] = names[g] || []).push(e.name);
+    });
+    if(all === 0) return [];
+    let gs = Object.keys(tot).filter(g => tot[g] / all >= 0.25);
+    if(gs.length === 0) gs = [Object.keys(tot).sort((a, b) => tot[b] - tot[a])[0]];
+    return gs.map(g => ({ group: g, names: names[g] }));
+  }
   function plannedStartMs(iso){ return new Date(iso + 'T18:00:00').getTime(); }
   function recoveryAt(group, dateIso){
     const now = Date.now();
@@ -2445,13 +2501,12 @@
   }
   function fmtHours(h){ return h >= 24 ? Math.floor(h / 24) + 'd ' + (h % 24) + 'h' : h + 'h'; }
   function planWarningHtml(dayName, dateIso){
-    const ex = program[dayName] || [];
-    const groups = [...new Set(ex.map(e => getMuscleGroup(e.name)))];
-    const res = groups.map(g => ({ g, r: recoveryAt(g, dateIso) }));
+    const pg = primaryGroupsOf(program[dayName]);
+    const res = pg.map(x => ({ g: x.group, names: x.names, r: recoveryAt(x.group, dateIso) }));
     const bad = res.filter(x => !x.r.ok);
     if(bad.length === 0) return `<div class="plan-box ok">✓ Muscles for ${escapeHtml(dayName)} will be recovered by this date.</div>`;
     return `<div class="plan-box warn"><b>⚠ Not fully recovered by this date:</b>` + bad.map(x =>
-      `<div style="display:flex; justify-content:space-between; gap:8px; margin-top:3px;"><span>${escapeHtml(x.g)} <span style="color:var(--text-secondary); font-size:11px;">· ${x.r.planned ? 'planned' : 'trained'} ${fmtShortDate(x.r.from)}</span></span><span style="color:#ff6b6b; white-space:nowrap;">~${fmtHours(x.r.shortH)} short</span></div>`).join('') + `</div>`;
+      `<div style="display:flex; justify-content:space-between; gap:8px; margin-top:3px;"><span>${escapeHtml(x.g)} <span style="color:var(--text-secondary); font-size:11px;">· ${x.r.planned ? 'planned' : 'trained'} ${fmtShortDate(x.r.from)} · in this day: ${escapeHtml(x.names.slice(0, 3).join(', '))}${x.names.length > 3 ? '…' : ''}</span></span><span style="color:#ff6b6b; white-space:nowrap;">~${fmtHours(x.r.shortH)} short</span></div>`).join('') + `</div>`;
   }
   function renderPlanPanel(list, dateIso){
     const days = dayNames();
@@ -3191,15 +3246,20 @@
 
   // --- Групи мʼязів та відновлення ---
   function getMuscleGroup(name){
+    const key = (name || '').trim();
+    if(muscleOverrides[key]) return muscleOverrides[key];
+    return autoMuscleGroup(name);
+  }
+  function autoMuscleGroup(name){
     const n = (name || '').toLowerCase();
     const has = (...ks) => ks.some(k => n.includes(k));
     if(has('ікри', 'литк')) return 'Calves';
     if(has('біцепс', 'трицепс', 'французьк', 'канат', 'молот')) return 'Arms';
     // ноги: до "тяга" і "жим", бо "румунська тяга" і "жим ногами" містять їх
-    if(has('присід', 'випад', 'ногами', 'ніг', 'бедр', 'рум', 'сідни', 'hip thrust', 'міст', 'гакен', 'болгар')) return 'Legs';
+    if(has('присід', 'випад', 'ногами', 'ніг', 'бедр', 'стегн', 'квадр', 'рум', 'сідни', 'ягодич', 'hip thrust', 'міст', 'гакен', 'болгар', 'сумо')) return 'Legs';
     // плечі: до загального "жим" і "тяга" ("вертикальний жим", "тяга до підборіддя")
     if(has('плеч', 'махи', 'над головою', 'вертикальний жим', 'підборід', 'face pull', 'фейс', 'армійськ')) return 'Shoulders';
-    if(has('тяга', 'пуловер', 'пуловр', 'гіперекстензія', 'шраги', 'підтягув', 'веслув')) return 'Back';
+    if(has('тяга', 'пуловер', 'пуловр', 'гіперекстензія', 'шраги', 'підтягув', 'веслув', 'мертва', 'станова')) return 'Back';
     if(has('жим', 'бруси', 'кросовер', 'пекдек', 'батерфляй', 'зведення', 'розведення')) return 'Chest';
     if(has('прес', 'кор', 'планк')) return 'Core';
     return 'Other';
