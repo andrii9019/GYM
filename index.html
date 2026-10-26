@@ -150,6 +150,9 @@
   #wj-toast { position: fixed; left: 50%; bottom: calc(var(--nav-h) + 10px); transform: translateX(-50%) translateY(20px); background: var(--accent); color: var(--accent-text); padding: 10px 18px; border-radius: 999px; font-size: 13px; font-weight: 600; max-width: 90vw; text-align: center; opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.2s; z-index: 9999; box-shadow: 0 4px 14px rgba(0,0,0,0.35); }
   #wj-toast.has-undo { pointer-events: auto; }
   #wj-toast .undo-btn { margin-left: 12px; background: rgba(0,0,0,0.22); color: inherit; border: 0; border-radius: 999px; padding: 4px 12px; font-weight: 700; font-size: 13px; cursor: pointer; }
+  #del-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 10000; padding: 20px; box-sizing: border-box; }
+  #del-modal-overlay.show { display: flex; }
+  #del-modal-box { background: var(--surface-2); border-radius: var(--radius-lg); padding: 1.25rem; max-width: 360px; width: 100%; border: 1px solid var(--border); }
   #lib-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 10000; padding: 16px; box-sizing: border-box; }
   #lib-modal-overlay.show { display: flex; }
   #lib-modal-box { background: var(--surface-2); border-radius: var(--radius-lg); padding: 1rem; max-width: 420px; width: 100%; max-height: 85vh; display: flex; flex-direction: column; border: 1px solid var(--border); }
@@ -246,6 +249,16 @@
     <select class="wj-input" id="lib-source" style="width:100%; margin-bottom:8px;"></select>
     <div id="lib-list" style="overflow-y:auto; flex:1; min-height:0;"></div>
     <button class="wj-btn" id="lib-add-btn" style="width:100%; margin-top:10px;">Done</button>
+  </div>
+</div>
+<div id="del-modal-overlay">
+  <div id="del-modal-box">
+    <p id="del-modal-text" style="font-size:14px; margin:0 0 1rem; color:var(--text-primary);"></p>
+    <div style="display:flex; flex-direction:column; gap:8px;">
+      <button class="wj-btn" id="del-modal-day">Remove from this day <span style="opacity:.7;">(stays in library)</span></button>
+      <button class="wj-btn wj-btn-danger" id="del-modal-forever">Delete forever</button>
+      <button class="wj-btn" id="del-modal-cancel">Cancel</button>
+    </div>
   </div>
 </div>
 <div id="move-modal-overlay">
@@ -512,6 +525,21 @@
     toastTimer = setTimeout(()=>{ el.classList.remove('show','has-undo'); }, 7000);
   }
   // Вибір дня для перенесення/копіювання вправи. -> {action:'move'|'copy', day} | null
+  function pickDeleteMode(name){
+    return new Promise((resolve)=>{
+      const overlay = document.getElementById('del-modal-overlay');
+      document.getElementById('del-modal-text').textContent = '"' + name + '"';
+      overlay.classList.add('show');
+      const bd = document.getElementById('del-modal-day'), bf = document.getElementById('del-modal-forever'), bc = document.getElementById('del-modal-cancel');
+      function done(r){
+        overlay.classList.remove('show');
+        bd.removeEventListener('click', a); bf.removeEventListener('click', b); bc.removeEventListener('click', c); overlay.removeEventListener('click', o);
+        resolve(r);
+      }
+      function a(){ done('day'); } function b(){ done('forever'); } function c(){ done(null); } function o(e){ if(e.target === overlay) done(null); }
+      bd.addEventListener('click', a); bf.addEventListener('click', b); bc.addEventListener('click', c); overlay.addEventListener('click', o);
+    });
+  }
   function pickMoveTarget(exName, fromDay){
     return new Promise((resolve)=>{
       const overlay = document.getElementById('move-modal-overlay');
@@ -812,6 +840,11 @@
     } catch(e){ dayIcons = {}; }
 
     try {
+      const lbRes = await storage.get(LIBRARY_KEY, false);
+      exLibrary = normLibrary(lbRes && lbRes.value ? JSON.parse(lbRes.value) : null);
+    } catch(e){ exLibrary = normLibrary(null); }
+
+    try {
       const cyRes = await storage.get(CYCLE_KEY, false);
       const cy = cyRes && cyRes.value ? JSON.parse(cyRes.value) : null;
       if(cy && typeof cy === 'object') cycle = normCycle(cy);
@@ -888,7 +921,32 @@
     renderAll();
   }
 
+  // Постійна бібліотека вправ: items = шаблони (підходи/повтори/вага), hidden = назви, видалені назавжди
+  const LIBRARY_KEY = 'ex_library';
+  let exLibrary = { items: {}, hidden: [] };
+  function normLibrary(l){
+    l = (l && typeof l === 'object') ? l : {};
+    const items = (l.items && typeof l.items === 'object') ? l.items : {};
+    return { items, hidden: Array.isArray(l.hidden) ? l.hidden.filter(x => typeof x === 'string') : [] };
+  }
+  async function saveLibrary(){
+    try { await storage.set(LIBRARY_KEY, JSON.stringify(exLibrary), false); }
+    catch(e){ console.error('Помилка збереження бібліотеки', e); }
+  }
+  // Запам'ятовує всі вправи з програми в бібліотеці (щоб вони не зникали після видалення з дня)
+  function syncLibraryFromProgram(){
+    let changed = false;
+    Object.values(program).forEach(arr => (arr || []).forEach(e => {
+      const n = (e.name || '').trim();
+      if(!n || exLibrary.hidden.includes(n)) return;
+      const t = { sets: e.sets, reps: String(e.reps), weight: e.weight };
+      const old = exLibrary.items[n];
+      if(!old || old.sets !== t.sets || old.reps !== t.reps || old.weight !== t.weight){ exLibrary.items[n] = t; changed = true; }
+    }));
+    return changed;
+  }
   async function saveProgram(){
+    try { syncLibraryFromProgram(); await storage.set(LIBRARY_KEY, JSON.stringify(exLibrary), false); } catch(e){}
     try { await storage.set(PROGRAM_KEY, JSON.stringify(program), false); }
     catch(e){ console.error('Помилка збереження програми', e); }
   }
@@ -1072,6 +1130,7 @@
           const newName = val.trim();
           if(oldName === newName) return;
           program[day][i].name = newName;
+          if(exLibrary.hidden.includes(newName)){ exLibrary.hidden = exLibrary.hidden.filter(h => h !== newName); await saveLibrary(); }
           await saveProgram();
           if(oldName && newName){
             let count = 0;
@@ -1127,9 +1186,23 @@
     list.querySelectorAll('button[data-del]').forEach(btn=>{
       btn.addEventListener('click', async ()=>{
         const i = parseInt(btn.getAttribute('data-del'));
+        const ex = program[day][i];
+        const nm = ex && (ex.name || '').trim();
+        if(!nm){ program[day].splice(i,1); await saveProgram(); renderProgram(); return; }
+        const r = await pickDeleteMode(nm);
+        if(!r) return;
         program[day].splice(i,1);
+        if(r === 'forever'){
+          delete exLibrary.items[nm];
+          if(!exLibrary.hidden.includes(nm)) exLibrary.hidden.push(nm);
+          await saveLibrary();
+        } else {
+          exLibrary.items[nm] = { sets: ex.sets, reps: String(ex.reps), weight: ex.weight };
+          await saveLibrary();
+        }
         await saveProgram();
         renderProgram();
+        showToast(r === 'forever' ? 'Deleted forever: ' + nm : 'Removed from ' + day + ' (still in library)');
       });
     });
     list.querySelectorAll('button[data-move-up]').forEach(btn=>{
@@ -1173,6 +1246,10 @@
   });
 
   // --- Бібліотека вправ: додати вправи в день без введення вручну ---
+  function libraryNames(){
+    const fromLib = Object.keys(exLibrary.items);
+    return [...new Set([...allExerciseNames(), ...fromLib])].filter(n => n && !exLibrary.hidden.includes(n)).sort();
+  }
   function exerciseTemplate(name){
     for(const d of Object.keys(program)){
       const f = (program[d] || []).find(e => e.name === name);
@@ -1180,6 +1257,11 @@
         const last = lastLoggedFor(name);
         return { name, sets: f.sets, reps: f.reps, weight: last ? last.weight : f.weight, _from: d };
       }
+    }
+    const it = exLibrary.items[name];
+    if(it){
+      const last = lastLoggedFor(name);
+      return { name, sets: it.sets, reps: it.reps, weight: last ? last.weight : it.weight, _from: '' };
     }
     const last = lastLoggedFor(name);
     if(last) return { name, sets: last.sets || 3, reps: String(last.repsLabel || last.reps || 10), weight: last.weight || 0, _from: 'history' };
@@ -1203,7 +1285,7 @@
       if(source.value.startsWith('d:')){
         list = (program[source.value.slice(2)] || []).map(e => e.name).filter(Boolean);
       } else {
-        list = allExerciseNames();
+        list = libraryNames();
       }
       return list.filter(n => !q || n.toLowerCase().includes(q));
     }
@@ -1213,8 +1295,18 @@
         const t = exerciseTemplate(n);
         const dis = inDay.has(n.trim().toLowerCase());
         const sub = (t._from && t._from !== 'history' ? t._from + ' · ' : '') + t.sets + '×' + t.reps + (t.weight ? ' · ' + t.weight + ' kg' : '') + (dis ? ' · added ✓' : '');
-        return `<div class="lib-row${dis ? ' disabled' : ''}" data-lib="${i}"><div style="flex:1;"><div class="lib-nm">${escapeHtml(n)}</div><div class="lib-sub">${escapeHtml(sub)}</div></div>${dis ? '' : '<span style="font-size:20px; color:var(--accent);">+</span>'}</div>`;
+        return `<div class="lib-row${dis ? ' disabled' : ''}" data-lib="${i}"><div style="flex:1;"><div class="lib-nm">${escapeHtml(n)}</div><div class="lib-sub">${escapeHtml(sub)}</div></div>${dis ? '' : '<span style="font-size:20px; color:var(--accent);">+</span>'}<button type="button" class="wj-btn wj-btn-danger" data-lib-del="${i}" style="padding:3px 9px; font-size:12px; flex-shrink:0;" aria-label="Delete forever">✕</button></div>`;
       }).join('') : '<p class="cyc-muted" style="text-align:center; padding:12px 0;">Nothing found.</p>';
+      listEl.querySelectorAll('button[data-lib-del]').forEach(btn => btn.addEventListener('click', async (ev) => {
+        ev.stopPropagation();
+        const name = ns[parseInt(btn.getAttribute('data-lib-del'))];
+        const ok = await showConfirm('Delete "' + name + '" from the library forever? Days and history keep their copies.', 'Delete');
+        if(!ok) return;
+        delete exLibrary.items[name];
+        if(!exLibrary.hidden.includes(name)) exLibrary.hidden.push(name);
+        await saveLibrary();
+        draw();
+      }));
       listEl.querySelectorAll('.lib-row:not(.disabled)').forEach(row => row.addEventListener('click', async () => {
         const name = ns[parseInt(row.getAttribute('data-lib'))];
         const arr = program[day];
@@ -1370,7 +1462,8 @@
       entries,
       dayColors,
       dayIcons,
-      cycle
+      cycle,
+      library: exLibrary
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -1419,6 +1512,9 @@
     await saveDayIcons();
     cycle = normCycle(data.cycle);
     await saveCycle();
+    exLibrary = normLibrary(data.library);
+    syncLibraryFromProgram();
+    await saveLibrary();
 
     fillDaySelects();
     renderAll();
@@ -1508,6 +1604,7 @@
       : `Delete day "${day}"?`;
     const confirmed = await showConfirm(confirmMsg);
     if(!confirmed) return;
+    syncLibraryFromProgram(); await saveLibrary();
     delete program[day];
     await saveProgram();
     fillDaySelects();
