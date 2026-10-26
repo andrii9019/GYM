@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="uk">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -268,22 +268,22 @@
 <div id="lib-modal-overlay">
   <div id="lib-modal-box">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-      <div class="section-label" id="lib-modal-title" style="margin:0;">Exercise library</div>
-      <button class="wj-btn" id="lib-modal-close" style="padding:4px 10px;" aria-label="Close">✕</button>
+      <div class="section-label" id="lib-modal-title" style="margin:0;">Бібліотека вправ</div>
+      <button class="wj-btn" id="lib-modal-close" style="padding:4px 10px;" aria-label="Закрити">✕</button>
     </div>
-    <input type="text" class="wj-input" id="lib-search" placeholder="Search…" style="width:100%; margin-bottom:8px;" />
+    <input type="text" class="wj-input" id="lib-search" placeholder="Пошук…" style="width:100%; margin-bottom:8px;" />
     <select class="wj-input" id="lib-source" style="width:100%; margin-bottom:8px;"></select>
     <div id="lib-list" style="overflow-y:auto; flex:1; min-height:0;"></div>
-    <button class="wj-btn" id="lib-add-btn" style="width:100%; margin-top:10px;">Done</button>
+    <button class="wj-btn" id="lib-add-btn" style="width:100%; margin-top:10px;">Готово</button>
   </div>
 </div>
 <div id="del-modal-overlay">
   <div id="del-modal-box">
     <p id="del-modal-text" style="font-size:14px; margin:0 0 1rem; color:var(--text-primary);"></p>
     <div style="display:flex; flex-direction:column; gap:8px;">
-      <button class="wj-btn" id="del-modal-day">Remove from this day <span style="opacity:.7;">(stays in library)</span></button>
-      <button class="wj-btn wj-btn-danger" id="del-modal-forever">Delete forever</button>
-      <button class="wj-btn" id="del-modal-cancel">Cancel</button>
+      <button class="wj-btn" id="del-modal-day">Прибрати з цього дня <span style="opacity:.7;">(лишається в бібліотеці)</span></button>
+      <button class="wj-btn wj-btn-danger" id="del-modal-forever">Видалити назавжди</button>
+      <button class="wj-btn" id="del-modal-cancel">Скасувати</button>
     </div>
   </div>
 </div>
@@ -292,9 +292,9 @@
     <p id="move-modal-text" style="font-size:14px; margin:0 0 .75rem; color:var(--text-primary);"></p>
     <select id="move-modal-select" class="wj-input" style="width:100%; margin-bottom:1rem;"></select>
     <div style="display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap;">
-      <button class="wj-btn" id="move-modal-cancel">Cancel</button>
-      <button class="wj-btn" id="move-modal-copy">Copy</button>
-      <button class="wj-btn" id="move-modal-move" style="background:var(--accent); color:var(--accent-text);">Move</button>
+      <button class="wj-btn" id="move-modal-cancel">Скасувати</button>
+      <button class="wj-btn" id="move-modal-copy">Копіювати</button>
+      <button class="wj-btn" id="move-modal-move" style="background:var(--accent); color:var(--accent-text);">Перенести</button>
     </div>
   </div>
 </div>
@@ -302,8 +302,8 @@
   <div id="confirm-modal-box">
     <p id="confirm-modal-text"></p>
     <div style="display:flex; gap:8px; justify-content:flex-end;">
-      <button class="wj-btn" id="confirm-modal-cancel">Cancel</button>
-      <button class="wj-btn wj-btn-danger" id="confirm-modal-ok">Delete</button>
+      <button class="wj-btn" id="confirm-modal-cancel">Скасувати</button>
+      <button class="wj-btn wj-btn-danger" id="confirm-modal-ok">Видалити</button>
     </div>
   </div>
 </div>
@@ -315,7 +315,7 @@
         <div id="detail-modal-title"></div>
         <div id="detail-modal-subtitle"></div>
       </div>
-      <button id="detail-modal-close" aria-label="Close">✕</button>
+      <button id="detail-modal-close" aria-label="Закрити">✕</button>
     </div>
     <div id="detail-modal-stats"></div>
     <div id="detail-modal-legend"></div>
@@ -324,47 +324,47 @@
   </div>
 </div>
 <div id="app-root">
-  <h2 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;">Workout journal with a customizable training program, exercise editing, history, and progress charts</h2>
+  <h2 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;">Щоденник тренувань з власною програмою, редагуванням вправ, історією та графіками прогресу</h2>
 
   <div class="wj-tabs">
     <div class="wj-tabs-inner">
       <div class="wj-tab active" data-tab="program" id="tab-program">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1.3" fill="currentColor" stroke="none"/><circle cx="4.5" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="4.5" cy="18" r="1.3" fill="currentColor" stroke="none"/></svg>
-        <span>Program</span>
+        <span>Програма</span>
       </div>
       <div class="wj-tab" data-tab="log" id="tab-log">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M10.2 8.5l5.5 3.5-5.5 3.5v-7z" fill="currentColor" stroke="none"/></svg>
-        <span>Train</span>
+        <span>Тренування</span>
       </div>
       <div class="wj-tab" data-tab="history" id="tab-history">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>
-        <span>History</span>
+        <span>Історія</span>
       </div>
       <div class="wj-tab" data-tab="progress" id="tab-progress">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V11M11 19V5M18 19v-6"/><path d="M2 19h20"/></svg>
-        <span>Progress</span>
+        <span>Прогрес</span>
       </div>
       <div class="wj-tab" data-tab="cycle" id="tab-cycle">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16l4-5 4 3 4-6 4 4"/><path d="M4 20h16"/></svg>
-        <span>Cycle</span>
+        <span>Цикл</span>
       </div>
     </div>
   </div>
 
   <div id="view-program" class="view-panel">
     <div class="page-header" style="display:flex; align-items:flex-end; justify-content:space-between; gap:10px;">
-      <div><div class="eyebrow">Program</div><h1 class="page-title">Build your plan</h1></div>
-      <button class="wj-btn" id="btn-backup-toggle" aria-label="Backup & restore" style="flex-shrink:0; padding:8px 10px; font-size:16px; line-height:1;">💾</button>
+      <div><div class="eyebrow">Програма</div><h1 class="page-title">Склади свій план</h1></div>
+      <button class="wj-btn" id="btn-backup-toggle" aria-label="Резервна копія" style="flex-shrink:0; padding:8px 10px; font-size:16px; line-height:1;">💾</button>
     </div>
     <div class="wj-card" id="backup-panel" style="display:none; margin-bottom: 8px; gap:8px; flex-direction:column;">
-      <div class="section-label">Backup &amp; restore</div>
-      <div style="font-size:12px; color:var(--text-secondary); line-height:1.4;">Everything is stored only on this device. Save a backup file regularly, or before clearing browser data — so you never lose your history again.</div>
+      <div class="section-label">Резервна копія</div>
+      <div style="font-size:12px; color:var(--text-secondary); line-height:1.4;">Усе зберігається лише на цьому пристрої. Регулярно зберігай файл резервної копії, особливо перед очищенням даних браузера, щоб не втратити історію.</div>
       <div class="wj-row" style="gap:8px;">
-        <button class="wj-btn wj-btn-success" id="btn-export-data" style="flex:1;">⬇ Save backup</button>
-        <button class="wj-btn" id="btn-import-data" style="flex:1;">⬆ Restore backup</button>
+        <button class="wj-btn wj-btn-success" id="btn-export-data" style="flex:1;">⬇ Зберегти копію</button>
+        <button class="wj-btn" id="btn-import-data" style="flex:1;">⬆ Відновити з копії</button>
       </div>
-      <button class="wj-btn" id="btn-import-days" style="width:100%;">＋ Add days from a backup file</button>
-      <div style="font-size:12px; color:var(--text-secondary); line-height:1.4; margin-top:-2px;">Adds only the training days that are missing here. History and your current days stay untouched.</div>
+      <button class="wj-btn" id="btn-import-days" style="width:100%;">＋ Додати дні з файлу копії</button>
+      <div style="font-size:12px; color:var(--text-secondary); line-height:1.4; margin-top:-2px;">Додає лише тренувальні дні, яких тут немає. Історія й поточні дні не змінюються.</div>
       <input type="file" id="import-file-input" accept="application/json" style="display:none;" />
       <input type="file" id="import-days-input" accept="application/json" style="display:none;" />
       <div id="backup-status" style="font-size:12px; color:var(--text-secondary); display:none;"></div>
@@ -374,54 +374,54 @@
       <select class="wj-select" id="program-day-select" style="flex:1; height:auto; padding:6px 8px; font-size:16px; font-weight:700; border:none; background:var(--surface-1);"></select>
     </div>
     <div class="wj-row" style="margin-bottom: 8px; gap:6px;">
-      <button class="wj-btn" id="btn-edit-day" style="flex:1;">✎ Edit</button>
-      <button class="wj-btn wj-btn-success" id="btn-add-day" style="flex:1;">+ Add day</button>
-      <button class="wj-btn wj-btn-danger" id="btn-delete-day" style="flex:1;">✕ Delete</button>
+      <button class="wj-btn" id="btn-edit-day" style="flex:1;">✎ Змінити</button>
+      <button class="wj-btn wj-btn-success" id="btn-add-day" style="flex:1;">+ Додати день</button>
+      <button class="wj-btn wj-btn-danger" id="btn-delete-day" style="flex:1;">✕ Видалити</button>
     </div>
     <div id="edit-day-form" style="display:none; margin-bottom: 10px; flex-direction:column; gap:8px;">
-      <input type="text" class="wj-input" id="edit-day-name" placeholder="Day name" />
+      <input type="text" class="wj-input" id="edit-day-name" placeholder="Назва дня" />
       <div>
-        <div class="ex-mini-label" style="margin-bottom:6px;">Day color</div>
+        <div class="ex-mini-label" style="margin-bottom:6px;">Колір дня</div>
         <div id="edit-day-color-swatches" style="display:flex; gap:8px; flex-wrap:wrap;"></div>
       </div>
       <div>
-        <div class="ex-mini-label" style="margin-bottom:6px;">Day icon(s) — tap to select one or more</div>
+        <div class="ex-mini-label" style="margin-bottom:6px;">Іконки дня: торкнись, щоб обрати одну чи кілька</div>
         <div id="edit-day-icon-choices" style="display:flex; gap:8px; flex-wrap:wrap;"></div>
       </div>
       <div style="display:flex; gap:8px;">
-        <button class="wj-btn wj-btn-primary" id="btn-confirm-edit-day" style="flex:1;">Save</button>
-        <button class="wj-btn" id="btn-cancel-edit-day" style="flex:1;">Cancel</button>
+        <button class="wj-btn wj-btn-primary" id="btn-confirm-edit-day" style="flex:1;">Зберегти</button>
+        <button class="wj-btn" id="btn-cancel-edit-day" style="flex:1;">Скасувати</button>
       </div>
     </div>
     <div id="edit-day-error" style="color: var(--text-danger, #c0392b); font-size: 13px; margin-bottom: 8px; display:none;"></div>
     <div id="add-day-form" style="display:none; margin-bottom: 10px; flex-direction:column; gap:8px;">
-      <input type="text" class="wj-input" id="new-day-name" placeholder="New day name, e.g. Arms" />
+      <input type="text" class="wj-input" id="new-day-name" placeholder="Назва нового дня, наприклад Руки" />
       <div>
-        <div class="ex-mini-label" style="margin-bottom:6px;">Day color</div>
+        <div class="ex-mini-label" style="margin-bottom:6px;">Колір дня</div>
         <div id="new-day-suggestion" style="font-size:12px; color: var(--text-secondary,#666); margin-bottom:6px; display:none; align-items:center; gap:6px;"></div>
         <div id="new-day-color-swatches" style="display:flex; gap:8px; flex-wrap:wrap;"></div>
       </div>
       <div>
-        <div class="ex-mini-label" style="margin-bottom:6px;">Day icon(s) — tap to select one or more</div>
+        <div class="ex-mini-label" style="margin-bottom:6px;">Іконки дня: торкнись, щоб обрати одну чи кілька</div>
         <div id="new-day-icon-choices" style="display:flex; gap:8px; flex-wrap:wrap;"></div>
       </div>
       <div>
-        <div class="ex-mini-label" style="margin-bottom:6px;">Copy exercises from</div>
+        <div class="ex-mini-label" style="margin-bottom:6px;">Скопіювати вправи з</div>
         <select class="wj-input" id="new-day-copy-from" style="width:100%;"></select>
       </div>
-      <button class="wj-btn wj-btn-primary" id="btn-confirm-add-day">Add</button>
+      <button class="wj-btn wj-btn-primary" id="btn-confirm-add-day">Додати</button>
     </div>
     <div id="add-day-error" style="color: var(--text-danger, #c0392b); font-size: 13px; margin-bottom: 8px; display:none;"></div>
     <div id="program-list"></div>
-    <button class="wj-btn wj-btn-success" id="btn-add-exercise" style="width:100%; margin-top:10px;">+ Add exercise</button>
+    <button class="wj-btn wj-btn-success" id="btn-add-exercise" style="width:100%; margin-top:10px;">+ Додати вправу</button>
     <div id="add-ex-choice" style="display:none; gap:8px; margin-top:8px;">
-      <button class="wj-btn" id="btn-add-new-ex" style="flex:1;">✎ New exercise</button>
-      <button class="wj-btn wj-btn-primary" id="btn-add-library" style="flex:1;">☰ From existing</button>
+      <button class="wj-btn" id="btn-add-new-ex" style="flex:1;">✎ Нова вправа</button>
+      <button class="wj-btn wj-btn-primary" id="btn-add-library" style="flex:1;">☰ З наявних</button>
     </div>
   </div>
 
   <div id="view-log" class="view-panel" style="display:none;">
-    <div class="page-header"><div class="eyebrow">Train</div><h1 class="page-title">Today's session</h1></div>
+    <div class="page-header"><div class="eyebrow">Тренування</div><h1 class="page-title">Сьогоднішнє тренування</h1></div>
     <div class="wj-row" id="log-day-header" style="margin-bottom: 8px; gap:6px; align-items:center; border-radius: 14px; padding: 0.5rem 0.65rem; background: var(--surface-1); box-sizing: border-box;">
       <div id="log-day-icon" style="height:26px; flex-shrink:0; display:flex; align-items:center;"></div>
       <select class="wj-select" id="log-day-select" style="flex:2;"></select>
@@ -431,16 +431,16 @@
     <div id="log-recovery-banner" style="margin-bottom: 8px;"></div>
     <div id="log-list" style="margin-bottom: 8px;"></div>
     <div id="log-error" style="color: var(--text-danger, #c0392b); font-size: 13px; margin-bottom: 8px; display: none;"></div>
-    <button class="wj-btn wj-btn-primary" id="btn-save-workout" style="width:100%;">✓ Finish workout & save</button>
+    <button class="wj-btn wj-btn-primary" id="btn-save-workout" style="width:100%;">✓ Завершити й зберегти</button>
   </div>
 
   <div id="view-history" class="view-panel" style="display:none;">
-    <div class="page-header"><div class="eyebrow">History</div><h1 class="page-title">Your journey</h1></div>
+    <div class="page-header"><div class="eyebrow">Історія</div><h1 class="page-title">Твій шлях</h1></div>
     <div class="wj-card" style="margin-bottom: 8px;">
       <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 10px;">
-        <button class="wj-btn" id="btn-cal-prev" aria-label="Previous month" style="padding:5px 11px;">‹</button>
+        <button class="wj-btn" id="btn-cal-prev" aria-label="Попередній місяць" style="padding:5px 11px;">‹</button>
         <div style="font-weight:600; font-size:13px;" id="cal-range-label">-</div>
-        <button class="wj-btn" id="btn-cal-next" aria-label="Next month" style="padding:5px 11px;">›</button>
+        <button class="wj-btn" id="btn-cal-next" aria-label="Наступний місяць" style="padding:5px 11px;">›</button>
       </div>
 
       <div id="cal-month-label-1" style="font-weight:600; font-size:12px; text-align:center; margin-bottom:3px; color: var(--text-secondary,#666);">-</div>
@@ -457,19 +457,19 @@
   </div>
 
   <div id="view-progress" class="view-panel" style="display:none;">
-    <div class="page-header"><div class="eyebrow">Progress</div><h1 class="page-title">See how far you've come</h1></div>
+    <div class="page-header"><div class="eyebrow">Прогрес</div><h1 class="page-title">Подивись, як далеко ти зайшов</h1></div>
     <div class="wj-card" style="margin-bottom: 8px;">
-      <div class="section-label" style="margin-bottom: 10px;">Workouts by muscle group</div>
+      <div class="section-label" style="margin-bottom: 10px;">Тренування за днями</div>
       <div id="training-count-list" style="display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 6px;"></div>
     </div>
 
     <div class="wj-card" style="margin-bottom: 8px;">
       <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 10px; gap:8px;">
-        <div class="section-label">Exercise progress</div>
+        <div class="section-label">Прогрес по вправах</div>
         <div style="display:flex; gap:4px;" id="period-switcher">
-          <button class="wj-btn period-btn" data-period="1m" style="padding:4px 8px; font-size:12px;">Month</button>
-          <button class="wj-btn period-btn" data-period="3m" style="padding:4px 8px; font-size:12px;">3 mo</button>
-          <button class="wj-btn period-btn active" data-period="all" style="padding:4px 8px; font-size:12px;">All time</button>
+          <button class="wj-btn period-btn" data-period="1m" style="padding:4px 8px; font-size:12px;">Місяць</button>
+          <button class="wj-btn period-btn" data-period="3m" style="padding:4px 8px; font-size:12px;">3 міс.</button>
+          <button class="wj-btn period-btn active" data-period="all" style="padding:4px 8px; font-size:12px;">Весь час</button>
         </div>
       </div>
       <div id="exercise-progress-list"></div>
@@ -477,9 +477,9 @@
   </div>
 
   <div id="view-cycle" class="view-panel" style="display:none;">
-    <div class="page-header"><div class="eyebrow">Periodization</div><h1 class="page-title">Your training cycle</h1></div>
+    <div class="page-header"><div class="eyebrow">Періодизація</div><h1 class="page-title">Твій тренувальний цикл</h1></div>
     <div class="wj-card" id="reco-card" style="margin-bottom: 8px;">
-      <div class="section-label" style="margin-bottom: 8px;">Recommendations</div>
+      <div class="section-label" style="margin-bottom: 8px;">Рекомендації</div>
       <div id="reco-list"></div>
     </div>
     <div class="wj-card" id="cycle-plan" style="margin-bottom: 8px;"></div>
@@ -542,7 +542,7 @@
     if(!el) return;
     el.textContent = message + ' ';
     const b = document.createElement('button');
-    b.className = 'undo-btn'; b.textContent = 'Undo';
+    b.className = 'undo-btn'; b.textContent = 'Скасувати';
     b.addEventListener('click', async ()=>{
       el.classList.remove('show','has-undo');
       if(toastTimer) clearTimeout(toastTimer);
@@ -602,7 +602,7 @@
       const okBtn = document.getElementById('confirm-modal-ok');
       const cancelBtn = document.getElementById('confirm-modal-cancel');
       textEl.textContent = message;
-      okBtn.textContent = okLabel || 'Delete';
+      okBtn.textContent = okLabel || 'Видалити';
       overlay.classList.add('show');
 
       function cleanup(result){
@@ -647,7 +647,7 @@
 
     document.getElementById('detail-modal-title').textContent = name;
     document.getElementById('detail-modal-subtitle').textContent =
-      `${fullData.length} workouts · last on ${lastEntry.date}${lastDay ? ' (' + lastDay + ')' : ''}`;
+      `${fullData.length} трен. · останнє ${lastEntry.date}${lastDay ? ' (' + lastDay + ')' : ''}`;
 
     const maxWeight = Math.max(...fullData.map(e => e.weight));
     const maxVolume = Math.max(...fullData.map(e => e.weight * e.sets * e.reps));
@@ -656,20 +656,20 @@
     const avgRpe = rpeVals.length ? Math.round(rpeVals.reduce((a,b)=>a+b,0) / rpeVals.length * 10) / 10 : null;
 
     document.getElementById('detail-modal-stats').innerHTML = `
-      <div class="detail-stat"><div class="detail-stat-label">Max weight</div><div class="detail-stat-value">${maxWeight} kg</div></div>
-      <div class="detail-stat"><div class="detail-stat-label">Best tonnage</div><div class="detail-stat-value">${Math.round(maxVolume)}</div></div>
-      <div class="detail-stat"><div class="detail-stat-label">Total sets</div><div class="detail-stat-value">${totalSets}</div></div>
-      ${avgRpe !== null ? `<div class="detail-stat"><div class="detail-stat-label">Avg RPE</div><div class="detail-stat-value">${avgRpe}</div></div>` : ''}
+      <div class="detail-stat"><div class="detail-stat-label">Макс. вага</div><div class="detail-stat-value">${maxWeight} кг</div></div>
+      <div class="detail-stat"><div class="detail-stat-label">Найкращий тоннаж</div><div class="detail-stat-value">${Math.round(maxVolume)}</div></div>
+      <div class="detail-stat"><div class="detail-stat-label">Всього підходів</div><div class="detail-stat-value">${totalSets}</div></div>
+      ${avgRpe !== null ? `<div class="detail-stat"><div class="detail-stat-label">Середній RPE</div><div class="detail-stat-value">${avgRpe}</div></div>` : ''}
     `;
     document.getElementById('detail-modal-legend').innerHTML = `
-      <span><span class="dot" style="background:${color};"></span>Weight (kg)</span>
-      <span><span class="dot" style="background:#e0a030;"></span>Tonnage</span>
+      <span><span class="dot" style="background:${color};"></span>Вага (кг)</span>
+      <span><span class="dot" style="background:#e0a030;"></span>Тоннаж</span>
       ${rpeVals.length ? '<span><span class="dot" style="background:#f0716a;"></span>RPE</span>' : ''}
     `;
     document.getElementById('detail-modal-list').innerHTML =
       `<div style="margin-bottom:6px; font-size:12px;">${buildTrendHtml(fullData)}</div>` +
       fullData.slice().reverse().slice(0, 8).map(e => `
-        <div class="detail-list-row"><span class="name">${escapeHtml(e.date)}</span><span class="val">${e.weight} kg × ${e.sets} × ${e.reps}${typeof e.rpe === 'number' ? ' · RPE ' + e.rpe : ''}</span></div>
+        <div class="detail-list-row"><span class="name">${escapeHtml(e.date)}</span><span class="val">${e.weight} кг × ${e.sets} × ${e.reps}${typeof e.rpe === 'number' ? ' · RPE ' + e.rpe : ''}</span></div>
       `).join('');
 
     if(detailChartInstance){ detailChartInstance.destroy(); detailChartInstance = null; }
@@ -684,13 +684,13 @@
           labels,
           datasets: [
             {
-              label: 'Weight', data: weightVals, yAxisID: 'y',
+              label: 'Вага', data: weightVals, yAxisID: 'y',
               borderColor: color, backgroundColor: color + '33',
               pointBackgroundColor: color, pointBorderColor: '#00403f', pointBorderWidth: 2,
               tension: 0.3, cubicInterpolationMode: 'monotone', fill: 'start', pointRadius: 6, pointHoverRadius: 10, pointHitRadius: 32, pointHoverBorderWidth: 3, borderWidth: 3
             },
             {
-              label: 'Tonnage', data: volumeVals, yAxisID: 'y1',
+              label: 'Тоннаж', data: volumeVals, yAxisID: 'y1',
               borderColor: '#e0a030', backgroundColor: 'transparent',
               pointBackgroundColor: '#e0a030', pointBorderColor: '#00403f', pointBorderWidth: 1.5,
               tension: 0.3, cubicInterpolationMode: 'monotone', pointRadius: 4, pointHoverRadius: 8, pointHitRadius: 32, borderWidth: 2, borderDash: [4, 3]
@@ -714,7 +714,7 @@
           }
         }
       });
-    } catch(err){ console.error('Chart render failed', err); }
+    } catch(err){ console.error('Не вдалося побудувати графік', err); }
 
     document.getElementById('detail-modal-overlay').classList.add('show');
   }
@@ -738,21 +738,21 @@
 
     document.getElementById('detail-modal-title').textContent = day;
     document.getElementById('detail-modal-subtitle').textContent =
-      `${sortedDates.length} workouts · last on ${sortedDates[sortedDates.length - 1]}`;
+      `${sortedDates.length} трен. · останнє ${sortedDates[sortedDates.length - 1]}`;
 
     const maxVol = Math.max(...vals);
     const avgVol = Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
 
     document.getElementById('detail-modal-stats').innerHTML = `
-      <div class="detail-stat"><div class="detail-stat-label">Workouts</div><div class="detail-stat-value">${sortedDates.length}</div></div>
-      <div class="detail-stat"><div class="detail-stat-label">Best tonnage</div><div class="detail-stat-value">${maxVol}</div></div>
-      <div class="detail-stat"><div class="detail-stat-label">Avg tonnage</div><div class="detail-stat-value">${avgVol}</div></div>
+      <div class="detail-stat"><div class="detail-stat-label">Тренувань</div><div class="detail-stat-value">${sortedDates.length}</div></div>
+      <div class="detail-stat"><div class="detail-stat-label">Найкращий тоннаж</div><div class="detail-stat-value">${maxVol}</div></div>
+      <div class="detail-stat"><div class="detail-stat-label">Середній тоннаж</div><div class="detail-stat-value">${avgVol}</div></div>
     `;
     document.getElementById('detail-modal-legend').innerHTML =
-      `<span><span class="dot" style="background:#5ee0c8;"></span>▲ rise</span>
-       <span><span class="dot" style="background:#f0716a;"></span>▼ drop</span>
-       <span><span class="dot" style="background:#ffd166;"></span>best</span>
-       <span style="color:var(--text-secondary);">- - average</span>`;
+      `<span><span class="dot" style="background:#5ee0c8;"></span>▲ ріст</span>
+       <span><span class="dot" style="background:#f0716a;"></span>▼ спад</span>
+       <span><span class="dot" style="background:#ffd166;"></span>найкраще</span>
+       <span style="color:var(--text-secondary);">- - середнє</span>`;
     document.getElementById('detail-modal-list').innerHTML = topExercises.map(([ex, count]) => `
         <div class="detail-list-row"><span class="name">${escapeHtml(ex)}</span><span class="val">${count}×</span></div>
       `).join('');
@@ -804,7 +804,7 @@
           labels: sortedDates,
           datasets: [
             {
-              label: 'Tonnage', data: vals,
+              label: 'Тоннаж', data: vals,
               borderColor: color, backgroundColor: color + '22',
               segment: { borderColor: (ctx) => (ctx.p1.parsed.y >= ctx.p0.parsed.y ? UP : DOWN) },
               pointBackgroundColor: vals.map((v, i) => i === maxI ? BEST : (i === 0 ? '#cfeee8' : (v >= vals[i - 1] ? UP : DOWN))),
@@ -814,7 +814,7 @@
               cubicInterpolationMode: 'monotone', tension: 0.4, fill: 'start', borderWidth: 3.5
             },
             {
-              label: 'Average', data: vals.map(() => avg),
+              label: 'Середнє', data: vals.map(() => avg),
               borderColor: 'rgba(255,255,255,0.4)', backgroundColor: 'transparent',
               borderDash: [5, 4], borderWidth: 1.5, pointRadius: 0, pointHitRadius: 0, pointHoverRadius: 0, fill: false
             }
@@ -829,13 +829,13 @@
               enabled: true,
               filter: (item) => item.datasetIndex === 0,
               callbacks: {
-                label: (ctx) => 'Tonnage: ' + fmt(ctx.parsed.y),
+                label: (ctx) => 'Тоннаж: ' + fmt(ctx.parsed.y),
                 afterLabel: (ctx) => {
                   const i = ctx.dataIndex;
-                  if(i === 0) return 'first workout';
+                  if(i === 0) return 'перше тренування';
                   const d = vals[i] - vals[i - 1];
                   const pct = vals[i - 1] ? Math.round(d / vals[i - 1] * 1000) / 10 : 0;
-                  return (d >= 0 ? '▲ +' : '▼ ') + fmt(d) + ' (' + (d >= 0 ? '+' : '') + pct + '%) vs previous';
+                  return (d >= 0 ? '▲ +' : '▼ ') + fmt(d) + ' (' + (d >= 0 ? '+' : '') + pct + '%) до попереднього';
                 }
               }
             }
@@ -846,7 +846,7 @@
           }
         }
       });
-    } catch(err){ console.error('Chart render failed', err); }
+    } catch(err){ console.error('Не вдалося побудувати графік', err); }
 
     document.getElementById('detail-modal-overlay').classList.add('show');
   }
@@ -1126,42 +1126,42 @@
     document.getElementById('btn-add-exercise').disabled = !hasDay;
     { const lb = document.getElementById('btn-add-library'); if(lb) lb.disabled = !hasDay; }
     if(!hasDay){
-      list.innerHTML = '<div class="wj-card"><p style="color:var(--text-secondary,#666); font-size:14px; text-align:center; margin:0;">No training days yet. Tap "+ Add day" above to create your first one.</p></div>';
+      list.innerHTML = '<div class="wj-card"><p style="color:var(--text-secondary,#666); font-size:14px; text-align:center; margin:0;">Ще немає тренувальних днів. Натисни «+ Додати день» вище, щоб створити перший.</p></div>';
       return;
     }
     const exercises = program[day] || [];
     if(exercises.length === 0){
-      list.innerHTML = '<div class="wj-card"><p style="color:var(--text-secondary,#666); font-size:14px; text-align:center; margin:0;">No exercises for this day.</p></div>';
+      list.innerHTML = '<div class="wj-card"><p style="color:var(--text-secondary,#666); font-size:14px; text-align:center; margin:0;">У цьому дні ще немає вправ.</p></div>';
       return;
     }
     list.innerHTML = exercises.map((ex, i) => `
       <div class="ex-row">
         <div style="display:flex; align-items:center; gap:6px;">
-          <input class="wj-input" data-field="name" data-i="${i}" value="${escapeHtml(ex.name)}" placeholder="Exercise name" style="flex:1;" />
-          <button class="wj-btn" data-move-up="${i}" style="flex-shrink:0; padding:6px 10px;" aria-label="Move up" ${i === 0 ? 'disabled' : ''}>↑</button>
-          <button class="wj-btn" data-move-down="${i}" style="flex-shrink:0; padding:6px 10px;" aria-label="Move down" ${i === exercises.length - 1 ? 'disabled' : ''}>↓</button>
-          <button class="wj-btn" data-xfer="${i}" style="flex-shrink:0; padding:6px 10px;" aria-label="Move or copy to another day" ${Object.keys(program).length < 2 ? 'disabled' : ''}>⇄</button>
-          <button class="wj-btn wj-btn-danger" data-del="${i}" style="flex-shrink:0; padding:6px 10px;" aria-label="Delete exercise">✕</button>
+          <input class="wj-input" data-field="name" data-i="${i}" value="${escapeHtml(ex.name)}" placeholder="Назва вправи" style="flex:1;" />
+          <button class="wj-btn" data-move-up="${i}" style="flex-shrink:0; padding:6px 10px;" aria-label="Вгору" ${i === 0 ? 'disabled' : ''}>↑</button>
+          <button class="wj-btn" data-move-down="${i}" style="flex-shrink:0; padding:6px 10px;" aria-label="Вниз" ${i === exercises.length - 1 ? 'disabled' : ''}>↓</button>
+          <button class="wj-btn" data-xfer="${i}" style="flex-shrink:0; padding:6px 10px;" aria-label="Перенести або копіювати в інший день" ${Object.keys(program).length < 2 ? 'disabled' : ''}>⇄</button>
+          <button class="wj-btn wj-btn-danger" data-del="${i}" style="flex-shrink:0; padding:6px 10px;" aria-label="Видалити вправу">✕</button>
         </div>
         <div class="ex-grid">
           <div class="ex-field-sets">
-            <div class="ex-mini-label">Sets</div>
+            <div class="ex-mini-label">Підходи</div>
             <input class="wj-input" type="number" min="1" step="1" inputmode="numeric" data-field="sets" data-i="${i}" value="${ex.sets}" />
           </div>
           <div class="ex-field-reps">
-            <div class="ex-mini-label">Reps ${repsHint(ex.name)}</div>
+            <div class="ex-mini-label">Повтори ${repsHint(ex.name)}</div>
             <input class="wj-input" data-field="reps" data-i="${i}" value="${escapeHtml(String(ex.reps))}" />
           </div>
           <div class="ex-field-weight">
-            <div class="ex-mini-label">Weight, kg</div>
+            <div class="ex-mini-label">Вага, кг</div>
             <input class="wj-input" type="number" min="0" step="0.5" inputmode="decimal" data-field="weight" data-i="${i}" value="${ex.weight}" />
           </div>
         </div>
         <div class="ex-group-row">
-          <span class="ex-mini-label">Muscle</span>
+          <span class="ex-mini-label">Мʼязи</span>
           <select class="wj-select grp-sel" data-grp="${i}">
-            <option value="">Auto: ${autoMuscleGroup(ex.name)}</option>
-            ${MUSCLE_GROUPS.map(g => `<option value="${g}"${muscleOverrides[(ex.name || '').trim()] === g ? ' selected' : ''}>${g}</option>`).join('')}
+            <option value="">Авто: ${grpLabel(autoMuscleGroup(ex.name))}</option>
+            ${MUSCLE_GROUPS.map(g => `<option value="${g}"${muscleOverrides[(ex.name || '').trim()] === g ? ' selected' : ''}>${grpLabel(g)}</option>`).join('')}
           </select>
         </div>
       </div>
@@ -1174,7 +1174,7 @@
       if(sel.value) muscleOverrides[nm] = sel.value; else delete muscleOverrides[nm];
       await saveMuscleOverrides();
       renderLog();
-      showToast(nm + ' → ' + getMuscleGroup(nm));
+      showToast(nm + ' → ' + grpLabel(getMuscleGroup(nm)));
     }));
 
     list.querySelectorAll('input[data-field]').forEach(inp=>{
@@ -1200,9 +1200,9 @@
             });
             if(count > 0){
               await saveEntries();
-              showToast(`Updated in history: ${count} entry(ies) "${oldName}" → "${newName}"`);
+              showToast(`Оновлено в історії: ${count} запис(ів) «${oldName}» → «${newName}»`);
             } else {
-              showToast(`Exercise renamed to "${newName}"`);
+              showToast(`Вправу перейменовано на «${newName}»`);
             }
           }
           return;
@@ -1221,13 +1221,13 @@
         const i = parseInt(btn.getAttribute('data-xfer'));
         const ex = program[day][i];
         if(!ex) return;
-        const r = await pickMoveTarget(ex.name || 'Exercise', day);
+        const r = await pickMoveTarget(ex.name || 'Вправа', day);
         if(!r) return;
         const target = program[r.day];
         if(!target) return;
         const dup = ex.name && target.some(e => e.name.trim().toLowerCase() === ex.name.trim().toLowerCase());
         if(dup){
-          showToast('"' + ex.name + '" already exists in ' + r.day);
+          showToast('«' + ex.name + '» уже є в дні ' + r.day);
           return;
         }
         const copy = Object.assign({}, ex);
@@ -1235,7 +1235,7 @@
         if(r.action === 'move') program[day].splice(i, 1);
         await saveProgram();
         renderProgram();
-        showUndoToast((r.action === 'move' ? 'Moved to ' : 'Copied to ') + r.day, async ()=>{
+        showUndoToast((r.action === 'move' ? 'Перенесено в ' : 'Скопійовано в ') + r.day, async ()=>{
           const k = target.indexOf(copy);
           if(k >= 0) target.splice(k, 1);
           if(r.action === 'move' && program[day]) program[day].splice(Math.min(i, program[day].length), 0, ex);
@@ -1263,7 +1263,7 @@
         }
         await saveProgram();
         renderProgram();
-        showToast(r === 'forever' ? 'Deleted forever: ' + nm : 'Removed from ' + day + ' (still in library)');
+        showToast(r === 'forever' ? 'Видалено назавжди: ' + nm : 'Прибрано з дня ' + day + ' (лишається в бібліотеці)');
       });
     });
     list.querySelectorAll('button[data-move-up]').forEach(btn=>{
@@ -1291,7 +1291,7 @@
   document.getElementById('btn-add-exercise').addEventListener('click', ()=>{
     const day = document.getElementById('program-day-select').value || dayNames()[0];
     if(!day){
-      showToast('Add a training day first.');
+      showToast('Спочатку додай тренувальний день.');
       return;
     }
     const ch = document.getElementById('add-ex-choice');
@@ -1335,9 +1335,9 @@
     const listEl = document.getElementById('lib-list');
     const addBtn = document.getElementById('lib-add-btn');
     const closeBtn = document.getElementById('lib-modal-close');
-    document.getElementById('lib-modal-title').textContent = 'Add to ' + day + ' — tap to add';
-    source.innerHTML = '<option value="">All exercises</option>' +
-      Object.keys(program).filter(d => d !== day).map(d => `<option value="d:${escapeHtml(d)}">From day: ${escapeHtml(d)}</option>`).join('');
+    document.getElementById('lib-modal-title').textContent = 'Додати в ' + day + ': торкнись вправи';
+    source.innerHTML = '<option value="">Усі вправи</option>' +
+      Object.keys(program).filter(d => d !== day).map(d => `<option value="d:${escapeHtml(d)}">З дня: ${escapeHtml(d)}</option>`).join('');
     search.value = '';
     const inDay = new Set((program[day] || []).map(e => (e.name || '').trim().toLowerCase()));
     function names(){
@@ -1355,13 +1355,13 @@
       listEl.innerHTML = ns.length ? ns.map((n, i) => {
         const t = exerciseTemplate(n);
         const dis = inDay.has(n.trim().toLowerCase());
-        const sub = (t._from && t._from !== 'history' ? t._from + ' · ' : '') + t.sets + '×' + t.reps + (t.weight ? ' · ' + t.weight + ' kg' : '') + (dis ? ' · added ✓' : '');
-        return `<div class="lib-row${dis ? ' disabled' : ''}" data-lib="${i}"><div style="flex:1;"><div class="lib-nm">${escapeHtml(n)}</div><div class="lib-sub">${escapeHtml(sub)}</div></div>${dis ? '' : '<span style="font-size:20px; color:var(--accent);">+</span>'}<button type="button" class="wj-btn wj-btn-danger" data-lib-del="${i}" style="padding:3px 9px; font-size:12px; flex-shrink:0;" aria-label="Delete forever">✕</button></div>`;
-      }).join('') : '<p class="cyc-muted" style="text-align:center; padding:12px 0;">Nothing found.</p>';
+        const sub = (t._from && t._from !== 'history' ? t._from + ' · ' : '') + t.sets + '×' + t.reps + (t.weight ? ' · ' + t.weight + ' kg' : '') + (dis ? ' · додано ✓' : '');
+        return `<div class="lib-row${dis ? ' disabled' : ''}" data-lib="${i}"><div style="flex:1;"><div class="lib-nm">${escapeHtml(n)}</div><div class="lib-sub">${escapeHtml(sub)}</div></div>${dis ? '' : '<span style="font-size:20px; color:var(--accent);">+</span>'}<button type="button" class="wj-btn wj-btn-danger" data-lib-del="${i}" style="padding:3px 9px; font-size:12px; flex-shrink:0;" aria-label="Видалити назавжди">✕</button></div>`;
+      }).join('') : '<p class="cyc-muted" style="text-align:center; padding:12px 0;">Нічого не знайдено.</p>';
       listEl.querySelectorAll('button[data-lib-del]').forEach(btn => btn.addEventListener('click', async (ev) => {
         ev.stopPropagation();
         const name = ns[parseInt(btn.getAttribute('data-lib-del'))];
-        const ok = await showConfirm('Delete "' + name + '" from the library forever? Days and history keep their copies.', 'Delete');
+        const ok = await showConfirm('Видалити «' + name + '» з бібліотеки назавжди? У днях і в історії вона залишиться.', 'Видалити');
         if(!ok) return;
         delete exLibrary.items[name];
         if(!exLibrary.hidden.includes(name)) exLibrary.hidden.push(name);
@@ -1377,7 +1377,7 @@
         inDay.add(name.trim().toLowerCase());
         await saveProgram();
         renderProgram();
-        showToast('Added: ' + name);
+        showToast('Додано: ' + name);
         draw();
       }));
     }
@@ -1396,7 +1396,7 @@
   }
   document.getElementById('btn-add-library').addEventListener('click', ()=>{
     const day = document.getElementById('program-day-select').value || dayNames()[0];
-    if(!day){ showToast('Add a training day first.'); return; }
+    if(!day){ showToast('Спочатку додай тренувальний день.'); return; }
     document.getElementById('add-ex-choice').style.display = 'none';
     openExerciseLibrary(day);
   });
@@ -1412,7 +1412,7 @@
     wrap.classList.add('palette');
     wrap.innerHTML = DAY_COLOR_PALETTE_CHOICES.map(c => `
       <div class="color-swatch" data-color="${c.value}" style="background:${c.value};" title="${c.name}" role="button" aria-label="${c.name}"></div>
-    `).join('') + `<label class="color-swatch custom-color" title="Custom color" role="button" aria-label="Custom color"><input type="color" value="#4db6ac" /></label>`;
+    `).join('') + `<label class="color-swatch custom-color" title="Власний колір" role="button" aria-label="Власний колір"><input type="color" value="#4db6ac" /></label>`;
     wrap.querySelectorAll('.color-swatch:not(.custom-color)').forEach(sw=>{
       sw.addEventListener('click', ()=>{
         onSelect(sw.getAttribute('data-color'));
@@ -1513,7 +1513,7 @@
     if(group && (!newDayColorManuallyPicked || !newDayIconManuallyPicked)){
       hint.style.display = 'flex';
       const groupLabel = iconLabel(group);
-      hint.innerHTML = `${renderGroupIconSvg(group, 16, selectedNewDayColor)}<span>Detected: <b style="color:${selectedNewDayColor};">${groupLabel}</b> — suggested below, tap to change or add more</span>`;
+      hint.innerHTML = `${renderGroupIconSvg(group, 16, selectedNewDayColor)}<span>Визначено: <b style="color:${selectedNewDayColor};">${groupLabel}</b>. Підібрано нижче, торкнись, щоб змінити або додати ще</span>`;
     } else {
       hint.style.display = 'none';
     }
@@ -1557,7 +1557,7 @@
     a.click();
     document.body.removeChild(a);
     setTimeout(()=> URL.revokeObjectURL(url), 2000);
-    showBackupStatus('Backup saved to your downloads.', false);
+    showBackupStatus('Копію збережено у «Завантаження».', false);
   });
 
   document.getElementById('btn-import-data').addEventListener('click', ()=>{
@@ -1573,17 +1573,17 @@
     if(!file) return;
     let data;
     try { data = JSON.parse(await file.text()); }
-    catch(err){ showBackupStatus('This file could not be read. Make sure it is a Repwave backup.', true); return; }
+    catch(err){ showBackupStatus('Не вдалося прочитати файл. Переконайся, що це копія Repwave.', true); return; }
     if(!data || typeof data !== 'object' || !data.program || typeof data.program !== 'object'){
-      showBackupStatus('This does not look like a valid Repwave backup file.', true);
+      showBackupStatus('Це не схоже на правильний файл копії Repwave.', true);
       return;
     }
     const missing = Object.keys(data.program).filter(d => !program[d] && Array.isArray(data.program[d]));
     if(missing.length === 0){
-      showBackupStatus('Nothing to add: all training days from this file already exist.', false);
+      showBackupStatus('Нічого додавати: усі дні з цього файлу вже є.', false);
       return;
     }
-    const ok = await showConfirm('Add ' + missing.length + ' day(s) from this file: ' + missing.join(', ') + '? Your history and current days stay as they are.', 'Add');
+    const ok = await showConfirm('Додати днів: ' + missing.length + ' (' + missing.join(', ') + ')? Історія й поточні дні не зміняться.', 'Додати');
     if(!ok) return;
     const fallbackColors = ['#4fd1e0', '#6c7ae0', '#e63946', '#e0619c', '#e0a030', '#4db6ac'];
     missing.forEach((d, i) => {
@@ -1596,8 +1596,8 @@
     await saveDayIcons();
     fillDaySelects();
     renderAll();
-    showBackupStatus('Added days: ' + missing.join(', ') + '.', false);
-    showToast('Added ' + missing.length + ' day(s).');
+    showBackupStatus('Додано дні: ' + missing.join(', ') + '.', false);
+    showToast('Додано днів: ' + missing.length);
   });
 
   document.getElementById('import-file-input').addEventListener('change', async (e)=>{
@@ -1609,14 +1609,14 @@
       const text = await file.text();
       data = JSON.parse(text);
     } catch(err){
-      showBackupStatus('This file could not be read. Make sure it is a Repwave backup.', true);
+      showBackupStatus('Не вдалося прочитати файл. Переконайся, що це копія Repwave.', true);
       return;
     }
     if(!data || typeof data !== 'object' || !('program' in data) || !('entries' in data)){
-      showBackupStatus('This does not look like a valid Repwave backup file.', true);
+      showBackupStatus('Це не схоже на правильний файл копії Repwave.', true);
       return;
     }
-    const confirmed = await showConfirm('Restore this backup? It will replace everything currently on this device.', 'Restore');
+    const confirmed = await showConfirm('Відновити цю копію? Вона замінить усе, що зараз є на цьому пристрої.', 'Відновити');
     if(!confirmed) return;
 
     program = (data.program && typeof data.program === 'object') ? data.program : {};
@@ -1640,8 +1640,8 @@
 
     fillDaySelects();
     renderAll();
-    showBackupStatus('Backup restored successfully.', false);
-    showToast('Backup restored.');
+    showBackupStatus('Копію успішно відновлено.', false);
+    showToast('Копію відновлено.');
   });
 
   document.getElementById('btn-add-day').addEventListener('click', ()=>{
@@ -1658,7 +1658,7 @@
       newDayIconManuallyPicked = false;
       document.getElementById('new-day-suggestion').style.display = 'none';
       { const cf = document.getElementById('new-day-copy-from');
-        cf.innerHTML = '<option value="">— empty day —</option>' + Object.keys(program).map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)} (${(program[d]||[]).length})</option>`).join(''); }
+        cf.innerHTML = '<option value="">— порожній день —</option>' + Object.keys(program).map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)} (${(program[d]||[]).length})</option>`).join(''); }
       renderColorSwatches();
       renderIconChoices();
     }
@@ -1669,22 +1669,22 @@
     const errEl = document.getElementById('add-day-error');
     const name = input.value.trim();
     if(!name){
-      errEl.textContent = 'Enter a day name.';
+      errEl.textContent = 'Введи назву дня.';
       errEl.style.display = 'block';
       return;
     }
     if(program[name]){
-      errEl.textContent = 'A day with this name already exists.';
+      errEl.textContent = 'День із такою назвою вже є.';
       errEl.style.display = 'block';
       return;
     }
     if(!selectedNewDayColor){
-      errEl.textContent = 'Choose a day color.';
+      errEl.textContent = 'Обери колір дня.';
       errEl.style.display = 'block';
       return;
     }
     if(selectedNewDayIcons.length === 0){
-      errEl.textContent = 'Choose at least one day icon.';
+      errEl.textContent = 'Обери хоча б одну іконку дня.';
       errEl.style.display = 'block';
       return;
     }
@@ -1712,18 +1712,18 @@
     const sel = document.getElementById('program-day-select');
     const day = sel.value;
     if(!day){
-      showToast('Add a training day first.');
+      showToast('Спочатку додай тренувальний день.');
       return;
     }
     const remaining = dayNames().filter(d => d !== day);
     if(remaining.length === 0){
-      showToast('Cannot delete the last day in the program.');
+      showToast('Не можна видалити останній день програми.');
       return;
     }
     const exCount = (program[day] || []).length;
     const confirmMsg = exCount > 0
-      ? `Delete day "${day}" and all ${exCount} exercise(s) in it? History entries will remain — only the day itself disappears from the program.`
-      : `Delete day "${day}"?`;
+      ? `Видалити день «${day}» і всі вправи в ньому (${exCount})? Записи в історії залишаться, зникне лише сам день із програми.`
+      : `Видалити день «${day}»?`;
     const confirmed = await showConfirm(confirmMsg);
     if(!confirmed) return;
     syncLibraryFromProgram(); await saveLibrary();
@@ -1732,7 +1732,7 @@
     fillDaySelects();
     document.getElementById('program-day-select').value = remaining[0];
     renderProgram();
-    showToast(`Day "${day}" removed from the program.`);
+    showToast(`День «${day}» прибрано з програми.`);
   });
 
   let selectedEditDayColor = null;
@@ -1741,7 +1741,7 @@
   document.getElementById('btn-edit-day').addEventListener('click', ()=>{
     const day = document.getElementById('program-day-select').value;
     if(!day){
-      showToast('Add a training day first.');
+      showToast('Спочатку додай тренувальний день.');
       return;
     }
     document.getElementById('add-day-form').style.display = 'none';
@@ -1784,17 +1784,17 @@
     const newName = input.value.trim();
     if(!oldName) return;
     if(!newName){
-      errEl.textContent = 'Enter a day name.';
+      errEl.textContent = 'Введи назву дня.';
       errEl.style.display = 'block';
       return;
     }
     if(newName !== oldName && program[newName]){
-      errEl.textContent = 'A day with this name already exists.';
+      errEl.textContent = 'День із такою назвою вже є.';
       errEl.style.display = 'block';
       return;
     }
     if(selectedEditDayIcons.length === 0){
-      errEl.textContent = 'Choose at least one day icon.';
+      errEl.textContent = 'Обери хоча б одну іконку дня.';
       errEl.style.display = 'block';
       return;
     }
@@ -1832,10 +1832,10 @@
 
     if(nameChanged){
       showToast(count > 0
-        ? `Day renamed to "${newName}" (updated in ${count} history entry/entries).`
-        : `Day renamed to "${newName}".`);
+        ? `День перейменовано на «${newName}» (оновлено записів в історії: ${count}).`
+        : `День перейменовано на «${newName}».`);
     } else {
-      showToast(`Day "${newName}" updated.`);
+      showToast(`День «${newName}» оновлено.`);
     }
   });
 
@@ -1861,15 +1861,15 @@
     if(!banner) return;
     const act = (typeof cycle.active === 'number') ? cycle.active : null;
     const chips = `<div class="cyc-weeks" style="margin-bottom:6px;">
-      <div class="cyc-week${act === null ? ' selected' : ''}" data-log-w="off"><div class="w">OFF</div><div class="n">Program</div></div>
+      <div class="cyc-week${act === null ? ' selected' : ''}" data-log-w="off"><div class="w">ВИМК</div><div class="n">Програма</div></div>
       ${CYCLE_WEEKS.map((w, i) => `<div class="cyc-week${act === i ? ' selected' : ''}" data-log-w="${i}"><div class="w">W${i + 1}</div><div class="n">${escapeHtml(w.name)}</div></div>`).join('')}
     </div>`;
     let info;
     if(act !== null){
       const wk = CYCLE_WEEKS[act];
-      info = `<div class="t">Week ${act + 1} · ${escapeHtml(wk.name)} · target RPE ${wk.rpe}</div><div class="d">${act === STRENGTH_IDX ? 'Main lifts only. Other exercises are optional (tap the button below the list).' : escapeHtml(wk.desc)}</div>`;
+      info = `<div class="t">Тиждень ${act + 1} · ${escapeHtml(wk.name)} · цільовий RPE ${wk.rpe}</div><div class="d">${act === STRENGTH_IDX ? 'Лише основні вправи. Решта за бажанням (кнопка під списком).' : escapeHtml(wk.desc)}</div>`;
     } else {
-      info = '<div class="d" style="margin-top:0;">Choose a week to fill in sets, reps and weight automatically. Now: your Program values.</div>';
+      info = '<div class="d" style="margin-top:0;">Обери тиждень, щоб підходи, повтори й вага підставлялись автоматично. Зараз: значення з Програми.</div>';
     }
     banner.innerHTML = `<div class="log-cycle-banner">${chips}${info}</div>`;
   }
@@ -1900,11 +1900,11 @@
     const saveBtn = document.getElementById('btn-save-workout');
     if(saveBtn) saveBtn.disabled = !day;
     if(!day){
-      list.innerHTML = '<div class="wj-card"><p style="color:var(--text-secondary,#666); font-size:14px; text-align:center; margin:0;">No training days yet. Create one in the "Program" tab first.</p></div>';
+      list.innerHTML = '<div class="wj-card"><p style="color:var(--text-secondary,#666); font-size:14px; text-align:center; margin:0;">Ще немає тренувальних днів. Спочатку створи день на вкладці «Програма».</p></div>';
       return;
     }
     if(exercises.length === 0){
-      list.innerHTML = '<div class="wj-card"><p style="color:var(--text-secondary,#666); font-size:14px; text-align:center; margin:0;">No exercises for this day. Add them in the "Program" tab.</p></div>';
+      list.innerHTML = '<div class="wj-card"><p style="color:var(--text-secondary,#666); font-size:14px; text-align:center; margin:0;">У цьому дні немає вправ. Додай їх на вкладці «Програма».</p></div>';
       return;
     }
     const wkIdx = (typeof cycle.active === 'number') ? cycle.active : null;
@@ -1920,8 +1920,8 @@
       const vSets = t ? t.sets : ex.sets;
       const vReps = t ? t.reps : ex.reps;
       const vWeight = t ? t.weight : ex.weight;
-      const hintTarget = t ? `<span class="tg">Target ${t.sets}×${escapeHtml(String(t.reps))} · ${fmtKg(t.weight)} kg · RPE ${t.rpe}</span>${t.sub ? ' <span class="ls">(' + escapeHtml(t.sub) + ')</span>' : ''}` : '';
-      const hintLast = (wkIdx !== null && lastE) ? `<span class="ls">Last: ${lastE.weight} kg × ${lastE.sets}×${escapeHtml(String(lastE.repsLabel || lastE.reps))}${typeof lastE.rpe === 'number' ? ' · RPE ' + lastE.rpe : ''}</span>` : '';
+      const hintTarget = t ? `<span class="tg">Ціль ${t.sets}×${escapeHtml(String(t.reps))} · ${fmtKg(t.weight)} кг · RPE ${t.rpe}</span>${t.sub ? ' <span class="ls">(' + escapeHtml(t.sub) + ')</span>' : ''}` : '';
+      const hintLast = (wkIdx !== null && lastE) ? `<span class="ls">Минулого разу: ${lastE.weight} кг × ${lastE.sets}×${escapeHtml(String(lastE.repsLabel || lastE.reps))}${typeof lastE.rpe === 'number' ? ' · RPE ' + lastE.rpe : ''}</span>` : '';
       const hintAdvice = (sg && !optional) ? `<span class="ls"> · ${escapeHtml(sg.text)}</span>` : '';
       const hint = (hintTarget || hintLast) ? `<div class="ex-hint">${hintTarget}${hintTarget && hintLast ? '<br>' : ''}${hintLast}${hintAdvice}</div>` : '';
       return `
@@ -1930,15 +1930,15 @@
         ${hint}
         <div class="ex-grid">
           <div class="ex-field-sets">
-            <div class="ex-mini-label">Sets</div>
+            <div class="ex-mini-label">Підходи</div>
             <input class="wj-input" type="number" min="1" step="1" inputmode="numeric" data-log-field="sets" data-log-i="${i}" value="${vSets}" />
           </div>
           <div class="ex-field-reps">
-            <div class="ex-mini-label">Reps</div>
+            <div class="ex-mini-label">Повтори</div>
             <input class="wj-input" data-log-field="reps" data-log-i="${i}" value="${escapeHtml(String(vReps))}" />
           </div>
           <div class="ex-field-weight">
-            <div class="ex-mini-label">Weight, kg</div>
+            <div class="ex-mini-label">Вага, кг</div>
             <input class="wj-input" type="number" min="0" step="0.5" inputmode="decimal" data-log-field="weight" data-log-i="${i}" value="${vWeight}" />
           </div>
         </div>
@@ -1950,7 +1950,7 @@
         </div>
       </div>
     `; }).join('');
-    list.innerHTML = rowsHtml + (optionalCount ? `<button type="button" class="wj-btn" id="btn-show-optional" style="width:100%; margin-bottom:6px;">+ ${optionalCount} optional exercise(s)</button>` : '');
+    list.innerHTML = rowsHtml + (optionalCount ? `<button type="button" class="wj-btn" id="btn-show-optional" style="width:100%; margin-bottom:6px;">+ ${optionalCount} додаткових вправ</button>` : '');
     glowExerciseRows(list, dayColor);
   }
 
@@ -1958,7 +1958,9 @@
   // Враховуються лише тренування після скидання (recoveryResetTs).
   const MUSCLE_KEY = 'muscle_groups';
   let muscleOverrides = {}; // { 'назва вправи': 'Legs' } — ручний вибір групи мʼязів
-  const MUSCLE_GROUPS = ['Chest', 'Back', 'Shoulders', 'Arms', 'Legs', 'Calves', 'Core', 'Other'];
+  const MUSCLE_GROUPS = ['Chest', 'Back', 'Traps', 'Shoulders', 'Biceps', 'Triceps', 'Legs', 'Calves', 'Core', 'Other'];
+  const GROUP_UA = { Chest: 'Груди', Back: 'Спина', Traps: 'Шраги', Shoulders: 'Плечі', Biceps: 'Біцепс', Triceps: 'Трицепс', Legs: 'Ноги', Calves: 'Ікри', Core: 'Прес', Other: 'Інше' };
+  function grpLabel(g){ return GROUP_UA[g] || g; }
   async function saveMuscleOverrides(){
     try { await storage.set(MUSCLE_KEY, JSON.stringify(muscleOverrides), false); }
     catch(e){ console.error('Помилка збереження груп мʼязів', e); }
@@ -1969,7 +1971,7 @@
     return r;
   }
   const PLANS_KEY = 'plans';
-  let plans = {}; // { 'YYYY-MM-DD': 'Day name' }
+  let plans = {}; // { 'YYYY-MM-DD': 'Назва дня' }
   async function savePlans(){
     try { await storage.set(PLANS_KEY, JSON.stringify(plans), false); }
     catch(e){ console.error('Помилка збереження планів', e); }
@@ -2022,13 +2024,13 @@
     const groups = primaryGroupsOf(exercises).map(x => x.group);
     const statuses = groups.map(g => ({ group: g, status: groupRecoveryStatus(g) }));
     const notReady = statuses.filter(s => s.status.trained && !s.status.ready);
-    const resetBtn = '<button type="button" class="wj-btn" id="btn-reset-recovery" style="padding:3px 10px; font-size:11px; margin-top:6px;">↺ Reset recovery</button>';
+    const resetBtn = '<button type="button" class="wj-btn" id="btn-reset-recovery" style="padding:3px 10px; font-size:11px; margin-top:6px;">↺ Скинути відновлення</button>';
 
     if(notReady.length === 0){
       banner.innerHTML = `
         <div class="wj-card" style="display:flex; align-items:center; gap:8px; border-color: rgba(94,224,200,0.45); justify-content:space-between;">
           <span style="display:flex; align-items:center; gap:8px;"><span style="color:#5ee0c8; font-size:18px;">✓</span>
-          <span style="font-size:13px;">Muscles used on this day have recovered — you're good to train.</span></span>
+          <span style="font-size:13px;">Мʼязи цього дня відновились, можна тренуватись.</span></span>
         </div>
       `;
       return;
@@ -2036,8 +2038,8 @@
 
     const rows = notReady.map(s => `
       <div style="display:flex; justify-content:space-between; padding: 5px 0; gap:8px;">
-        <span style="font-size:13px;">${escapeHtml(s.group)} <span style="color:var(--text-secondary); font-size:11px;">· trained ${fmtShortDate(s.status.lastDate)}</span></span>
-        <span style="font-size:13px; color:#ff6b6b; white-space:nowrap;">~${s.status.remainingHours >= 24 ? Math.floor(s.status.remainingHours / 24) + 'd ' + (s.status.remainingHours % 24) + 'h' : s.status.remainingHours + 'h'} left</span>
+        <span style="font-size:13px;">${escapeHtml(grpLabel(s.group))} <span style="color:var(--text-secondary); font-size:11px;">· тренувались ${fmtShortDate(s.status.lastDate)}</span></span>
+        <span style="font-size:13px; color:#ff6b6b; white-space:nowrap;">~${s.status.remainingHours >= 24 ? Math.floor(s.status.remainingHours / 24) + ' д ' + (s.status.remainingHours % 24) + ' г' : s.status.remainingHours + ' г'} лишилось</span>
       </div>
     `).join('');
 
@@ -2045,7 +2047,7 @@
       <div class="wj-card" style="border-color: rgba(255,107,107,0.4);">
         <div style="display:flex; align-items:center; gap:8px; margin-bottom: 4px;">
           <span style="color:#ff6b6b; font-size:18px;">⚠</span>
-          <span style="font-size:13px; font-weight:500;">Some muscles are still recovering</span>
+          <span style="font-size:13px; font-weight:500;">Деякі мʼязи ще відновлюються</span>
         </div>
         ${rows}
         ${resetBtn}
@@ -2053,12 +2055,12 @@
     `;
     const rb = document.getElementById('btn-reset-recovery');
     if(rb) rb.addEventListener('click', async () => {
-      const ok = await showConfirm('Reset recovery? All muscles will count as recovered, and tracking starts again from your next workout.', 'Reset');
+      const ok = await showConfirm('Скинути відновлення? Усі мʼязи вважатимуться відновленими, облік почнеться знову з наступного тренування.', 'Скинути');
       if(!ok) return;
       recoveryResetTs = Date.now();
       await saveRecoveryReset();
       renderLog();
-      showToast('Recovery reset.');
+      showToast('Відновлення скинуто.');
     });
   }
 
@@ -2067,7 +2069,7 @@
     const date = document.getElementById('log-date').value;
     const errEl = document.getElementById('log-error');
     if(!date){
-      errEl.textContent = 'Choose a workout date.';
+      errEl.textContent = 'Обери дату тренування.';
       errEl.style.display = 'block';
       return;
     }
@@ -2096,7 +2098,7 @@
       });
     });
     if(hasError){
-      errEl.textContent = 'Check sets, reps, and weight — all fields must be filled in correctly.';
+      errEl.textContent = 'Перевір підходи, повтори й вагу: усі поля мають бути заповнені правильно.';
       errEl.style.display = 'block';
       return;
     }
@@ -2107,7 +2109,7 @@
     renderAll();
     errEl.style.display = 'block';
     errEl.style.color = 'var(--text-success, #1a7a3a)';
-    errEl.textContent = 'Workout saved.';
+    errEl.textContent = 'Тренування збережено.';
     setTimeout(()=>{ errEl.style.display = 'none'; errEl.style.color = 'var(--text-danger, #c0392b)'; }, 2500);
   });
 
@@ -2119,29 +2121,29 @@
 
   // --- Календар історії тренувань ---
   const DAY_COLOR_PALETTE_CHOICES = [
-    { name: 'Red', value: '#e63946' },
-    { name: 'Coral', value: '#f2665f' },
-    { name: 'Orange', value: '#e07b39' },
-    { name: 'Amber', value: '#e9c46a' },
-    { name: 'Lime', value: '#a3d977' },
-    { name: 'Mint', value: '#6fcf97' },
-    { name: 'Green', value: '#4caf7d' },
-    { name: 'Emerald', value: '#17c98f' },
-    { name: 'Forest', value: '#2d8f5f' },
-    { name: 'Sage', value: '#8ba888' },
-    { name: 'Olive', value: '#8a9a5b' },
-    { name: 'Teal', value: '#2ba9a1' },
-    { name: 'Cyan', value: '#4fd1e0' },
-    { name: 'Sky', value: '#5aa9e6' },
-    { name: 'Blue', value: '#378ADD' },
-    { name: 'Indigo', value: '#6c7ae0' },
-    { name: 'Purple', value: '#9b5de5' },
-    { name: 'Violet', value: '#b565d9' },
-    { name: 'Magenta', value: '#e0619c' },
-    { name: 'Pink', value: '#ff8fab' },
-    { name: 'Rose', value: '#e0577a' },
-    { name: 'Brown', value: '#a97155' },
-    { name: 'Slate', value: '#8a97a8' }
+    { name: 'Червоний', value: '#e63946' },
+    { name: 'Корал', value: '#f2665f' },
+    { name: 'Помаранчевий', value: '#e07b39' },
+    { name: 'Бурштин', value: '#e9c46a' },
+    { name: 'Лайм', value: '#a3d977' },
+    { name: 'Мʼята', value: '#6fcf97' },
+    { name: 'Зелений', value: '#4caf7d' },
+    { name: 'Смарагд', value: '#17c98f' },
+    { name: 'Лісовий', value: '#2d8f5f' },
+    { name: 'Шавлія', value: '#8ba888' },
+    { name: 'Оливковий', value: '#8a9a5b' },
+    { name: 'Бірюзовий', value: '#2ba9a1' },
+    { name: 'Блакитний', value: '#4fd1e0' },
+    { name: 'Небесний', value: '#5aa9e6' },
+    { name: 'Синій', value: '#378ADD' },
+    { name: 'Індиго', value: '#6c7ae0' },
+    { name: 'Пурпурний', value: '#9b5de5' },
+    { name: 'Фіолетовий', value: '#b565d9' },
+    { name: 'Маджента', value: '#e0619c' },
+    { name: 'Рожевий', value: '#ff8fab' },
+    { name: 'Троянда', value: '#e0577a' },
+    { name: 'Коричневий', value: '#a97155' },
+    { name: 'Сланець', value: '#8a97a8' }
   ];
   // Розширена палітра: 18 відтінків × 3 яскравості + нейтральні, відсортовано як спектр
   (function extendPalette(){
@@ -2160,13 +2162,13 @@
     };
     const have = new Set(DAY_COLOR_PALETTE_CHOICES.map(c => c.value.toLowerCase()));
     for(let h = 0; h < 360; h += 20){
-      [[78, 34, 'deep'], [72, 52, 'mid'], [80, 70, 'light']].forEach(([sat, l, tag]) => {
+      [[78, 34, 'темний'], [72, 52, 'середній'], [80, 70, 'світлий']].forEach(([sat, l, tag]) => {
         const v = hsl2hex(h, sat, l);
-        if(!have.has(v)){ have.add(v); DAY_COLOR_PALETTE_CHOICES.push({ name: 'Hue ' + h + ' ' + tag, value: v }); }
+        if(!have.has(v)){ have.add(v); DAY_COLOR_PALETTE_CHOICES.push({ name: 'Відтінок ' + h + ' ' + tag, value: v }); }
       });
     }
     ['#1f2933', '#3d4852', '#5f6c7b', '#8a97a8', '#b8c2cc', '#e4e7eb'].forEach((v, i) => {
-      if(!have.has(v)){ have.add(v); DAY_COLOR_PALETTE_CHOICES.push({ name: 'Gray ' + (i + 1), value: v }); }
+      if(!have.has(v)){ have.add(v); DAY_COLOR_PALETTE_CHOICES.push({ name: 'Сірий ' + (i + 1), value: v }); }
     });
     DAY_COLOR_PALETTE_CHOICES.sort((a, b) => {
       const x = hex2hsl(a.value), y = hex2hsl(b.value);
@@ -2190,8 +2192,8 @@
     'Легкі ноги Дельти': 'shoulders',
     'Спина Трицепс': 'back'
   };
-  const ICON_LABELS = { legs:'Legs', hamstrings:'Hamstrings', glutes:'Glutes', posterior:'Glutes & hamstrings', calves:'Calves',
-    chest:'Chest', shoulders:'Shoulders', back:'Back', trapezius:'Trapezius', biceps:'Biceps', triceps:'Triceps', core:'Core', default:'Other' };
+  const ICON_LABELS = { legs:'Ноги', hamstrings:'Задня поверхня', glutes:'Сідниці', posterior:'Сідниці й задня поверхня', calves:'Ікри',
+    chest:'Груди', shoulders:'Плечі', back:'Спина', trapezius:'Трапеції', biceps:'Біцепс', triceps:'Трицепс', core:'Прес', default:'Інше' };
   function iconLabel(key){ return ICON_LABELS[key] || (key.charAt(0).toUpperCase() + key.slice(1)); }
   const GROUP_KEYWORDS = {
     legs: ['ноги','ніг','нога','legs','leg','квадр','quad'],
@@ -2350,8 +2352,8 @@
     renderHistory();
   });
 
-  const MONTH_NAMES_UK = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-  const WEEKDAYS_UK = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const MONTH_NAMES_UK = ['Січень','Лютий','Березень','Квітень','Травень','Червень','Липень','Серпень','Вересень','Жовтень','Листопад','Грудень'];
+  const WEEKDAYS_UK = ['Пн','Вт','Ср','Чт','Пт','Сб','Нд'];
 
   function pad2(n){ return String(n).padStart(2,'0'); }
 
@@ -2499,14 +2501,14 @@
     const shortH = Math.ceil((readyAt - target) / 3600000);
     return { ok: shortH <= 3, trained: true, shortH: Math.max(0, shortH), from: best.date, planned: best.planned }; // до 3 год. недобору не рахуємо
   }
-  function fmtHours(h){ return h >= 24 ? Math.floor(h / 24) + 'd ' + (h % 24) + 'h' : h + 'h'; }
+  function fmtHours(h){ return h >= 24 ? Math.floor(h / 24) + ' д ' + (h % 24) + ' г' : h + ' г'; }
   function planWarningHtml(dayName, dateIso){
     const pg = primaryGroupsOf(program[dayName]);
     const res = pg.map(x => ({ g: x.group, names: x.names, r: recoveryAt(x.group, dateIso) }));
     const bad = res.filter(x => !x.r.ok);
-    if(bad.length === 0) return `<div class="plan-box ok">✓ Muscles for ${escapeHtml(dayName)} will be recovered by this date.</div>`;
-    return `<div class="plan-box warn"><b>⚠ Not fully recovered by this date:</b>` + bad.map(x =>
-      `<div style="display:flex; justify-content:space-between; gap:8px; margin-top:3px;"><span>${escapeHtml(x.g)} <span style="color:var(--text-secondary); font-size:11px;">· ${x.r.planned ? 'planned' : 'trained'} ${fmtShortDate(x.r.from)} · in this day: ${escapeHtml(x.names.slice(0, 3).join(', '))}${x.names.length > 3 ? '…' : ''}</span></span><span style="color:#ff6b6b; white-space:nowrap;">~${fmtHours(x.r.shortH)} short</span></div>`).join('') + `</div>`;
+    if(bad.length === 0) return `<div class="plan-box ok">✓ Мʼязи дня «${escapeHtml(dayName)}» до цієї дати відновляться.</div>`;
+    return `<div class="plan-box warn"><b>⚠ До цієї дати не відновляться повністю:</b>` + bad.map(x =>
+      `<div style="display:flex; justify-content:space-between; gap:8px; margin-top:3px;"><span>${escapeHtml(grpLabel(x.g))} <span style="color:var(--text-secondary); font-size:11px;">· ${x.r.planned ? 'заплановано' : 'тренувались'} ${fmtShortDate(x.r.from)} · у цьому дні: ${escapeHtml(x.names.slice(0, 3).join(', '))}${x.names.length > 3 ? '…' : ''}</span></span><span style="color:#ff6b6b; white-space:nowrap;">~${fmtHours(x.r.shortH)} не вистачає</span></div>`).join('') + `</div>`;
   }
   function renderPlanPanel(list, dateIso){
     const days = dayNames();
@@ -2516,7 +2518,7 @@
     const cur = plans[dateIso];
     if(days.length === 0){ list.innerHTML = ''; return; }
     if(isPast && !cur){
-      list.innerHTML = `<div class="section-label" style="margin-bottom:6px;">${title}</div><p class="cyc-muted">No workout logged on this day.</p>`;
+      list.innerHTML = `<div class="section-label" style="margin-bottom:6px;">${title}</div><p class="cyc-muted">У цей день тренування немає.</p>`;
       return;
     }
     // за замовчуванням: наступний день за колом після останнього проведеного
@@ -2526,21 +2528,21 @@
       if(last && days.includes(last.day)) def = days[(days.indexOf(last.day) + 1) % days.length];
     }
     list.innerHTML = `
-      <div class="section-label" style="margin-bottom:6px;">${title} ${isPast ? '· missed plan' : '· plan workout'}</div>
+      <div class="section-label" style="margin-bottom:6px;">${title} ${isPast ? '· пропущений план' : '· запланувати тренування'}</div>
       <select class="wj-select" id="plan-day-select" style="width:100%;" ${isPast ? 'disabled' : ''}>${days.map(d => `<option value="${escapeHtml(d)}"${d === def ? ' selected' : ''}>${escapeHtml(d)}</option>`).join('')}</select>
       <div id="plan-warning"></div>
       <div style="display:flex; gap:8px;">
-        ${isPast ? '' : `<button class="wj-btn wj-btn-primary" id="btn-plan-save" style="flex:1;">${cur ? 'Update plan' : 'Plan workout'}</button>`}
-        ${cur ? '<button class="wj-btn wj-btn-danger" id="btn-plan-remove" style="flex:1;">Remove plan</button>' : ''}
+        ${isPast ? '' : `<button class="wj-btn wj-btn-primary" id="btn-plan-save" style="flex:1;">${cur ? 'Оновити план' : 'Запланувати'}</button>`}
+        ${cur ? '<button class="wj-btn wj-btn-danger" id="btn-plan-remove" style="flex:1;">Прибрати план</button>' : ''}
       </div>`;
     const sel = document.getElementById('plan-day-select');
     const warn = document.getElementById('plan-warning');
     const upd = () => { warn.innerHTML = isPast ? '' : planWarningHtml(sel.value, dateIso); };
     sel.addEventListener('change', upd); upd();
     const sv = document.getElementById('btn-plan-save');
-    if(sv) sv.addEventListener('click', async () => { plans[dateIso] = sel.value; await savePlans(); renderHistory(); showToast('Planned: ' + sel.value); });
+    if(sv) sv.addEventListener('click', async () => { plans[dateIso] = sel.value; await savePlans(); renderHistory(); showToast('Заплановано: ' + sel.value); });
     const rm = document.getElementById('btn-plan-remove');
-    if(rm) rm.addEventListener('click', async () => { delete plans[dateIso]; await savePlans(); renderHistory(); showToast('Plan removed.'); });
+    if(rm) rm.addEventListener('click', async () => { delete plans[dateIso]; await savePlans(); renderHistory(); showToast('План прибрано.'); });
   }
 
   function renderSelectedDayDetails(){
@@ -2548,9 +2550,9 @@
     if(!selectedCalDate){
       const dates = sessionDates();
       if(dates.length === 0){
-        list.innerHTML = '<p style="color:var(--text-secondary,#666); font-size:14px; text-align:center; padding: 2rem 0;">No entries yet.</p>';
+        list.innerHTML = '<p style="color:var(--text-secondary,#666); font-size:14px; text-align:center; padding: 2rem 0;">Записів ще немає.</p>';
       } else {
-        list.innerHTML = '<p style="color:var(--text-secondary,#666); font-size:14px; text-align:center; padding: 1rem 0;">Select a colored date on the calendar to see workout details.</p>';
+        list.innerHTML = '<p style="color:var(--text-secondary,#666); font-size:14px; text-align:center; padding: 1rem 0;">Обери кольорову дату в календарі, щоб побачити деталі тренування.</p>';
       }
       return;
     }
@@ -2564,7 +2566,7 @@
     list.innerHTML = `
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
         <div class="section-label">${escapeHtml(dayLabel)} · ${selectedCalDate}</div>
-        <div style="font-size:13px; color:var(--text-secondary,#666); font-weight:600;">${totalVol} kg</div>
+        <div style="font-size:13px; color:var(--text-secondary,#666); font-weight:600;">${totalVol} кг</div>
       </div>
     ` + dayEntries.map(e => `
       <div class="wj-card" style="margin-bottom: 8px; display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
@@ -2573,7 +2575,7 @@
           <div style="font-size:13px; color:var(--text-secondary,#666); margin-top:2px;">${e.weight} кг × ${e.sets}×${escapeHtml(e.repsLabel || String(e.reps))}${e.rpe ? ' · RPE ' + e.rpe : ''}</div>
           ${e.notes ? `<div style="font-size:13px; color:var(--text-secondary,#666); margin-top:4px;">${escapeHtml(e.notes)}</div>` : ''}
         </div>
-        <button class="wj-btn wj-btn-danger" data-id="${e.id}" aria-label="Delete entry" style="flex-shrink:0; padding: 6px 10px;">✕</button>
+        <button class="wj-btn wj-btn-danger" data-id="${e.id}" aria-label="Видалити запис" style="flex-shrink:0; padding: 6px 10px;">✕</button>
       </div>
     `).join('');
     list.querySelectorAll('button[data-id]').forEach(btn=>{
@@ -2642,7 +2644,7 @@
     const days = dayNames().length ? dayNames() : Object.keys(datesByDay).sort();
 
     if(days.length === 0){
-      container.innerHTML = '<p style="color:var(--text-secondary,#666); font-size:14px; text-align:center; padding: 1rem 0; grid-column: 1 / -1;">No data.</p>';
+      container.innerHTML = '<p style="color:var(--text-secondary,#666); font-size:14px; text-align:center; padding: 1rem 0; grid-column: 1 / -1;">Немає даних.</p>';
       return;
     }
 
@@ -2659,7 +2661,7 @@
               <div style="font-size:11px; color: var(--text-secondary,#666); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(day)}</div>
               <div style="display:flex; align-items:baseline; gap:3px;">
                 <span style="font-size:18px; font-weight:700; color:${color};">${count}</span>
-                <span style="font-size:10px; color: var(--text-secondary,#666);">wo.</span>
+                <span style="font-size:10px; color: var(--text-secondary,#666);">трен.</span>
               </div>
             </div>
           </div>
@@ -2764,22 +2766,22 @@
     const base = { name };
 
     if(rpe !== null && prevRpe !== null && rpe >= 9.5 && prevRpe >= 9.5){
-      return { ...base, type: 'reduce', title: name, weight: roundLoad(last.weight * 0.92), text: 'Two near-max workouts in a row (RPE ' + rpe + '). Drop to about ' + fmtKg(last.weight * 0.92) + ' kg and rebuild.' };
+      return { ...base, type: 'reduce', title: name, weight: roundLoad(last.weight * 0.92), text: 'Два майже максимальні тренування поспіль (RPE ' + rpe + '). Знизь вагу приблизно до ' + fmtKg(last.weight * 0.92) + ' кг і нарощуй знову.' };
     }
     if(rpe !== null && (rpe >= 9.5 || (rpe >= 9 && last.reps < tgt.min))){
-      return { ...base, type: 'hold', title: name, weight: last.weight, text: 'Keep ' + fmtKg(last.weight) + ' kg (RPE ' + rpe + '). Add reps before adding weight.' };
+      return { ...base, type: 'hold', title: name, weight: last.weight, text: 'Лиши ' + fmtKg(last.weight) + ' кг (RPE ' + rpe + '). Спочатку додай повтори, потім вагу.' };
     }
     if(hitTop && ((rpe !== null && rpe <= 8) || (rpe === null && prev.reps >= tgt.max && prev.weight === last.weight))){
-      return { ...base, type: 'up', title: name, weight: last.weight + step, text: 'Add weight: try ' + fmtKg(last.weight + step) + ' kg (hit ' + last.reps + ' reps' + (rpe !== null ? ', RPE ' + rpe : '; log RPE for sharper advice') + ').' };
+      return { ...base, type: 'up', title: name, weight: last.weight + step, text: 'Додай вагу: спробуй ' + fmtKg(last.weight + step) + ' кг (зроблено ' + last.reps + ' повторів' + (rpe !== null ? ', RPE ' + rpe : '; став RPE для точніших порад') + ').' };
     }
     if(rpe !== null && rpe <= 7 && !hitTop){
-      return { ...base, type: 'up', title: name, weight: last.weight + step, text: 'Felt easy (RPE ' + rpe + '). Try ' + fmtKg(last.weight + step) + ' kg or add a rep.' };
+      return { ...base, type: 'up', title: name, weight: last.weight + step, text: 'Було легко (RPE ' + rpe + '). Спробуй ' + fmtKg(last.weight + step) + ' кг або додай повтор.' };
     }
     if(data.length >= 3){
       const a = data[data.length - 3];
       const stalled = last.weight <= a.weight && prev.weight <= a.weight && last.reps <= a.reps && prev.reps <= a.reps;
       if(stalled){
-        return { ...base, type: 'stall', title: name, text: 'No progress for 3 workouts at ' + fmtKg(last.weight) + ' kg. Change the rep range, or take a lighter week.' };
+        return { ...base, type: 'stall', title: name, text: 'Немає прогресу 3 тренування поспіль на ' + fmtKg(last.weight) + ' кг. Зміни діапазон повторів або зроби легший тиждень.' };
       }
     }
     return null;
@@ -2795,10 +2797,10 @@
     const rpes = entries.filter(e => e.date >= daysAgoStr(14) && typeof e.rpe === 'number').map(e => e.rpe);
     const avgRpe = rpes.length >= 3 ? rpes.reduce((a,b)=>a+b,0) / rpes.length : null;
     if(avgRpe !== null && avgRpe >= 9){
-      return { type: 'deload', title: 'Deload week', text: 'Average RPE is ' + (Math.round(avgRpe * 10) / 10) + ' over the last 2 weeks. Take a lighter week: about 10–20% less weight, RPE around 6.' };
+      return { type: 'deload', title: 'Тиждень розвантаження', text: 'Середній RPE за останні 2 тижні: ' + (Math.round(avgRpe * 10) / 10) + '. Зроби легший тиждень: на 10–20% менше ваги, RPE близько 6.' };
     }
     if(streak >= 5){
-      return { type: 'deload', title: 'Deload week', text: streak + ' training weeks in a row. A lighter week (10–20% less weight) helps recovery.' };
+      return { type: 'deload', title: 'Тиждень розвантаження', text: streak + ' тренувальних тижнів поспіль. Легший тиждень (на 10–20% менше ваги) допоможе відновитись.' };
     }
     return null;
   }
@@ -2826,8 +2828,8 @@
     if(items.length === 0){
       box.innerHTML = '<p style="color:var(--text-secondary); font-size:13px; margin:0;">' +
         (entries.length === 0
-          ? 'Log a few workouts, with RPE, and advice will appear here.'
-          : 'No changes needed right now. Keep logging RPE for sharper advice.') + '</p>';
+          ? 'Запиши кілька тренувань з RPE, і тут зʼявляться поради.'
+          : 'Зараз змін не потрібно. Став RPE для точніших порад.') + '</p>';
       return;
     }
     box.innerHTML = items.slice(0, 6).map((it, i) => {
@@ -2846,11 +2848,11 @@
   // --- Періодизація: цикл 5 тижнів (обʼєм → обʼєм+ → пік обʼєму → сила → розвантаження) ---
   const STRENGTH_IDX = 3, DELOAD_IDX = 4;
   const CYCLE_WEEKS = [
-    { name: 'Volume',   rpe: '7',   desc: 'Build volume with your normal program. Stop about 3 reps before failure.' },
-    { name: 'Volume +', rpe: '8',   desc: 'Same exercises, a bit harder. Stop about 2 reps before failure. Add a rep or a little weight where it feels easy.' },
-    { name: 'Peak vol.', rpe: '8–9', desc: 'Hardest volume week. Main lifts get one extra set. Last 1–2 reps should be tough.' },
-    { name: 'Strength', rpe: '8–9', desc: 'Fewer exercises, heavier weight. Main lifts only: 4 sets of about 4 reps, rest 3–5 minutes.' },
-    { name: 'Deload',   rpe: '6',   desc: 'Recover. About 15% less weight and one set fewer. Stay well short of failure.' }
+    { name: 'Обʼєм',   rpe: '7',   desc: 'Нарощуй обʼєм за звичайною програмою. Зупиняйся приблизно за 3 повтори до відмови.' },
+    { name: 'Обʼєм +', rpe: '8',   desc: 'Ті самі вправи, трохи важче. Зупиняйся приблизно за 2 повтори до відмови. Додай повтор або трохи ваги там, де легко.' },
+    { name: 'Пік обʼєму', rpe: '8–9', desc: 'Найважчий обʼємний тиждень. В основних вправах на один підхід більше. Останні 1–2 повтори мають бути важкими.' },
+    { name: 'Сила', rpe: '8–9', desc: 'Менше вправ, більша вага. Лише основні вправи: 4 підходи приблизно по 4 повтори, відпочинок 3–5 хвилин.' },
+    { name: 'Розвантаж.',   rpe: '6',   desc: 'Відновлення. Приблизно на 15% менше ваги й на підхід менше. Далеко від відмови.' }
   ];
 
   function parseLocalDate(str){ return new Date(str + 'T00:00:00'); }
@@ -2966,7 +2968,7 @@
     if(weekIdx === STRENGTH_IDX){
       const e1 = estimate1RM(ex.name, ex);
       if(!(e1 > 0)) return null;
-      return { sets: 4, reps: '4', weight: roundLoad(e1 * 0.88), rpe: '8–9', sub: 'est. max ' + Math.round(e1) + ' kg' };
+      return { sets: 4, reps: '4', weight: roundLoad(e1 * 0.88), rpe: '8–9', sub: 'оцінений максимум ' + Math.round(e1) + ' кг' };
     }
     if(weekIdx === DELOAD_IDX){
       return { sets: Math.max(2, baseSets - 1), reps: weekReps(weekIdx, ex), weight: roundLoad(baseW * 0.85), rpe: '6', sub: '' };
@@ -2975,7 +2977,7 @@
     const w = (sg && typeof sg.weight === 'number') ? sg.weight : baseW;
     if(weekIdx === 2){
       const isMain = mainLiftsList().includes(ex.name);
-      return { sets: isMain ? Math.min(6, baseSets + 1) : baseSets, reps: weekReps(weekIdx, ex), weight: w, rpe: '8–9', sub: isMain ? '+1 set' : '' };
+      return { sets: isMain ? Math.min(6, baseSets + 1) : baseSets, reps: weekReps(weekIdx, ex), weight: w, rpe: '8–9', sub: isMain ? '+1 підхід' : '' };
     }
     return { sets: baseSets, reps: weekReps(weekIdx, ex), weight: w, rpe: weekIdx === 0 ? '7' : '8', sub: '' };
   }
@@ -3000,40 +3002,40 @@
         if(shownIdx === STRENGTH_IDX && !main.includes(ex.name)){ skipped++; return; }
         const t = cycleTarget(shownIdx, ex);
         if(!t){ skipped++; return; }
-        rows.push(`<div class="cyc-row"><span class="nm">${escapeHtml(ex.name)}</span><span class="vl">${t.sets}×${escapeHtml(String(t.reps))} · ${fmtKg(t.weight)} kg${t.sub ? `<span class="sub">${escapeHtml(t.sub)}</span>` : ''}</span></div>`);
+        rows.push(`<div class="cyc-row"><span class="nm">${escapeHtml(ex.name)}</span><span class="vl">${t.sets}×${escapeHtml(String(t.reps))} · ${fmtKg(t.weight)} кг${t.sub ? `<span class="sub">${escapeHtml(t.sub)}</span>` : ''}</span></div>`);
       });
       if(rows.length === 0) return;
-      daysHtml += `<div class="cyc-day"><div class="cyc-day-title"><span class="dot" style="background:${colorMap[day] || '#4db6ac'};"></span>${escapeHtml(day)}</div>${rows.join('')}${shownIdx === STRENGTH_IDX && skipped ? `<div class="cyc-muted">${skipped} other exercise(s): skip or 1–2 light sets.</div>` : ''}</div>`;
+      daysHtml += `<div class="cyc-day"><div class="cyc-day-title"><span class="dot" style="background:${colorMap[day] || '#4db6ac'};"></span>${escapeHtml(day)}</div>${rows.join('')}${shownIdx === STRENGTH_IDX && skipped ? `<div class="cyc-muted">Інших вправ: ${skipped}. Пропусти або зроби 1–2 легкі підходи.</div>` : ''}</div>`;
     });
     if(!daysHtml){
       daysHtml = '<p class="cyc-muted" style="margin-top:8px;">' + (shownIdx === STRENGTH_IDX
-        ? 'No main lifts selected for the strength week. Pick them below.'
-        : 'Add training days and exercises in the Program tab first.') + '</p>';
+        ? 'Основні вправи для силового тижня не обрано. Обери їх нижче.'
+        : 'Спочатку додай тренувальні дні й вправи на вкладці «Програма».') + '</p>';
     }
     planEl.innerHTML = `
-      <div class="section-label" style="margin-bottom:8px;">Week plan</div>
+      <div class="section-label" style="margin-bottom:8px;">План тижня</div>
       <div class="cyc-weeks">${CYCLE_WEEKS.map((w, i) => `
         <div class="cyc-week${cycle.active === i ? ' current' : ''}${i === shownIdx ? ' selected' : ''}" data-cyc-w="${i}"><div class="w">W${i + 1}</div><div class="n">${escapeHtml(w.name)}</div></div>`).join('')}
       </div>
       ${cycle.active === shownIdx
-        ? `<button class="wj-btn wj-btn-success" id="btn-cycle-off" style="width:100%; margin-bottom:8px;">✓ Used in Train · tap to turn off</button>`
-        : `<button class="wj-btn wj-btn-primary" id="btn-cycle-apply" style="width:100%; margin-bottom:8px;">Use W${shownIdx + 1} ${escapeHtml(shown.name)} in Train</button>`}
-      ${(typeof cycle.active === 'number' && cycle.active !== shownIdx) ? `<div class="cyc-muted" style="margin-bottom:6px;">Train now uses W${cycle.active + 1} ${escapeHtml(CYCLE_WEEKS[cycle.active].name)}.</div>` : ''}
-      <div class="cyc-muted">Target RPE ${shown.rpe}. Weights are based on your last logged workout${shownIdx === STRENGTH_IDX ? ' and an estimated max' : ''}. Round numbers to what your equipment allows.</div>
+        ? `<button class="wj-btn wj-btn-success" id="btn-cycle-off" style="width:100%; margin-bottom:8px;">✓ Використовується в Тренуванні · торкнись, щоб вимкнути</button>`
+        : `<button class="wj-btn wj-btn-primary" id="btn-cycle-apply" style="width:100%; margin-bottom:8px;">Використати W${shownIdx + 1} ${escapeHtml(shown.name)} у Тренуванні</button>`}
+      ${(typeof cycle.active === 'number' && cycle.active !== shownIdx) ? `<div class="cyc-muted" style="margin-bottom:6px;">Зараз у Тренуванні W${cycle.active + 1} ${escapeHtml(CYCLE_WEEKS[cycle.active].name)}.</div>` : ''}
+      <div class="cyc-muted">Цільовий RPE ${shown.rpe}. Ваги базуються на твоєму останньому тренуванні${shownIdx === STRENGTH_IDX ? ' та оціненому максимумі' : ''}. Округлюй до того, що дозволяє обладнання.</div>
       ${daysHtml}`;
 
     // --- Основні вправи ---
     const allNames = [...new Set(Object.values(program).flat().map(e => e.name).filter(Boolean))];
     mainEl.innerHTML = `
-      <div class="section-label">Main lifts</div>
-      <div class="cyc-muted">Only these are trained in the strength week. Tap to change.</div>
-      <div class="cyc-chips">${allNames.map(n => `<button type="button" class="cyc-chip${main.includes(n) ? ' on' : ''}" data-cyc-main="${escapeHtml(n)}">${escapeHtml(n)}</button>`).join('') || '<span class="cyc-muted">No exercises yet.</span>'}</div>`;
+      <div class="section-label">Основні вправи</div>
+      <div class="cyc-muted">Лише ці вправи йдуть у силовий тиждень. Торкнись, щоб змінити.</div>
+      <div class="cyc-chips">${allNames.map(n => `<button type="button" class="cyc-chip${main.includes(n) ? ' on' : ''}" data-cyc-main="${escapeHtml(n)}">${escapeHtml(n)}</button>`).join('') || '<span class="cyc-muted">Вправ ще немає.</span>'}</div>`;
 
     // --- Події ---
     const applyBtn = document.getElementById('btn-cycle-apply');
-    if(applyBtn) applyBtn.addEventListener('click', async () => { cycle.active = shownIdx; await saveCycle(); renderCycle(); renderLog(); showToast('Week ' + (shownIdx + 1) + ' is now used in Train.'); });
+    if(applyBtn) applyBtn.addEventListener('click', async () => { cycle.active = shownIdx; await saveCycle(); renderCycle(); renderLog(); showToast('Тиждень ' + (shownIdx + 1) + ' тепер використовується в Тренуванні.'); });
     const offBtn = document.getElementById('btn-cycle-off');
-    if(offBtn) offBtn.addEventListener('click', async () => { cycle.active = null; await saveCycle(); renderCycle(); renderLog(); showToast('Train uses your Program again.'); });
+    if(offBtn) offBtn.addEventListener('click', async () => { cycle.active = null; await saveCycle(); renderCycle(); renderLog(); showToast('Тренування знову бере дані з Програми.'); });
     planEl.querySelectorAll('[data-cyc-w]').forEach(el => el.addEventListener('click', () => {
       cyclePreviewWeek = parseInt(el.getAttribute('data-cyc-w'));
       renderCycle();
@@ -3062,11 +3064,11 @@
       : allNames;
 
     if(allNames.length === 0){
-      container.innerHTML = '<p style="color:var(--text-secondary,#666); font-size:14px; text-align:center; padding: 1rem 0;">No entries yet — start a workout to see your progress.</p>';
+      container.innerHTML = '<p style="color:var(--text-secondary,#666); font-size:14px; text-align:center; padding: 1rem 0;">Записів ще немає. Проведи тренування, щоб побачити прогрес.</p>';
       return;
     }
     if(names.length === 0){
-      container.innerHTML = '<p style="color:var(--text-secondary,#666); font-size:14px; text-align:center; padding: 1rem 0;">No workouts in the selected period.</p>';
+      container.innerHTML = '<p style="color:var(--text-secondary,#666); font-size:14px; text-align:center; padding: 1rem 0;">У вибраний період тренувань немає.</p>';
       return;
     }
 
@@ -3083,10 +3085,10 @@
             <div class="ex-progress-count" id="count-${id}"></div>
           </div>
           <div class="ex-progress-legend">
-            <span><span class="dot" style="background:#e0a030;"></span>Tonnage</span>
-            <span><span class="dot" style="background:#378ADD;"></span>Weight</span>
-            <span><span class="dot" style="background:#9ccc65;"></span>Sets</span>
-            <span><span class="dot" style="background:#a066cc;"></span>Reps</span>
+            <span><span class="dot" style="background:#e0a030;"></span>Тоннаж</span>
+            <span><span class="dot" style="background:#378ADD;"></span>Вага</span>
+            <span><span class="dot" style="background:#9ccc65;"></span>Підходи</span>
+            <span><span class="dot" style="background:#a066cc;"></span>Повтори</span>
           </div>
           <div class="ex-progress-chart-combo"><canvas id="chart-combo-${id}"></canvas></div>
         </div>
@@ -3194,14 +3196,14 @@
       const fullData = entries.filter(e => e.exercise === name).sort((a,b)=>a.date.localeCompare(b.date));
       const chartData = cutoff ? fullData.filter(e => e.date >= cutoff) : fullData;
       const maxWeight = Math.max(...fullData.map(e=>e.weight));
-      document.getElementById('meta-'+id).textContent = `Max: ${maxWeight} kg`;
+      document.getElementById('meta-'+id).textContent = `Макс: ${maxWeight} кг`;
       document.getElementById('trend-'+id).innerHTML = buildTrendHtml(fullData);
 
       const lastDay = fullData.length ? fullData[fullData.length-1].day : null;
       const badgeColor = (lastDay && colorMap[lastDay]) ? colorMap[lastDay] : '#378ADD';
       document.getElementById('count-'+id).innerHTML = `
         <div class="ex-progress-count-num" style="color:${badgeColor};">${fullData.length}</div>
-        <div class="ex-progress-count-label">wo.</div>
+        <div class="ex-progress-count-label">трен.</div>
       `;
 
       if(chartData.length === 0) return;
@@ -3223,12 +3225,12 @@
     if(delta > 0){ arrow = '↑'; color = '#5ee0c8'; }
     else if(delta < 0){ arrow = '↓'; color = '#c0392b'; }
     const roundedDelta = Math.round(Math.abs(delta) * 10) / 10;
-    const valueStr = delta === 0 ? 'no change' : `${delta > 0 ? '+' : '-'}${roundedDelta}${unit}`;
+    const valueStr = delta === 0 ? 'без змін' : `${delta > 0 ? '+' : '-'}${roundedDelta}${unit}`;
     return `<span style="color:${color};">${label}: ${arrow} ${valueStr}</span>`;
   }
 
   function buildTrendHtml(data){
-    if(data.length < 2) return '<span style="color:var(--text-secondary,#666);">Not enough data yet for a trend</span>';
+    if(data.length < 2) return '<span style="color:var(--text-secondary,#666);">Замало даних для тренду</span>';
     const last = data[data.length-1];
     const prev = data[data.length-2];
     const lastVolume = last.weight * last.sets * last.reps;
@@ -3236,10 +3238,10 @@
     const volumeDelta = prevVolume > 0 ? Math.round(((lastVolume - prevVolume) / prevVolume) * 1000) / 10 : 0;
 
     const chips = [
-      trendChip('Weight', last.weight - prev.weight, ' kg'),
-      trendChip('Sets', last.sets - prev.sets, ''),
-      trendChip('Reps', last.reps - prev.reps, ''),
-      trendChip('Volume', volumeDelta, '%')
+      trendChip('Вага', last.weight - prev.weight, ' кг'),
+      trendChip('Підходи', last.sets - prev.sets, ''),
+      trendChip('Повтори', last.reps - prev.reps, ''),
+      trendChip('Обʼєм', volumeDelta, '%')
     ];
     return chips.join(' · ');
   }
@@ -3254,7 +3256,9 @@
     const n = (name || '').toLowerCase();
     const has = (...ks) => ks.some(k => n.includes(k));
     if(has('ікри', 'литк')) return 'Calves';
-    if(has('біцепс', 'трицепс', 'французьк', 'канат', 'молот')) return 'Arms';
+    if(has('біцепс', 'молот')) return 'Biceps';
+    if(has('трицепс', 'французьк', 'канат', 'жим вузьк')) return 'Triceps';
+    if(has('шраг')) return 'Traps';
     // ноги: до "тяга" і "жим", бо "румунська тяга" і "жим ногами" містять їх
     if(has('присід', 'випад', 'ногами', 'ніг', 'бедр', 'стегн', 'квадр', 'рум', 'сідни', 'ягодич', 'hip thrust', 'міст', 'гакен', 'болгар', 'сумо')) return 'Legs';
     // плечі: до загального "жим" і "тяга" ("вертикальний жим", "тяга до підборіддя")
@@ -3265,13 +3269,15 @@
     return 'Other';
   }
 
-  const RECOVERY_HOURS_FIXED = { 'Legs': 72, 'Chest': 48, 'Back': 48, 'Shoulders': 36, 'Arms': 36, 'Calves': 24, 'Core': 24, 'Other': 36 };
+  const RECOVERY_HOURS_FIXED = { 'Legs': 72, 'Chest': 48, 'Back': 48, 'Shoulders': 36, 'Biceps': 36, 'Triceps': 36, 'Traps': 36, 'Calves': 24, 'Core': 24, 'Other': 36 };
   const RECOVERY_BASE_HOURS = {
     'Legs': [48, 72],
     'Chest': [40, 60],
     'Back': [40, 60],
     'Shoulders': [24, 48],
-    'Arms': [24, 36],
+    'Biceps': [24, 36],
+    'Triceps': [24, 36],
+    'Traps': [24, 48],
     'Calves': [20, 30],
     'Core': [20, 30],
     'Other': [24, 48]
