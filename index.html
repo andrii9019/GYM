@@ -245,7 +245,7 @@
     <input type="text" class="wj-input" id="lib-search" placeholder="Search…" style="width:100%; margin-bottom:8px;" />
     <select class="wj-input" id="lib-source" style="width:100%; margin-bottom:8px;"></select>
     <div id="lib-list" style="overflow-y:auto; flex:1; min-height:0;"></div>
-    <button class="wj-btn wj-btn-primary" id="lib-add-btn" style="width:100%; margin-top:10px;">Add selected</button>
+    <button class="wj-btn" id="lib-add-btn" style="width:100%; margin-top:10px;">Done</button>
   </div>
 </div>
 <div id="move-modal-overlay">
@@ -371,9 +371,10 @@
     </div>
     <div id="add-day-error" style="color: var(--text-danger, #c0392b); font-size: 13px; margin-bottom: 8px; display:none;"></div>
     <div id="program-list"></div>
-    <div style="display:flex; gap:8px; margin-top:10px;">
-      <button class="wj-btn wj-btn-success" id="btn-add-exercise" style="flex:1;">+ Add exercise</button>
-      <button class="wj-btn" id="btn-add-library" style="flex:1;">☰ From library</button>
+    <button class="wj-btn wj-btn-success" id="btn-add-exercise" style="width:100%; margin-top:10px;">+ Add exercise</button>
+    <div id="add-ex-choice" style="display:none; gap:8px; margin-top:8px;">
+      <button class="wj-btn" id="btn-add-new-ex" style="flex:1;">✎ New exercise</button>
+      <button class="wj-btn wj-btn-primary" id="btn-add-library" style="flex:1;">☰ From existing</button>
     </div>
   </div>
 
@@ -1153,12 +1154,19 @@
     });
   }
 
-  document.getElementById('btn-add-exercise').addEventListener('click', async ()=>{
+  document.getElementById('btn-add-exercise').addEventListener('click', ()=>{
     const day = document.getElementById('program-day-select').value || dayNames()[0];
     if(!day){
       showToast('Add a training day first.');
       return;
     }
+    const ch = document.getElementById('add-ex-choice');
+    ch.style.display = ch.style.display === 'flex' ? 'none' : 'flex';
+  });
+  document.getElementById('btn-add-new-ex').addEventListener('click', async ()=>{
+    const day = document.getElementById('program-day-select').value || dayNames()[0];
+    if(!day) return;
+    document.getElementById('add-ex-choice').style.display = 'none';
     program[day].push({ name: '', sets: 3, reps: '10', weight: 0 });
     await saveProgram();
     renderProgram();
@@ -1184,8 +1192,7 @@
     const listEl = document.getElementById('lib-list');
     const addBtn = document.getElementById('lib-add-btn');
     const closeBtn = document.getElementById('lib-modal-close');
-    const selected = new Set();
-    document.getElementById('lib-modal-title').textContent = 'Add to ' + day;
+    document.getElementById('lib-modal-title').textContent = 'Add to ' + day + ' — tap to add';
     source.innerHTML = '<option value="">All exercises</option>' +
       Object.keys(program).filter(d => d !== day).map(d => `<option value="d:${escapeHtml(d)}">From day: ${escapeHtml(d)}</option>`).join('');
     search.value = '';
@@ -1205,46 +1212,39 @@
       listEl.innerHTML = ns.length ? ns.map((n, i) => {
         const t = exerciseTemplate(n);
         const dis = inDay.has(n.trim().toLowerCase());
-        const sub = (t._from && t._from !== 'history' ? t._from + ' · ' : '') + t.sets + '×' + t.reps + (t.weight ? ' · ' + t.weight + ' kg' : '') + (dis ? ' · already here' : '');
-        return `<label class="lib-row${dis ? ' disabled' : ''}"><input type="checkbox" data-lib="${i}" ${dis ? 'disabled' : ''} ${selected.has(n) ? 'checked' : ''} /><div><div class="lib-nm">${escapeHtml(n)}</div><div class="lib-sub">${escapeHtml(sub)}</div></div></label>`;
+        const sub = (t._from && t._from !== 'history' ? t._from + ' · ' : '') + t.sets + '×' + t.reps + (t.weight ? ' · ' + t.weight + ' kg' : '') + (dis ? ' · added ✓' : '');
+        return `<div class="lib-row${dis ? ' disabled' : ''}" data-lib="${i}"><div style="flex:1;"><div class="lib-nm">${escapeHtml(n)}</div><div class="lib-sub">${escapeHtml(sub)}</div></div>${dis ? '' : '<span style="font-size:20px; color:var(--accent);">+</span>'}</div>`;
       }).join('') : '<p class="cyc-muted" style="text-align:center; padding:12px 0;">Nothing found.</p>';
-      listEl.querySelectorAll('input[data-lib]').forEach(cb => cb.addEventListener('change', () => {
-        const n = ns[parseInt(cb.getAttribute('data-lib'))];
-        if(cb.checked) selected.add(n); else selected.delete(n);
-        addBtn.textContent = selected.size ? 'Add selected (' + selected.size + ')' : 'Add selected';
+      listEl.querySelectorAll('.lib-row:not(.disabled)').forEach(row => row.addEventListener('click', async () => {
+        const name = ns[parseInt(row.getAttribute('data-lib'))];
+        const arr = program[day];
+        if(arr.some(e => (e.name || '').trim().toLowerCase() === name.trim().toLowerCase())) return;
+        const t = exerciseTemplate(name); delete t._from;
+        arr.push(t);
+        inDay.add(name.trim().toLowerCase());
+        await saveProgram();
+        renderProgram();
+        showToast('Added: ' + name);
+        draw();
       }));
     }
-    addBtn.textContent = 'Add selected';
     draw();
     overlay.classList.add('show');
     function close(){
       overlay.classList.remove('show');
       search.removeEventListener('input', draw); source.removeEventListener('change', draw);
-      addBtn.removeEventListener('click', onAdd); closeBtn.removeEventListener('click', close);
+      addBtn.removeEventListener('click', close); closeBtn.removeEventListener('click', close);
       overlay.removeEventListener('click', onOv);
-    }
-    async function onAdd(){
-      if(selected.size === 0){ showToast('Tick at least one exercise.'); return; }
-      const arr = program[day];
-      let n = 0;
-      selected.forEach(name => {
-        if(arr.some(e => (e.name || '').trim().toLowerCase() === name.trim().toLowerCase())) return;
-        const t = exerciseTemplate(name); delete t._from;
-        arr.push(t); n++;
-      });
-      close();
-      await saveProgram();
-      renderProgram();
-      showToast('Added ' + n + ' exercise(s) to ' + day);
     }
     function onOv(e){ if(e.target === overlay) close(); }
     search.addEventListener('input', draw); source.addEventListener('change', draw);
-    addBtn.addEventListener('click', onAdd); closeBtn.addEventListener('click', close);
+    addBtn.addEventListener('click', close); closeBtn.addEventListener('click', close);
     overlay.addEventListener('click', onOv);
   }
   document.getElementById('btn-add-library').addEventListener('click', ()=>{
     const day = document.getElementById('program-day-select').value || dayNames()[0];
     if(!day){ showToast('Add a training day first.'); return; }
+    document.getElementById('add-ex-choice').style.display = 'none';
     openExerciseLibrary(day);
   });
 
