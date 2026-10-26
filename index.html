@@ -337,7 +337,10 @@
         <button class="wj-btn wj-btn-success" id="btn-export-data" style="flex:1;">⬇ Save backup</button>
         <button class="wj-btn" id="btn-import-data" style="flex:1;">⬆ Restore backup</button>
       </div>
+      <button class="wj-btn" id="btn-import-days" style="width:100%;">＋ Add days from a backup file</button>
+      <div style="font-size:12px; color:var(--text-secondary); line-height:1.4; margin-top:-2px;">Adds only the training days that are missing here. History and your current days stay untouched.</div>
       <input type="file" id="import-file-input" accept="application/json" style="display:none;" />
+      <input type="file" id="import-days-input" accept="application/json" style="display:none;" />
       <div id="backup-status" style="font-size:12px; color:var(--text-secondary); display:none;"></div>
     </div>
     <div class="wj-card" id="program-day-header" style="margin-bottom: 8px; display:flex; align-items:center; gap:10px;">
@@ -1482,6 +1485,42 @@
     document.getElementById('import-file-input').click();
   });
 
+  document.getElementById('btn-import-days').addEventListener('click', ()=>{
+    document.getElementById('import-days-input').click();
+  });
+  document.getElementById('import-days-input').addEventListener('change', async (e)=>{
+    const file = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if(!file) return;
+    let data;
+    try { data = JSON.parse(await file.text()); }
+    catch(err){ showBackupStatus('This file could not be read. Make sure it is a Repwave backup.', true); return; }
+    if(!data || typeof data !== 'object' || !data.program || typeof data.program !== 'object'){
+      showBackupStatus('This does not look like a valid Repwave backup file.', true);
+      return;
+    }
+    const missing = Object.keys(data.program).filter(d => !program[d] && Array.isArray(data.program[d]));
+    if(missing.length === 0){
+      showBackupStatus('Nothing to add: all training days from this file already exist.', false);
+      return;
+    }
+    const ok = await showConfirm('Add ' + missing.length + ' day(s) from this file: ' + missing.join(', ') + '? Your history and current days stay as they are.', 'Add');
+    if(!ok) return;
+    const fallbackColors = ['#4fd1e0', '#6c7ae0', '#e63946', '#e0619c', '#e0a030', '#4db6ac'];
+    missing.forEach((d, i) => {
+      program[d] = data.program[d].map(e => Object.assign({}, e));
+      dayColors[d] = (data.dayColors && data.dayColors[d]) || fallbackColors[i % fallbackColors.length];
+      dayIcons[d] = (data.dayIcons && Array.isArray(data.dayIcons[d]) && data.dayIcons[d].length) ? data.dayIcons[d].slice() : ['chest'];
+    });
+    await saveProgram();
+    await saveDayColors();
+    await saveDayIcons();
+    fillDaySelects();
+    renderAll();
+    showBackupStatus('Added days: ' + missing.join(', ') + '.', false);
+    showToast('Added ' + missing.length + ' day(s).');
+  });
+
   document.getElementById('import-file-input').addEventListener('change', async (e)=>{
     const file = e.target.files && e.target.files[0];
     e.target.value = '';
@@ -1862,8 +1901,17 @@
     }
     hours = Math.round(hours / 6) * 6;
 
-    const readyDate = new Date(lastDate + 'T00:00:00');
-    readyDate.setHours(readyDate.getHours() + hours);
+    // Час тренування: найпізніший запис цієї групи в цей день (id = мітка часу збереження),
+    // якщо його дата збігається з датою тренування; інакше беремо 18:00 цього дня.
+    let startMs = new Date(lastDate + 'T18:00:00').getTime();
+    let maxId = 0;
+    entries.forEach(e => { if(e.date === lastDate && getMuscleGroup(e.exercise) === group && typeof e.id === 'number' && e.id > maxId) maxId = e.id; });
+    if(maxId > 1e12){
+      const d = new Date(maxId);
+      const iso = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+      if(iso === lastDate) startMs = maxId;
+    }
+    const readyDate = new Date(startMs + hours * 3600000);
     const now = new Date();
     const remainingMs = readyDate - now;
     const remainingHours = Math.max(0, Math.ceil(remainingMs / (1000*60*60)));
@@ -1892,7 +1940,7 @@
     const rows = notReady.map(s => `
       <div style="display:flex; justify-content:space-between; padding: 6px 0;">
         <span style="font-size:13px;">${escapeHtml(s.group)}</span>
-        <span style="font-size:13px; color:#ff6b6b;">~${s.status.remainingHours}h left</span>
+        <span style="font-size:13px; color:#ff6b6b;">~${s.status.remainingHours >= 24 ? Math.floor(s.status.remainingHours / 24) + 'd ' + (s.status.remainingHours % 24) + 'h' : s.status.remainingHours + 'h'} left</span>
       </div>
     `).join('');
 
@@ -2959,13 +3007,16 @@
   // --- Групи мʼязів та відновлення ---
   function getMuscleGroup(name){
     const n = (name || '').toLowerCase();
-    if(n.includes('ікри') || n.includes('литк')) return 'Calves';
-    if(n.includes('біцепс') || n.includes('трицепс') || n.includes('французьк') || n.includes('канат')) return 'Arms';
-    if(n.includes('плеч') || n.includes('махи в сторони') || n.includes('над головою')) return 'Shoulders';
-    if(n.includes('тяга') || n.includes('пуловер') || n.includes('гіперекстензія') || n.includes('шраги') || n.includes('face pull') || n.includes('фейс пул')) return 'Back';
-    if(n.includes('присід') || n.includes('випад') || n.includes('жим ногами') || n.includes('згинання ніг') || n.includes('розгинання ніг') || n.includes('рум')) return 'Legs';
-    if(n.includes('жим') || n.includes('бруси') || n.includes('кросовер') || n.includes('пекдек')) return 'Chest';
-    if(n.includes('прес') || n.includes('кор')) return 'Core';
+    const has = (...ks) => ks.some(k => n.includes(k));
+    if(has('ікри', 'литк')) return 'Calves';
+    if(has('біцепс', 'трицепс', 'французьк', 'канат', 'молот')) return 'Arms';
+    // ноги: до "тяга" і "жим", бо "румунська тяга" і "жим ногами" містять їх
+    if(has('присід', 'випад', 'ногами', 'ніг', 'бедр', 'рум', 'сідни', 'hip thrust', 'міст', 'гакен', 'болгар')) return 'Legs';
+    // плечі: до загального "жим" і "тяга" ("вертикальний жим", "тяга до підборіддя")
+    if(has('плеч', 'махи', 'над головою', 'вертикальний жим', 'підборід', 'face pull', 'фейс', 'армійськ')) return 'Shoulders';
+    if(has('тяга', 'пуловер', 'пуловр', 'гіперекстензія', 'шраги', 'підтягув', 'веслув')) return 'Back';
+    if(has('жим', 'бруси', 'кросовер', 'пекдек', 'батерфляй', 'зведення', 'розведення')) return 'Chest';
+    if(has('прес', 'кор', 'планк')) return 'Core';
     return 'Other';
   }
 
