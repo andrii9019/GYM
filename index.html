@@ -1958,8 +1958,8 @@
   // Враховуються лише тренування після скидання (recoveryResetTs).
   const MUSCLE_KEY = 'muscle_groups';
   let muscleOverrides = {}; // { 'назва вправи': 'Legs' } — ручний вибір групи мʼязів
-  const MUSCLE_GROUPS = ['Chest', 'Back', 'Traps', 'Shoulders', 'Biceps', 'Triceps', 'Legs', 'Calves', 'Core', 'Other'];
-  const GROUP_UA = { Chest: 'Груди', Back: 'Спина', Traps: 'Шраги', Shoulders: 'Плечі', Biceps: 'Біцепс', Triceps: 'Трицепс', Legs: 'Ноги', Calves: 'Ікри', Core: 'Прес', Other: 'Інше' };
+  const MUSCLE_GROUPS = ['Chest', 'Back', 'LowBack', 'Traps', 'DeltFront', 'DeltSide', 'DeltRear', 'Biceps', 'Triceps', 'Quads', 'Hams', 'Glutes', 'Legs', 'Calves', 'Core', 'Other'];
+  const GROUP_UA = { Chest: 'Груди', Back: 'Верх спини', LowBack: 'Низ спини', Traps: 'Шраги', DeltFront: 'Передня дельта', DeltSide: 'Середня дельта', DeltRear: 'Задня дельта', Biceps: 'Біцепс', Triceps: 'Трицепс', Quads: 'Квадріцепс', Hams: 'Задня поверхня стегна', Glutes: 'Сідниці', Legs: 'Ноги загалом', Calves: 'Ікри', Core: 'Прес', Other: 'Інше' };
   function grpLabel(g){ return GROUP_UA[g] || g; }
   async function saveMuscleOverrides(){
     try { await storage.set(MUSCLE_KEY, JSON.stringify(muscleOverrides), false); }
@@ -1999,7 +1999,7 @@
     const list = entries.filter(e => getMuscleGroup(e.exercise) === group && entryCountsForRecovery(e));
     if(list.length === 0) return { trained: false };
     const lastDate = list.map(e => e.date).sort().pop();
-    const hours = RECOVERY_BASE_HOURS[group] ? RECOVERY_HOURS_FIXED[group] : RECOVERY_HOURS_FIXED['Other'];
+    const hours = RECOVERY_HOURS_FIXED[group] || RECOVERY_HOURS_FIXED['Other'];
 
     // Час тренування: найпізніший запис цієї групи в цей день (id = мітка часу збереження),
     // якщо його дата збігається з датою тренування; інакше 18:00 цього дня.
@@ -3256,32 +3256,27 @@
     const n = (name || '').toLowerCase();
     const has = (...ks) => ks.some(k => n.includes(k));
     if(has('ікри', 'литк')) return 'Calves';
-    if(has('біцепс', 'молот')) return 'Biceps';
-    if(has('трицепс', 'французьк', 'канат', 'жим вузьк')) return 'Triceps';
+    if(has('трицепс', 'французьк', 'канат', 'жим вузьк', 'розгинання рук')) return 'Triceps';
+    if(has('біцепс', 'молот', 'згинання рук')) return 'Biceps';
     if(has('шраг')) return 'Traps';
-    // ноги: до "тяга" і "жим", бо "румунська тяга" і "жим ногами" містять їх
-    if(has('присід', 'випад', 'ногами', 'ніг', 'бедр', 'стегн', 'квадр', 'рум', 'сідни', 'ягодич', 'hip thrust', 'міст', 'гакен', 'болгар', 'сумо')) return 'Legs';
-    // плечі: до загального "жим" і "тяга" ("вертикальний жим", "тяга до підборіддя")
-    if(has('плеч', 'махи', 'над головою', 'вертикальний жим', 'підборід', 'face pull', 'фейс', 'армійськ')) return 'Shoulders';
-    if(has('тяга', 'пуловер', 'пуловр', 'гіперекстензія', 'шраги', 'підтягув', 'веслув', 'мертва', 'станова')) return 'Back';
+    // сідниці / задня поверхня / квадріцепс — до загальних "присід", "тяга", "жим"
+    if(has('сідничн', 'сідни', 'ягодич', 'hip thrust', 'міст', 'відведення ног', 'абдукц')) return 'Glutes';
+    if(has('розгинання', 'гакен', 'квадр')) return 'Quads';
+    if(has('рум', 'згинання', 'гудмон', 'гуд монінг')) return 'Hams';
+    if(has('присід', 'випад', 'ногами', 'ніг', 'бедр', 'стегн', 'болгар', 'сумо')) return 'Legs';
+    // низ спини
+    if(has('гіперекстенз', 'станова', 'мертва', 'низ спини')) return 'LowBack';
+    // дельти: задня, середня, передня
+    if(has('задн', 'реверс', 'зворотн', 'face pull', 'фейс', 'розведення в нахилі')) return 'DeltRear';
+    if(has('махи', 'бічн', 'підборід', 'розведення гантел')) return 'DeltSide';
+    if(has('плеч', 'над головою', 'вертикальний жим', 'армійськ', 'жим стоячи', 'передн', 'фронтальн')) return 'DeltFront';
+    if(has('тяга', 'пуловер', 'пуловр', 'підтягув', 'веслув')) return 'Back';
     if(has('жим', 'бруси', 'кросовер', 'пекдек', 'батерфляй', 'зведення', 'розведення')) return 'Chest';
     if(has('прес', 'кор', 'планк')) return 'Core';
     return 'Other';
   }
 
-  const RECOVERY_HOURS_FIXED = { 'Legs': 72, 'Chest': 48, 'Back': 48, 'Shoulders': 36, 'Biceps': 36, 'Triceps': 36, 'Traps': 36, 'Calves': 24, 'Core': 24, 'Other': 36 };
-  const RECOVERY_BASE_HOURS = {
-    'Legs': [48, 72],
-    'Chest': [40, 60],
-    'Back': [40, 60],
-    'Shoulders': [24, 48],
-    'Biceps': [24, 36],
-    'Triceps': [24, 36],
-    'Traps': [24, 48],
-    'Calves': [20, 30],
-    'Core': [20, 30],
-    'Other': [24, 48]
-  };
+  const RECOVERY_HOURS_FIXED = { 'Legs': 72, 'Quads': 72, 'Hams': 72, 'Glutes': 60, 'Chest': 48, 'Back': 48, 'LowBack': 60, 'DeltFront': 36, 'DeltSide': 36, 'DeltRear': 36, 'Biceps': 36, 'Triceps': 36, 'Traps': 36, 'Calves': 24, 'Core': 24, 'Other': 36 };
 
   function sessionDates(){
     return [...new Set(entries.map(e=>e.date))].sort();
