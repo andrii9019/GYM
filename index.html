@@ -150,6 +150,14 @@
   #wj-toast { position: fixed; left: 50%; bottom: calc(var(--nav-h) + 10px); transform: translateX(-50%) translateY(20px); background: var(--accent); color: var(--accent-text); padding: 10px 18px; border-radius: 999px; font-size: 13px; font-weight: 600; max-width: 90vw; text-align: center; opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.2s; z-index: 9999; box-shadow: 0 4px 14px rgba(0,0,0,0.35); }
   #wj-toast.has-undo { pointer-events: auto; }
   #wj-toast .undo-btn { margin-left: 12px; background: rgba(0,0,0,0.22); color: inherit; border: 0; border-radius: 999px; padding: 4px 12px; font-weight: 700; font-size: 13px; cursor: pointer; }
+  #lib-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 10000; padding: 16px; box-sizing: border-box; }
+  #lib-modal-overlay.show { display: flex; }
+  #lib-modal-box { background: var(--surface-2); border-radius: var(--radius-lg); padding: 1rem; max-width: 420px; width: 100%; max-height: 85vh; display: flex; flex-direction: column; border: 1px solid var(--border); }
+  .lib-row { display: flex; align-items: center; gap: 10px; padding: 9px 8px; border-radius: var(--radius-sm); cursor: pointer; border-bottom: 1px solid var(--border); }
+  .lib-row.disabled { opacity: .4; cursor: default; }
+  .lib-row input { width: 20px; height: 20px; flex-shrink: 0; }
+  .lib-row .lib-nm { font-size: 14px; }
+  .lib-row .lib-sub { font-size: 12px; color: var(--text-secondary,#888); margin-top: 1px; }
   #move-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 10000; padding: 20px; box-sizing: border-box; }
   #move-modal-overlay.show { display: flex; }
   #move-modal-box { background: var(--surface-2); border-radius: var(--radius-lg); padding: 1.25rem; max-width: 360px; width: 100%; border: 1px solid var(--border); }
@@ -228,6 +236,18 @@
   .ex-progress-row:active, .training-count-card:active { transform: scale(0.985); }
 </style>
 <div id="wj-toast"></div>
+<div id="lib-modal-overlay">
+  <div id="lib-modal-box">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+      <div class="section-label" id="lib-modal-title" style="margin:0;">Exercise library</div>
+      <button class="wj-btn" id="lib-modal-close" style="padding:4px 10px;" aria-label="Close">✕</button>
+    </div>
+    <input type="text" class="wj-input" id="lib-search" placeholder="Search…" style="width:100%; margin-bottom:8px;" />
+    <select class="wj-input" id="lib-source" style="width:100%; margin-bottom:8px;"></select>
+    <div id="lib-list" style="overflow-y:auto; flex:1; min-height:0;"></div>
+    <button class="wj-btn wj-btn-primary" id="lib-add-btn" style="width:100%; margin-top:10px;">Add selected</button>
+  </div>
+</div>
 <div id="move-modal-overlay">
   <div id="move-modal-box">
     <p id="move-modal-text" style="font-size:14px; margin:0 0 .75rem; color:var(--text-primary);"></p>
@@ -343,11 +363,18 @@
         <div class="ex-mini-label" style="margin-bottom:6px;">Day icon(s) — tap to select one or more</div>
         <div id="new-day-icon-choices" style="display:flex; gap:8px; flex-wrap:wrap;"></div>
       </div>
+      <div>
+        <div class="ex-mini-label" style="margin-bottom:6px;">Copy exercises from</div>
+        <select class="wj-input" id="new-day-copy-from" style="width:100%;"></select>
+      </div>
       <button class="wj-btn wj-btn-primary" id="btn-confirm-add-day">Add</button>
     </div>
     <div id="add-day-error" style="color: var(--text-danger, #c0392b); font-size: 13px; margin-bottom: 8px; display:none;"></div>
     <div id="program-list"></div>
-    <button class="wj-btn wj-btn-success" id="btn-add-exercise" style="width:100%; margin-top:10px;">+ Add exercise</button>
+    <div style="display:flex; gap:8px; margin-top:10px;">
+      <button class="wj-btn wj-btn-success" id="btn-add-exercise" style="flex:1;">+ Add exercise</button>
+      <button class="wj-btn" id="btn-add-library" style="flex:1;">☰ From library</button>
+    </div>
   </div>
 
   <div id="view-log" class="view-panel" style="display:none;">
@@ -992,6 +1019,7 @@
     document.getElementById('btn-edit-day').disabled = !hasDay;
     document.getElementById('btn-delete-day').disabled = !hasDay;
     document.getElementById('btn-add-exercise').disabled = !hasDay;
+    { const lb = document.getElementById('btn-add-library'); if(lb) lb.disabled = !hasDay; }
     if(!hasDay){
       list.innerHTML = '<div class="wj-card"><p style="color:var(--text-secondary,#666); font-size:14px; text-align:center; margin:0;">No training days yet. Tap "+ Add day" above to create your first one.</p></div>';
       return;
@@ -1134,6 +1162,90 @@
     program[day].push({ name: '', sets: 3, reps: '10', weight: 0 });
     await saveProgram();
     renderProgram();
+  });
+
+  // --- Бібліотека вправ: додати вправи в день без введення вручну ---
+  function exerciseTemplate(name){
+    for(const d of Object.keys(program)){
+      const f = (program[d] || []).find(e => e.name === name);
+      if(f){
+        const last = lastLoggedFor(name);
+        return { name, sets: f.sets, reps: f.reps, weight: last ? last.weight : f.weight, _from: d };
+      }
+    }
+    const last = lastLoggedFor(name);
+    if(last) return { name, sets: last.sets || 3, reps: String(last.repsLabel || last.reps || 10), weight: last.weight || 0, _from: 'history' };
+    return { name, sets: 3, reps: '10', weight: 0, _from: '' };
+  }
+  function openExerciseLibrary(day){
+    const overlay = document.getElementById('lib-modal-overlay');
+    const search = document.getElementById('lib-search');
+    const source = document.getElementById('lib-source');
+    const listEl = document.getElementById('lib-list');
+    const addBtn = document.getElementById('lib-add-btn');
+    const closeBtn = document.getElementById('lib-modal-close');
+    const selected = new Set();
+    document.getElementById('lib-modal-title').textContent = 'Add to ' + day;
+    source.innerHTML = '<option value="">All exercises</option>' +
+      Object.keys(program).filter(d => d !== day).map(d => `<option value="d:${escapeHtml(d)}">From day: ${escapeHtml(d)}</option>`).join('');
+    search.value = '';
+    const inDay = new Set((program[day] || []).map(e => (e.name || '').trim().toLowerCase()));
+    function names(){
+      const q = search.value.trim().toLowerCase();
+      let list;
+      if(source.value.startsWith('d:')){
+        list = (program[source.value.slice(2)] || []).map(e => e.name).filter(Boolean);
+      } else {
+        list = allExerciseNames();
+      }
+      return list.filter(n => !q || n.toLowerCase().includes(q));
+    }
+    function draw(){
+      const ns = names();
+      listEl.innerHTML = ns.length ? ns.map((n, i) => {
+        const t = exerciseTemplate(n);
+        const dis = inDay.has(n.trim().toLowerCase());
+        const sub = (t._from && t._from !== 'history' ? t._from + ' · ' : '') + t.sets + '×' + t.reps + (t.weight ? ' · ' + t.weight + ' kg' : '') + (dis ? ' · already here' : '');
+        return `<label class="lib-row${dis ? ' disabled' : ''}"><input type="checkbox" data-lib="${i}" ${dis ? 'disabled' : ''} ${selected.has(n) ? 'checked' : ''} /><div><div class="lib-nm">${escapeHtml(n)}</div><div class="lib-sub">${escapeHtml(sub)}</div></div></label>`;
+      }).join('') : '<p class="cyc-muted" style="text-align:center; padding:12px 0;">Nothing found.</p>';
+      listEl.querySelectorAll('input[data-lib]').forEach(cb => cb.addEventListener('change', () => {
+        const n = ns[parseInt(cb.getAttribute('data-lib'))];
+        if(cb.checked) selected.add(n); else selected.delete(n);
+        addBtn.textContent = selected.size ? 'Add selected (' + selected.size + ')' : 'Add selected';
+      }));
+    }
+    addBtn.textContent = 'Add selected';
+    draw();
+    overlay.classList.add('show');
+    function close(){
+      overlay.classList.remove('show');
+      search.removeEventListener('input', draw); source.removeEventListener('change', draw);
+      addBtn.removeEventListener('click', onAdd); closeBtn.removeEventListener('click', close);
+      overlay.removeEventListener('click', onOv);
+    }
+    async function onAdd(){
+      if(selected.size === 0){ showToast('Tick at least one exercise.'); return; }
+      const arr = program[day];
+      let n = 0;
+      selected.forEach(name => {
+        if(arr.some(e => (e.name || '').trim().toLowerCase() === name.trim().toLowerCase())) return;
+        const t = exerciseTemplate(name); delete t._from;
+        arr.push(t); n++;
+      });
+      close();
+      await saveProgram();
+      renderProgram();
+      showToast('Added ' + n + ' exercise(s) to ' + day);
+    }
+    function onOv(e){ if(e.target === overlay) close(); }
+    search.addEventListener('input', draw); source.addEventListener('change', draw);
+    addBtn.addEventListener('click', onAdd); closeBtn.addEventListener('click', close);
+    overlay.addEventListener('click', onOv);
+  }
+  document.getElementById('btn-add-library').addEventListener('click', ()=>{
+    const day = document.getElementById('program-day-select').value || dayNames()[0];
+    if(!day){ showToast('Add a training day first.'); return; }
+    openExerciseLibrary(day);
   });
 
   let selectedNewDayColor = null;
@@ -1327,6 +1439,8 @@
       selectedNewDayIcons = [];
       newDayIconManuallyPicked = false;
       document.getElementById('new-day-suggestion').style.display = 'none';
+      { const cf = document.getElementById('new-day-copy-from');
+        cf.innerHTML = '<option value="">— empty day —</option>' + Object.keys(program).map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)} (${(program[d]||[]).length})</option>`).join(''); }
       renderColorSwatches();
       renderIconChoices();
     }
@@ -1357,7 +1471,9 @@
       return;
     }
     errEl.style.display = 'none';
-    program[name] = [];
+    { const cf = document.getElementById('new-day-copy-from');
+      const src = cf && cf.value && program[cf.value] ? program[cf.value] : [];
+      program[name] = src.map(e => Object.assign({}, e)); }
     dayColors[name] = selectedNewDayColor;
     dayIcons[name] = selectedNewDayIcons.slice();
     await saveProgram();
