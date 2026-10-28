@@ -126,9 +126,10 @@
   .plan-box.warn { background: rgba(255,107,107,0.10); border: 1px solid rgba(255,107,107,0.4); }
   .cal-cell.empty { background: transparent; }
   .cal-cell.trained { color: #fff; cursor: pointer; font-weight: 500; gap: 1px; box-shadow: 0 1px 4px rgba(0,0,0,0.3); text-shadow: 0 1px 3px rgba(0,0,0,0.7); overflow: hidden; }
+  .cal-wk { position:absolute; top:3px; right:2px; font-size:9px; font-weight:800; line-height:1; padding:1px 3px; border-radius:5px; background:rgba(0,0,0,.6); border:1px solid; color:#fff; letter-spacing:0; }
   .cal-cell.selected { outline: 2px solid var(--accent); outline-offset: 1px; }
   .cal-cell.today-marker::after { content:''; position:absolute; bottom:2px; width:4px; height:4px; border-radius:50%; background: currentColor; opacity:0.7; }
-  .cal-cell.trained.today-marker::after { bottom: auto; top: 5px; right: 6px; }
+  .cal-cell.trained.today-marker::after { bottom: auto; top: auto; bottom: 14px; right: 6px; }
   .cal-cell-day { line-height: 1; }
   .cal-cell.trained .cal-cell-day { position: absolute; top: 3px; left: 6px; font-size: 12px; font-weight: 700; line-height: 1; }
   .cal-cell.trained .cal-cell-volume { position: absolute; bottom: 2px; left: 0; right: 0; text-align: center; font-size: 8.5px; font-weight: 500; line-height: 1; opacity: 1; }
@@ -935,6 +936,18 @@
       if(changed) await saveEntries();
       try { await storage.set(NAME_FIXES_KEY, String(NAME_FIXES_VERSION), false); }
       catch(e){ console.error('Помилка збереження версії виправлення назв', e); }
+    }
+
+    // Тиждень циклу для тренувань, збережених до v86 (визначено за історією:
+    // кола по 4 тренування; 15–21.10 = W1, з 22.10 = W2). Лише для записів без мітки.
+    {
+      let cwChanged = false;
+      entries.forEach(e => {
+        if(typeof e.cw === 'number') return;
+        if(e.date >= '2026-10-15' && e.date <= '2026-10-21'){ e.cw = 0; cwChanged = true; }
+        else if(e.date >= '2026-10-22' && e.date <= '2026-10-28'){ e.cw = 1; cwChanged = true; }
+      });
+      if(cwChanged) await saveEntries();
     }
 
     // Одноразове перейменування днів програми у вже збережених записах
@@ -2094,7 +2107,8 @@
       newEntries.push({
         id: Date.now() + i,
         date, day, exercise: exercises[i].name || '(без назви)',
-        weight, sets, reps: repsNum, repsLabel: reps, rpe: row.dataset.rpe ? parseFloat(row.dataset.rpe) : null, notes: ''
+        weight, sets, reps: repsNum, repsLabel: reps, rpe: row.dataset.rpe ? parseFloat(row.dataset.rpe) : null, notes: '',
+        cw: (typeof cycle.active === 'number') ? cycle.active : null
       });
     });
     if(hasError){
@@ -2390,9 +2404,9 @@
         const bgStyle = photo
           ? `background-image: linear-gradient(rgba(0,0,0,0.45) 0%, rgba(0,0,0,0) 32%, rgba(0,0,0,0) 62%, rgba(0,0,0,0.6) 100%), url('${photo}'); background-size: cover; background-position: center;`
           : `background: ${color};`;
-        const extraIcons = iconKeys.slice(1, 3);
-        const badgesHtml = extraIcons.length > 0
-          ? `<span style="position:absolute; top:3px; right:3px; display:flex; gap:2px;">${extraIcons.map(k => renderGroupIconSvg(k, 14, color)).join('')}</span>`
+        const wk = dateToWeek[iso];
+        const badgesHtml = (typeof wk === 'number')
+          ? `<span class="cal-wk" style="border-color:${color};">W${wk + 1}</span>`
           : '';
         html += `<div class="cal-cell trained${isToday ? ' today-marker' : ''}${isSelected ? ' selected' : ''}" style="${bgStyle} border: 2px solid ${color}; box-shadow: 0 0 20px ${color}80, 0 2px 8px rgba(0,0,0,0.4); color:#fff;" data-date="${iso}">${badgesHtml}<span class="cal-cell-day">${d}</span><span class="cal-cell-volume">${volLabel}</span></div>`;
       } else if(plans[iso]){
@@ -2414,6 +2428,7 @@
     });
   }
 
+  let dateToWeek = {};
   function renderHistory(){
     initCalendarCursor();
     const colorMap = getDayColorMap();
@@ -2427,7 +2442,9 @@
     // Дата -> запис програмного дня (перший запис цієї дати) та обʼєм тренування
     const dateToDay = {};
     const dateToVolume = {};
+    dateToWeek = {};
     entries.forEach(e=>{
+      if(typeof e.cw === 'number' && dateToWeek[e.date] === undefined) dateToWeek[e.date] = e.cw;
       if(!dateToDay[e.date]) dateToDay[e.date] = e.day || 'Без назви';
       dateToVolume[e.date] = (dateToVolume[e.date] || 0) + e.weight * e.sets * e.reps;
     });
