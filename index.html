@@ -432,6 +432,10 @@
     <div id="log-recovery-banner" style="margin-bottom: 8px;"></div>
     <div id="log-list" style="margin-bottom: 8px;"></div>
     <div id="log-error" style="color: var(--text-danger, #c0392b); font-size: 13px; margin-bottom: 8px; display: none;"></div>
+    <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+      <span style="font-size:13px; color:var(--text-secondary,#666); white-space:nowrap;">Тиждень циклу</span>
+      <select class="wj-select" id="log-week-select" style="flex:1;"></select>
+    </div>
     <button class="wj-btn wj-btn-primary" id="btn-save-workout" style="width:100%;">✓ Завершити й зберегти</button>
   </div>
 
@@ -938,16 +942,24 @@
       catch(e){ console.error('Помилка збереження версії виправлення назв', e); }
     }
 
-    // Тиждень циклу для тренувань, збережених до v86 (визначено за історією:
-    // кола по 4 тренування; 15–21.10 = W1, з 22.10 = W2). Лише для записів без мітки.
+    // Тиждень циклу для тренувань, збережених до v86 (одноразове виправлення за історією):
+    // 23–28.10 = W1 (перше коло з 4 тренувань), раніше мітки немає.
     {
-      let cwChanged = false;
-      entries.forEach(e => {
-        if(typeof e.cw === 'number') return;
-        if(e.date >= '2026-10-15' && e.date <= '2026-10-21'){ e.cw = 0; cwChanged = true; }
-        else if(e.date >= '2026-10-22' && e.date <= '2026-10-28'){ e.cw = 1; cwChanged = true; }
-      });
-      if(cwChanged) await saveEntries();
+      let cwDone = false;
+      try { const r = await storage.get('cw_fix_version', false); cwDone = !!(r && r.value === '2'); } catch(e){}
+      if(!cwDone && entries.length > 0){
+        entries.forEach(e => {
+          if(e.date >= '2026-10-23' && e.date <= '2026-10-28') e.cw = 0;
+          else if(e.date <= '2026-10-22') delete e.cw;
+        });
+        await saveEntries();
+        if(entries.some(e => e.cw === 0)){
+          const n = new Set(entries.filter(e => e.cw === 0).map(e => e.date)).size;
+          cycle.active = n >= CIRCLE_LEN ? 1 : 0; // коло завершене → наступний тиждень
+          await saveCycle();
+        }
+        try { await storage.set('cw_fix_version', '2', false); } catch(e){}
+      }
     }
 
     // Одноразове перейменування днів програми у вже збережених записах
@@ -2108,7 +2120,7 @@
         id: Date.now() + i,
         date, day, exercise: exercises[i].name || '(без назви)',
         weight, sets, reps: repsNum, repsLabel: reps, rpe: row.dataset.rpe ? parseFloat(row.dataset.rpe) : null, notes: '',
-        cw: (typeof cycle.active === 'number') ? cycle.active : null
+        cw: chosenWeek()
       });
     });
     if(hasError){
@@ -2120,6 +2132,13 @@
     entries = entries.concat(newEntries);
     entries.sort((a,b)=> a.date.localeCompare(b.date));
     await saveEntries();
+    const cwUsed = newEntries.length ? newEntries[0].cw : null;
+    let cycleChanged = false;
+    if(typeof cwUsed === 'number' && cycle.active !== cwUsed){ cycle.active = cwUsed; cycleChanged = true; } // обраний вручну тиждень стає застосованим
+    const advanced = advanceCycleWeek(cwUsed);
+    logWeekChoice = undefined;
+    if(cycleChanged && !advanced) await saveCycle();
+    if(advanced){ await saveCycle(); showToast('Коло з ' + CIRCLE_LEN + ' тренувань завершено. Наступний тиждень: W' + (cycle.active + 1)); }
     renderAll();
     errEl.style.display = 'block';
     errEl.style.color = 'var(--text-success, #1a7a3a)';
@@ -2322,6 +2341,33 @@
     catch(e){ console.error('Помилка збереження кольорів днів', e); }
   }
 
+  // Вибір тижня циклу для тренування (за замовчуванням — застосований у «Циклі»; можна змінити перед збереженням)
+  let logWeekChoice; // undefined = взяти застосований; null = без мітки; число = обраний тиждень
+  function chosenWeek(){
+    if(logWeekChoice === undefined) return (typeof cycle.active === 'number') ? cycle.active : null;
+    return logWeekChoice;
+  }
+  function weekOptionsHtml(sel){
+    return '<option value=""' + (sel === null ? ' selected' : '') + '>Без мітки</option>' +
+      CYCLE_WEEKS.map((w, i) => `<option value="${i}"${sel === i ? ' selected' : ''}>W${i + 1} · ${escapeHtml(w.name)}</option>`).join('');
+  }
+  function syncLogWeekSelect(){
+    const el = document.getElementById('log-week-select');
+    if(!el) return;
+    el.innerHTML = weekOptionsHtml(chosenWeek());
+    el.onchange = () => { logWeekChoice = el.value === '' ? null : parseInt(el.value); };
+  }
+  // Одне коло = CIRCLE_LEN різних тренувальних днів з одним тижнем циклу.
+  // Коли коло завершене, застосований тиждень зсувається на наступний (W5 → W1).
+  const CIRCLE_LEN = 4;
+  function advanceCycleWeek(week){
+    const w = (typeof week === 'number') ? week : null;
+    if(w === null) return false;
+    const dates = new Set(entries.filter(e => e.cw === w).map(e => e.date));
+    if(dates.size < CIRCLE_LEN) return false;
+    cycle.active = (w + 1) % CYCLE_WEEKS.length;
+    return true;
+  }
   async function saveCycle(){
     try { await storage.set(CYCLE_KEY, JSON.stringify(cycle), false); }
     catch(e){ console.error('Помилка збереження циклу', e); }
@@ -2585,6 +2631,10 @@
         <div class="section-label">${escapeHtml(dayLabel)} · ${selectedCalDate}</div>
         <div style="font-size:13px; color:var(--text-secondary,#666); font-weight:600;">${totalVol} кг</div>
       </div>
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+        <span style="font-size:13px; color:var(--text-secondary,#666); white-space:nowrap;">Тиждень циклу</span>
+        <select class="wj-select" id="day-week-select" style="flex:1;">${weekOptionsHtml(typeof dayEntries[0].cw === 'number' ? dayEntries[0].cw : null)}</select>
+      </div>
     ` + dayEntries.map(e => `
       <div class="wj-card" style="margin-bottom: 8px; display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
         <div>
@@ -2595,6 +2645,13 @@
         <button class="wj-btn wj-btn-danger" data-id="${e.id}" aria-label="Видалити запис" style="flex-shrink:0; padding: 6px 10px;">✕</button>
       </div>
     `).join('');
+    const dws = document.getElementById('day-week-select');
+    if(dws) dws.addEventListener('change', async () => {
+      const v = dws.value === '' ? null : parseInt(dws.value);
+      entries.forEach(e => { if(e.date === selectedCalDate){ if(v === null) delete e.cw; else e.cw = v; } });
+      await saveEntries();
+      renderHistory();
+    });
     list.querySelectorAll('button[data-id]').forEach(btn=>{
       btn.addEventListener('click', async ()=>{
         const id = parseInt(btn.getAttribute('data-id'));
@@ -3307,6 +3364,7 @@
     fillDaySelects();
     renderProgram();
     renderLog();
+    syncLogWeekSelect();
     renderHistory();
     renderProgress();
     renderTrainingCounts();
