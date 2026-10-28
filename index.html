@@ -413,6 +413,7 @@
       <button class="wj-btn wj-btn-primary" id="btn-confirm-add-day">Додати</button>
     </div>
     <div id="add-day-error" style="color: var(--text-danger, #c0392b); font-size: 13px; margin-bottom: 8px; display:none;"></div>
+    <div id="program-week-bar"></div>
     <div id="program-list"></div>
     <button class="wj-btn wj-btn-success" id="btn-add-exercise" style="width:100%; margin-top:10px;">+ Додати вправу</button>
     <div id="add-ex-choice" style="display:none; gap:8px; margin-top:8px;">
@@ -875,6 +876,11 @@
     } catch(e){ muscleOverrides = {}; }
 
     try {
+      const wpRes = await storage.get(WEEKPLANS_KEY, false);
+      weekPlans = normWeekPlans(wpRes && wpRes.value ? JSON.parse(wpRes.value) : null);
+    } catch(e){ weekPlans = {}; }
+
+    try {
       const plRes = await storage.get(PLANS_KEY, false);
       plans = normPlans(plRes && plRes.value ? JSON.parse(plRes.value) : null);
     } catch(e){ plans = {}; }
@@ -1133,6 +1139,115 @@
     containerEl.querySelectorAll('.ex-row').forEach(row => applyGlow(row, color));
   }
 
+  // Режим редагування: null = «База» (склад вправ і базові цифри), 0..4 = план конкретного тижня
+  let programWeek = null;
+  function effectiveForWeek(w, day, ex){
+    const o = weekOverride(w, day, ex.name);
+    return o ? { sets: o.sets, reps: o.reps, weight: o.weight, own: true } : { sets: ex.sets, reps: String(ex.reps), weight: ex.weight, own: false };
+  }
+  function renderProgramWeekBar(day){
+    const bar = document.getElementById('program-week-bar');
+    if(!bar) return;
+    if(!day){ bar.innerHTML = ''; return; }
+    const w = programWeek;
+    const chips = `<div class="cyc-weeks" style="margin-bottom:8px;">
+      <div class="cyc-week${w === null ? ' selected' : ''}" data-pw="base"><div class="w">БАЗА</div><div class="n">Склад</div></div>
+      ${CYCLE_WEEKS.map((c, i) => `<div class="cyc-week${w === i ? ' selected' : ''}${cycle.active === i ? ' current' : ''}" data-pw="${i}"><div class="w">W${i + 1}</div><div class="n">${escapeHtml(c.name)}</div></div>`).join('')}
+    </div>`;
+    let extra = '';
+    if(w !== null){
+      const srcOpts = '<option value="base">База</option>' + CYCLE_WEEKS.map((c, i) => i === w ? '' : `<option value="${i}">W${i + 1} · ${escapeHtml(c.name)}</option>`).join('');
+      extra = `<div class="cyc-muted" style="margin-bottom:8px;">Плани тижня W${w + 1} · ${escapeHtml(CYCLE_WEEKS[w].name)}. Тут змінюються лише підходи, повтори й вага; склад вправ редагується в режимі «База». «Тренування» бере ці цифри, коли застосований цей тиждень.</div>
+      <div style="display:flex; gap:6px; margin-bottom:8px;">
+        <select class="wj-select" id="pw-copy-src" style="flex:1;">${srcOpts}</select>
+        <button class="wj-btn" id="pw-copy">Скопіювати день</button>
+      </div>
+      <div style="display:flex; gap:6px; margin-bottom:10px;">
+        <button class="wj-btn" id="pw-advice" style="flex:1;">За порадами циклу</button>
+        <button class="wj-btn wj-btn-danger" id="pw-reset" style="flex:1;">Скинути день</button>
+      </div>`;
+    }
+    bar.innerHTML = chips + extra;
+    bar.querySelectorAll('[data-pw]').forEach(el => el.addEventListener('click', () => {
+      const v = el.getAttribute('data-pw');
+      programWeek = v === 'base' ? null : parseInt(v);
+      renderProgram();
+    }));
+    if(w === null) return;
+    const exs = (program[day] || []).filter(e => e.name);
+    document.getElementById('pw-copy').addEventListener('click', async () => {
+      const v = document.getElementById('pw-copy-src').value;
+      exs.forEach(ex => {
+        const src = v === 'base' ? { sets: ex.sets, reps: String(ex.reps), weight: ex.weight } : effectiveForWeek(parseInt(v), day, ex);
+        setWeekOverride(w, day, ex.name, src);
+      });
+      await saveWeekPlans(); renderProgram();
+      showToast('Скопійовано в W' + (w + 1) + ': ' + (v === 'base' ? 'База' : 'W' + (parseInt(v) + 1)));
+    });
+    document.getElementById('pw-advice').addEventListener('click', async () => {
+      let n = 0;
+      exs.forEach(ex => {
+        if(weekOverride(w, day, ex.name)) return; // власні цифри не перезаписуємо
+        const t = cycleTarget(w, ex);
+        if(!t) return;
+        setWeekOverride(w, day, ex.name, { sets: t.sets, reps: t.reps, weight: t.weight }); n++;
+      });
+      await saveWeekPlans(); renderProgram();
+      showToast(n ? 'Записано порад: ' + n + ' (власні цифри не змінено)' : 'Нічого записувати: усе вже заповнено');
+    });
+    document.getElementById('pw-reset').addEventListener('click', async () => {
+      if(!weekPlans[w] || !weekPlans[w][day]){ showToast('У цьому дні ще немає власних цифр.'); return; }
+      const ok = await showConfirm('Скинути власні цифри дня «' + day + '» у W' + (w + 1) + '? Тиждень знову візьме базові цифри та поради.', 'Скинути');
+      if(!ok) return;
+      delete weekPlans[w][day];
+      if(Object.keys(weekPlans[w]).length === 0) delete weekPlans[w];
+      await saveWeekPlans(); renderProgram();
+    });
+  }
+  function renderProgramWeekList(list, day, exercises, dayColor){
+    const w = programWeek;
+    list.innerHTML = exercises.map((ex, i) => {
+      const v = effectiveForWeek(w, day, ex);
+      return `
+      <div class="ex-row">
+        <div style="display:flex; align-items:center; gap:6px;">
+          <div style="flex:1; font-weight:600; font-size:15px;">${escapeHtml(ex.name || '(без назви)')}${v.own ? ' <span class="ls" style="font-weight:500;">· власний план</span>' : ''}</div>
+          ${v.own ? `<button class="wj-btn" data-pw-reset="${i}" style="flex-shrink:0; padding:6px 10px;" aria-label="Скинути до бази">↺</button>` : ''}
+        </div>
+        <div class="ex-grid">
+          <div class="ex-field-sets"><div class="ex-mini-label">Підходи</div>
+            <input class="wj-input" type="number" min="1" step="1" inputmode="numeric" data-pw-field="sets" data-i="${i}" value="${v.sets}" /></div>
+          <div class="ex-field-reps"><div class="ex-mini-label">Повтори</div>
+            <input class="wj-input" data-pw-field="reps" data-i="${i}" value="${escapeHtml(String(v.reps))}" /></div>
+          <div class="ex-field-weight"><div class="ex-mini-label">Вага, кг</div>
+            <input class="wj-input" type="number" min="0" step="0.5" inputmode="decimal" data-pw-field="weight" data-i="${i}" value="${v.weight}" /></div>
+        </div>
+      </div>`;
+    }).join('');
+    glowExerciseRows(list, dayColor);
+    list.querySelectorAll('input[data-pw-field]').forEach(inp => {
+      const commit = async () => {
+        const i = parseInt(inp.getAttribute('data-i'));
+        const ex = exercises[i]; if(!ex) return;
+        const row = inp.closest('.ex-row');
+        const g = f => row.querySelector(`[data-pw-field="${f}"]`).value;
+        const nv = { sets: parseInt(g('sets')) || 1, reps: String(g('reps')).trim() || String(ex.reps), weight: parseFloat(g('weight')) || 0 };
+        const cur = effectiveForWeek(w, day, ex);
+        if(!cur.own && nv.sets === parseInt(ex.sets) && nv.reps === String(ex.reps) && nv.weight === parseFloat(ex.weight)) return;
+        if(cur.own && nv.sets === cur.sets && nv.reps === cur.reps && nv.weight === cur.weight) return;
+        setWeekOverride(w, day, ex.name, nv);
+        await saveWeekPlans();
+        renderProgram();
+      };
+      inp.addEventListener('change', commit);
+    });
+    list.querySelectorAll('button[data-pw-reset]').forEach(btn => btn.addEventListener('click', async () => {
+      const ex = exercises[parseInt(btn.getAttribute('data-pw-reset'))];
+      if(!ex) return;
+      clearWeekOverride(w, day, ex.name);
+      await saveWeekPlans(); renderProgram();
+    }));
+  }
   function renderProgram(){
     const day = document.getElementById('program-day-select').value || dayNames()[0];
     updateProgramDayIcon(day);
@@ -1144,8 +1259,9 @@
     const hasDay = !!day;
     document.getElementById('btn-edit-day').disabled = !hasDay;
     document.getElementById('btn-delete-day').disabled = !hasDay;
-    document.getElementById('btn-add-exercise').disabled = !hasDay;
-    { const lb = document.getElementById('btn-add-library'); if(lb) lb.disabled = !hasDay; }
+    document.getElementById('btn-add-exercise').disabled = !hasDay || programWeek !== null;
+    { const lb = document.getElementById('btn-add-library'); if(lb) lb.disabled = !hasDay || programWeek !== null; }
+    renderProgramWeekBar(day);
     if(!hasDay){
       list.innerHTML = '<div class="wj-card"><p style="color:var(--text-secondary,#666); font-size:14px; text-align:center; margin:0;">Ще немає тренувальних днів. Натисни «+ Додати день» вище, щоб створити перший.</p></div>';
       return;
@@ -1155,6 +1271,7 @@
       list.innerHTML = '<div class="wj-card"><p style="color:var(--text-secondary,#666); font-size:14px; text-align:center; margin:0;">У цьому дні ще немає вправ.</p></div>';
       return;
     }
+    if(programWeek !== null){ renderProgramWeekList(list, day, exercises, dayColor); return; }
     list.innerHTML = exercises.map((ex, i) => `
       <div class="ex-row">
         <div style="display:flex; align-items:center; gap:6px;">
@@ -1211,6 +1328,7 @@
           const newName = val.trim();
           if(oldName === newName) return;
           program[day][i].name = newName;
+          renameWeekPlanEx(day, oldName, newName); await saveWeekPlans();
           if(muscleOverrides[oldName]){ muscleOverrides[newName] = muscleOverrides[oldName]; delete muscleOverrides[oldName]; await saveMuscleOverrides(); }
           if(exLibrary.hidden.includes(newName)){ exLibrary.hidden = exLibrary.hidden.filter(h => h !== newName); await saveLibrary(); }
           await saveProgram();
@@ -1254,6 +1372,7 @@
         const copy = Object.assign({}, ex);
         target.push(copy);
         if(r.action === 'move') program[day].splice(i, 1);
+        copyWeekPlanEx(day, r.day, ex.name, r.action === 'move'); await saveWeekPlans();
         await saveProgram();
         renderProgram();
         showUndoToast((r.action === 'move' ? 'Перенесено в ' : 'Скопійовано в ') + r.day, async ()=>{
@@ -1566,7 +1685,8 @@
       cycle,
       library: exLibrary,
       plans,
-      muscleGroups: muscleOverrides
+      muscleGroups: muscleOverrides,
+      weekPlans
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -1656,6 +1776,8 @@
     await savePlans();
     muscleOverrides = normMuscle(data.muscleGroups);
     await saveMuscleOverrides();
+    weekPlans = normWeekPlans(data.weekPlans);
+    await saveWeekPlans();
     syncLibraryFromProgram();
     await saveLibrary();
 
@@ -1749,6 +1871,7 @@
     if(!confirmed) return;
     syncLibraryFromProgram(); await saveLibrary();
     delete program[day];
+    dropWeekPlanDay(day); await saveWeekPlans();
     await saveProgram();
     fillDaySelects();
     document.getElementById('program-day-select').value = remaining[0];
@@ -1827,6 +1950,7 @@
       // Переносимо вправи і перейменовуємо в історії
       program[newName] = program[oldName];
       delete program[oldName];
+      renameWeekPlanDay(oldName, newName); await saveWeekPlans();
       if(dayColors[oldName] !== undefined) delete dayColors[oldName];
       if(dayIcons[oldName] !== undefined) delete dayIcons[oldName];
     }
@@ -1934,9 +2058,11 @@
     const rowsHtml = exercises.map((ex, i) => {
       const sg = suggestForExercise(ex.name);
       const lastE = lastLoggedFor(ex.name);
-      const optional = (wkIdx === STRENGTH_IDX && !mainSet.includes(ex.name));
+      const wp = (wkIdx !== null) ? weekOverride(wkIdx, day, ex.name) : null;
+      const optional = (wkIdx === STRENGTH_IDX && !mainSet.includes(ex.name) && !wp);
       let t = (wkIdx !== null && !optional) ? cycleTarget(wkIdx, ex) : null;
       if(t && (wkIdx === 0 || wkIdx === 1 || wkIdx === 2) && sg && typeof sg.weight === 'number') t = { ...t, weight: sg.weight };
+      if(wp) t = { sets: wp.sets, reps: wp.reps, weight: wp.weight, rpe: CYCLE_WEEKS[wkIdx].rpe, sub: 'твій план на цей тиждень' };
       if(optional) optionalCount++;
       const vSets = t ? t.sets : ex.sets;
       const vReps = t ? t.reps : ex.reps;
@@ -1978,6 +2104,69 @@
   // Простий облік відновлення: фіксований час на групу мʼязів від моменту останнього тренування.
   // Враховуються лише тренування після скидання (recoveryResetTs).
   const MUSCLE_KEY = 'muscle_groups';
+  // --- Тижневі плани: для кожного тижня циклу (W1–W5) свої підходи/повтори/вага по днях і вправах ---
+  let weekPlans = {}; // { '0': { 'День': { 'Вправа': { sets, reps, weight } } } }
+  const WEEKPLANS_KEY = 'week_plans';
+  async function saveWeekPlans(){
+    try { await storage.set(WEEKPLANS_KEY, JSON.stringify(weekPlans), false); }
+    catch(e){ console.error('Помилка збереження тижневих планів', e); }
+  }
+  function normWeekPlans(o){
+    const r = {};
+    if(!o || typeof o !== 'object') return r;
+    Object.keys(o).forEach(w => {
+      if(!/^[0-4]$/.test(w) || !o[w] || typeof o[w] !== 'object') return;
+      Object.keys(o[w]).forEach(day => {
+        const d = o[w][day]; if(!d || typeof d !== 'object') return;
+        Object.keys(d).forEach(name => {
+          const v = d[name]; if(!v || typeof v !== 'object') return;
+          const sets = parseInt(v.sets), weight = parseFloat(v.weight), reps = String(v.reps === undefined ? '' : v.reps).trim();
+          if(!(sets >= 1) || !reps || !(weight >= 0)) return;
+          ((r[w] = r[w] || {})[day] = r[w][day] || {})[name] = { sets, reps, weight };
+        });
+      });
+    });
+    return r;
+  }
+  function weekOverride(w, day, name){
+    const p = weekPlans[w] && weekPlans[w][day] && weekPlans[w][day][name];
+    return p || null;
+  }
+  function setWeekOverride(w, day, name, v){
+    weekPlans[w] = weekPlans[w] || {};
+    weekPlans[w][day] = weekPlans[w][day] || {};
+    weekPlans[w][day][name] = { sets: Math.max(1, parseInt(v.sets) || 1), reps: String(v.reps || '').trim() || '10', weight: Math.max(0, parseFloat(v.weight) || 0) };
+  }
+  function clearWeekOverride(w, day, name){
+    if(weekPlans[w] && weekPlans[w][day]){
+      delete weekPlans[w][day][name];
+      if(Object.keys(weekPlans[w][day]).length === 0) delete weekPlans[w][day];
+      if(Object.keys(weekPlans[w]).length === 0) delete weekPlans[w];
+    }
+  }
+  function renameWeekPlanEx(day, oldName, newName){
+    Object.keys(weekPlans).forEach(w => {
+      const d = weekPlans[w][day];
+      if(d && d[oldName]){ d[newName] = d[oldName]; delete d[oldName]; }
+    });
+  }
+  function renameWeekPlanDay(oldDay, newDay){
+    Object.keys(weekPlans).forEach(w => {
+      if(weekPlans[w][oldDay]){ weekPlans[w][newDay] = weekPlans[w][oldDay]; delete weekPlans[w][oldDay]; }
+    });
+  }
+  function dropWeekPlanDay(day){
+    Object.keys(weekPlans).forEach(w => { delete weekPlans[w][day]; if(Object.keys(weekPlans[w]).length === 0) delete weekPlans[w]; });
+  }
+  function copyWeekPlanEx(fromDay, toDay, name, move){
+    Object.keys(weekPlans).forEach(w => {
+      const src = weekPlans[w][fromDay] && weekPlans[w][fromDay][name];
+      if(!src) return;
+      weekPlans[w][toDay] = weekPlans[w][toDay] || {};
+      weekPlans[w][toDay][name] = Object.assign({}, src);
+      if(move){ delete weekPlans[w][fromDay][name]; }
+    });
+  }
   let muscleOverrides = {}; // { 'назва вправи': 'Legs' } — ручний вибір групи мʼязів
   const MUSCLE_GROUPS = ['Chest', 'Back', 'LowBack', 'Traps', 'DeltFront', 'DeltSide', 'DeltRear', 'Biceps', 'Triceps', 'Quads', 'Hams', 'Glutes', 'Legs', 'Calves', 'Core', 'Other'];
   const GROUP_UA = { Chest: 'Груди', Back: 'Верх спини', LowBack: 'Низ спини', Traps: 'Шраги', DeltFront: 'Передня дельта', DeltSide: 'Середня дельта', DeltRear: 'Задня дельта', Biceps: 'Біцепс', Triceps: 'Трицепс', Quads: 'Квадріцепс', Hams: 'Задня поверхня стегна', Glutes: 'Сідниці', Legs: 'Ноги загалом', Calves: 'Ікри', Core: 'Прес', Other: 'Інше' };
@@ -3058,13 +3247,14 @@
       const rows = [];
       let skipped = 0;
       list.forEach(ex => {
-        if(shownIdx === STRENGTH_IDX && !main.includes(ex.name)){ skipped++; return; }
-        const t = cycleTarget(shownIdx, ex);
+        const own = weekOverride(shownIdx, day, ex.name);
+        if(!own && shownIdx === STRENGTH_IDX && !main.includes(ex.name)){ skipped++; return; }
+        const t = own ? { sets: own.sets, reps: own.reps, weight: own.weight, sub: 'твій план' } : cycleTarget(shownIdx, ex);
         if(!t){ skipped++; return; }
         rows.push(`<div class="cyc-row"><span class="nm">${escapeHtml(ex.name)}</span><span class="vl">${t.sets}×${escapeHtml(String(t.reps))} · ${fmtKg(t.weight)} кг${t.sub ? `<span class="sub">${escapeHtml(t.sub)}</span>` : ''}</span></div>`);
       });
       if(rows.length === 0) return;
-      daysHtml += `<div class="cyc-day"><div class="cyc-day-title"><span class="dot" style="background:${colorMap[day] || '#4db6ac'};"></span>${escapeHtml(day)}</div>${rows.join('')}${shownIdx === STRENGTH_IDX && skipped ? `<div class="cyc-muted">Інших вправ: ${skipped}. Пропусти або зроби 1–2 легкі підходи.</div>` : ''}</div>`;
+      daysHtml += `<div class="cyc-day"><div class="cyc-day-title"><span class="dot" style="background:${colorMap[day] || '#4db6ac'};"></span>${escapeHtml(day)}</div>${rows.join('')}<button class="wj-btn" data-cyc-save="${escapeHtml(day)}" style="width:100%; margin-top:6px;">Записати поради в W${shownIdx + 1}</button>${shownIdx === STRENGTH_IDX && skipped ? `<div class="cyc-muted">Інших вправ: ${skipped}. Пропусти або зроби 1–2 легкі підходи.</div>` : ''}</div>`;
     });
     if(!daysHtml){
       daysHtml = '<p class="cyc-muted" style="margin-top:8px;">' + (shownIdx === STRENGTH_IDX
@@ -3098,6 +3288,18 @@
     planEl.querySelectorAll('[data-cyc-w]').forEach(el => el.addEventListener('click', () => {
       cyclePreviewWeek = parseInt(el.getAttribute('data-cyc-w'));
       renderCycle();
+    }));
+    planEl.querySelectorAll('[data-cyc-save]').forEach(el => el.addEventListener('click', async () => {
+      const day = el.getAttribute('data-cyc-save');
+      let n = 0;
+      (program[day] || []).filter(ex => ex.name).forEach(ex => {
+        if(weekOverride(shownIdx, day, ex.name)) return;
+        const t = cycleTarget(shownIdx, ex);
+        if(!t || (shownIdx === STRENGTH_IDX && !main.includes(ex.name))) return;
+        setWeekOverride(shownIdx, day, ex.name, { sets: t.sets, reps: t.reps, weight: t.weight }); n++;
+      });
+      await saveWeekPlans(); renderCycle(); renderLog();
+      showToast(n ? 'Записано в W' + (shownIdx + 1) + ': ' + n + ' (власні цифри не змінено)' : 'Нічого записувати: усе вже заповнено');
     }));
     mainEl.querySelectorAll('[data-cyc-main]').forEach(el => el.addEventListener('click', async () => {
       const n = el.getAttribute('data-cyc-main');
