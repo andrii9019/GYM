@@ -432,10 +432,6 @@
     <div id="log-recovery-banner" style="margin-bottom: 8px;"></div>
     <div id="log-list" style="margin-bottom: 8px;"></div>
     <div id="log-error" style="color: var(--text-danger, #c0392b); font-size: 13px; margin-bottom: 8px; display: none;"></div>
-    <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
-      <span style="font-size:13px; color:var(--text-secondary,#666); white-space:nowrap;">Тиждень циклу</span>
-      <select class="wj-select" id="log-week-select" style="flex:1;"></select>
-    </div>
     <button class="wj-btn wj-btn-primary" id="btn-save-workout" style="width:100%;">✓ Завершити й зберегти</button>
   </div>
 
@@ -2136,7 +2132,6 @@
     let cycleChanged = false;
     if(typeof cwUsed === 'number' && cycle.active !== cwUsed){ cycle.active = cwUsed; cycleChanged = true; } // обраний вручну тиждень стає застосованим
     const advanced = advanceCycleWeek(cwUsed);
-    logWeekChoice = undefined;
     if(cycleChanged && !advanced) await saveCycle();
     if(advanced){ await saveCycle(); showToast('Коло з ' + CIRCLE_LEN + ' тренувань завершено. Наступний тиждень: W' + (cycle.active + 1)); }
     renderAll();
@@ -2341,21 +2336,11 @@
     catch(e){ console.error('Помилка збереження кольорів днів', e); }
   }
 
-  // Вибір тижня циклу для тренування (за замовчуванням — застосований у «Циклі»; можна змінити перед збереженням)
-  let logWeekChoice; // undefined = взяти застосований; null = без мітки; число = обраний тиждень
-  function chosenWeek(){
-    if(logWeekChoice === undefined) return (typeof cycle.active === 'number') ? cycle.active : null;
-    return logWeekChoice;
-  }
+  // Тиждень для нового запису = той, що обраний кнопками W1–W5 у «Тренуванні» (ВИМК = без мітки)
+  function chosenWeek(){ return (typeof cycle.active === 'number') ? cycle.active : null; }
   function weekOptionsHtml(sel){
     return '<option value=""' + (sel === null ? ' selected' : '') + '>Без мітки</option>' +
       CYCLE_WEEKS.map((w, i) => `<option value="${i}"${sel === i ? ' selected' : ''}>W${i + 1} · ${escapeHtml(w.name)}</option>`).join('');
-  }
-  function syncLogWeekSelect(){
-    const el = document.getElementById('log-week-select');
-    if(!el) return;
-    el.innerHTML = weekOptionsHtml(chosenWeek());
-    el.onchange = () => { logWeekChoice = el.value === '' ? null : parseInt(el.value); };
   }
   // Одне коло = CIRCLE_LEN різних тренувальних днів з одним тижнем циклу.
   // Коли коло завершене, застосований тиждень зсувається на наступний (W5 → W1).
@@ -3364,7 +3349,6 @@
     fillDaySelects();
     renderProgram();
     renderLog();
-    syncLogWeekSelect();
     renderHistory();
     renderProgress();
     renderTrainingCounts();
