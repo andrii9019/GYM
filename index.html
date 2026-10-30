@@ -234,6 +234,15 @@
   .ex-hint .tg { color: var(--accent-2); font-weight: 700; }
   .ex-hint .ls { color: var(--text-secondary); }
   .reps-hint { font-size: 11px; font-weight: 700; letter-spacing: 0; text-transform: none; color: var(--accent-2); opacity: .85; margin-left: 4px; white-space: nowrap; }
+  .day-chips { display:flex; gap:6px; overflow-x:auto; overflow-y:hidden; margin-bottom:8px; padding:2px 2px 6px; -webkit-overflow-scrolling:touch; scrollbar-width:none; touch-action:pan-x pan-y; }
+  .day-chips::-webkit-scrollbar { display:none; }
+  .day-chip { flex:0 0 auto; min-width:78px; max-width:130px; border-radius:12px; padding:7px 10px 6px; text-align:center; background: var(--surface-3); border:1px solid var(--border); cursor:pointer; color: var(--text-secondary); transition: background .15s, box-shadow .15s, transform .1s; }
+  .day-chip:active { transform: scale(0.96); }
+  .day-chip .ic { height:20px; display:flex; align-items:center; justify-content:center; margin-bottom:3px; }
+  .day-chip .n { font-size:12px; font-weight:700; color: var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #training-count-list { display:flex !important; gap:8px; overflow-x:auto; overflow-y:hidden; padding:2px 2px 8px; -webkit-overflow-scrolling:touch; scrollbar-width:none; scroll-snap-type:x proximity; }
+  #training-count-list::-webkit-scrollbar { display:none; }
+  #training-count-list .training-count-card { flex:0 0 calc(46% - 4px); min-width:148px; scroll-snap-align:start; box-sizing:border-box; }
   .cyc-weeks { display:flex; gap:4px; margin-bottom:8px; }
   .cyc-week { flex:1; min-width:0; border-radius:12px; padding:6px 4px; text-align:center; background: var(--surface-3); border:1px solid var(--border); cursor:pointer; color: var(--text-secondary); transition: background .12s, transform .1s; }
   .cyc-week:active { transform: scale(0.96); }
@@ -426,9 +435,10 @@
     <div class="page-header"><div class="eyebrow">Тренування</div><h1 class="page-title">Сьогоднішнє тренування</h1></div>
     <div class="wj-row" id="log-day-header" style="margin-bottom: 8px; gap:6px; align-items:center; border-radius: 14px; padding: 0.5rem 0.65rem; background: var(--surface-1); box-sizing: border-box;">
       <div id="log-day-icon" style="height:26px; flex-shrink:0; display:flex; align-items:center;"></div>
-      <select class="wj-select" id="log-day-select" style="flex:2;"></select>
+      <select class="wj-select" id="log-day-select" style="flex:2; display:none;"></select>
       <input type="date" class="wj-input" id="log-date" style="flex:1;" />
     </div>
+    <div id="log-day-chips" class="day-chips"></div>
     <div id="log-cycle-banner"></div>
     <div id="log-recovery-banner" style="margin-bottom: 8px;"></div>
     <div id="log-list" style="margin-bottom: 8px;"></div>
@@ -2027,7 +2037,39 @@
     renderCycle();
   });
 
+  // Тренувальні дні панеллю (як тижні): підсвічується обраний день його кольором, при великій кількості днів — гортається вбік
+  function renderLogDayChips(){
+    const box = document.getElementById('log-day-chips');
+    const sel = document.getElementById('log-day-select');
+    if(!box || !sel) return;
+    const days = dayNames();
+    const cur = sel.value || days[0];
+    const colorMap = getDayColorMap();
+    const prevScroll = box.scrollLeft;
+    box.innerHTML = days.map(d => {
+      const c = colorMap[d] || '#4db6ac';
+      const on = d === cur;
+      const st = on
+        ? `background: linear-gradient(180deg, ${c}59, ${c}26); border-color:${c}; box-shadow: 0 0 14px ${c}73;`
+        : `border-color:${c}59;`;
+      return `<div class="day-chip" data-log-day="${escapeHtml(d)}" style="${st}"><div class="ic">${renderGroupIconsCombined(getDayIconKeys(d), 18, c)}</div><div class="n">${escapeHtml(d)}</div></div>`;
+    }).join('');
+    box.scrollLeft = prevScroll;
+    const el = box.querySelector('.day-chip[data-log-day]' ) && [...box.children].find(x => x.getAttribute('data-log-day') === cur);
+    if(el){
+      const l = el.offsetLeft, r = l + el.offsetWidth;
+      if(l < box.scrollLeft + 8) box.scrollLeft = Math.max(0, l - 8);
+      else if(r > box.scrollLeft + box.clientWidth - 8) box.scrollLeft = r - box.clientWidth + 8;
+    }
+    box.querySelectorAll('[data-log-day]').forEach(chip => chip.addEventListener('click', () => {
+      const d = chip.getAttribute('data-log-day');
+      if(sel.value === d) return;
+      sel.value = d;
+      sel.dispatchEvent(new Event('change'));
+    }));
+  }
   function renderLog(){
+    renderLogDayChips();
     renderLogWeekBar();
     const day = document.getElementById('log-day-select').value || dayNames()[0];
     const colorMap = getDayColorMap();
