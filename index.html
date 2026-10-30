@@ -2103,7 +2103,7 @@
   // Простий облік відновлення: фіксований час на групу мʼязів від моменту останнього тренування.
   // Враховуються лише тренування після скидання (recoveryResetTs).
   const MUSCLE_KEY = 'muscle_groups';
-  // --- Тижневі плани: для кожного тижня циклу (W1–W5) свої підходи/повтори/вага по днях і вправах ---
+  // --- Тижневі плани: для кожного тижня циклу (W1–W4) свої підходи/повтори/вага по днях і вправах ---
   let weekPlans = {}; // { '0': { 'День': { 'Вправа': { sets, reps, weight } } } }
   const WEEKPLANS_KEY = 'week_plans';
   async function saveWeekPlans(){
@@ -2114,7 +2114,7 @@
     const r = {};
     if(!o || typeof o !== 'object') return r;
     Object.keys(o).forEach(w => {
-      if(!/^[0-4]$/.test(w) || !o[w] || typeof o[w] !== 'object') return;
+      if(!/^[0-3]$/.test(w) || !o[w] || typeof o[w] !== 'object') return;
       Object.keys(o[w]).forEach(day => {
         const d = o[w][day]; if(!d || typeof d !== 'object') return;
         Object.keys(d).forEach(name => {
@@ -2514,6 +2514,7 @@
     c = (c && typeof c === 'object') ? c : {};
     let act = (typeof c.active === 'number') ? c.active : null;
     if(c.v !== 5 && act !== null && act >= 2) act += 1; // старий 4-тижневий цикл: Strength 2→3, Deload 3→4
+    if(act !== null && act > 3) act = 0; // п'ятого тижня (розвантаження) більше немає
     return { start: c.start || null, mainLifts: Array.isArray(c.mainLifts) ? c.mainLifts : null, active: act, no: Math.max(1, parseInt(c.no) || 1), v: 5 };
   }
   let cyclePreviewWeek = null;
@@ -2525,14 +2526,14 @@
     catch(e){ console.error('Помилка збереження кольорів днів', e); }
   }
 
-  // Тиждень для нового запису = той, що обраний кнопками W1–W5 у «Тренуванні» (ВИМК = без мітки)
+  // Тиждень для нового запису = той, що обраний кнопками W1–W4 у «Тренуванні» (ВИМК = без мітки)
   function chosenWeek(){ return (typeof cycle.active === 'number') ? cycle.active : null; }
   function weekOptionsHtml(sel){
     return '<option value=""' + (sel === null ? ' selected' : '') + '>Без мітки</option>' +
       CYCLE_WEEKS.map((w, i) => `<option value="${i}"${sel === i ? ' selected' : ''}>W${i + 1} · ${escapeHtml(w.name)}</option>`).join('');
   }
   // Одне коло = CIRCLE_LEN різних тренувальних днів з одним тижнем циклу.
-  // Коли коло завершене, застосований тиждень зсувається на наступний (W5 → W1).
+  // Коли коло завершене, застосований тиждень зсувається на наступний (W4 → W1).
   const CIRCLE_LEN = 4;
   function advanceCycleWeek(week){
     const w = (typeof week === 'number') ? week : null;
@@ -2540,7 +2541,7 @@
     const dates = new Set(entries.filter(e => e.cw === w).map(e => e.date));
     if(dates.size < CIRCLE_LEN) return false;
     cycle.active = (w + 1) % CYCLE_WEEKS.length;
-    if(cycle.active === 0) cycle.no = (cycle.no || 1) + 1; // коло W5 завершене → новий цикл
+    if(cycle.active === 0) cycle.no = (cycle.no || 1) + 1; // коло W4 завершене → новий цикл
     return true;
   }
   async function saveCycle(){
@@ -3066,8 +3067,6 @@
     const box = document.getElementById('reco-list');
     if(!box) return;
     const items = [];
-    const dl = suggestDeload();
-    if(dl) items.push(dl);
     [...new Set(entries.map(e => e.exercise))].forEach(n => {
       const sg = suggestForExercise(n);
       if(sg) items.push(sg);
@@ -3094,14 +3093,13 @@
     });
   }
 
-  // --- Періодизація: цикл 5 тижнів (обʼєм → обʼєм+ → пік обʼєму → сила → розвантаження) ---
-  const STRENGTH_IDX = 3, DELOAD_IDX = 4;
+  // --- Періодизація: цикл 4 тижні (обʼєм → обʼєм+ → пік обʼєму → сила); W1 нового циклу — легший старт ---
+  const STRENGTH_IDX = 3;
   const CYCLE_WEEKS = [
-    { name: 'Обʼєм',   rpe: '7',   desc: 'Нарощуй обʼєм за звичайною програмою. Зупиняйся приблизно за 3 повтори до відмови.' },
+    { name: 'Обʼєм',   rpe: '7',   desc: 'Легший старт циклу: обʼєм за звичайною програмою, приблизно 3 повтори в запасі. Частково працює як розвантаження.' },
     { name: 'Обʼєм +', rpe: '8',   desc: 'Ті самі вправи, трохи важче. Зупиняйся приблизно за 2 повтори до відмови. Додай повтор або трохи ваги там, де легко.' },
     { name: 'Пік обʼєму', rpe: '8–9', desc: 'Найважчий обʼємний тиждень. В основних вправах на один підхід більше. Останні 1–2 повтори мають бути важкими.' },
-    { name: 'Сила', rpe: '8–9', desc: 'Менше вправ, більша вага. Лише основні вправи: 4 підходи приблизно по 4 повтори, відпочинок 3–5 хвилин.' },
-    { name: 'Розвантаж.',   rpe: '6',   desc: 'Відновлення. Приблизно на 15% менше ваги й на підхід менше. Далеко від відмови.' }
+    { name: 'Сила', rpe: '8–9', desc: 'Менше вправ, більша вага. Лише основні вправи: 4 підходи приблизно по 4 повтори, відпочинок 3–5 хвилин.' }
   ];
 
   function parseLocalDate(str){ return new Date(str + 'T00:00:00'); }
@@ -3209,19 +3207,25 @@
     if(weekIdx === 2) return String(hi);
     return String(lo + Math.round(span * 0.25)); // W1 і W5
   }
-  // Старт нового циклу: після розвантаження (W5) вага W1 береться з робочої ваги минулого циклу (W1–W3) + невеликий крок,
-  // а не з полегшеної ваги розвантаження.
+  // Старт нового циклу (W1): вага береться з робочої ваги минулого циклу (останній запис у W1–W3) і залежить від RPE та повторів:
+  // RPE ≥ 9,5 → −8%; RPE 9 або повтори не дійшли до верху діапазону → та сама вага; інакше → невеликий крок.
   function newCycleStart(name){
     const data = entries.filter(e => e.exercise === name).sort((a,b) => a.date.localeCompare(b.date) || (a.id - b.id));
     if(!data.length) return null;
-    if(data[data.length - 1].cw !== DELOAD_IDX) return null;
+    const last = data[data.length - 1];
+    if((last.cy || 1) >= (cycle.no || 1)) return null; // у цьому циклі вправу вже робив
     let work = null;
     for(let i = data.length - 1; i >= 0; i--){ if(typeof data[i].cw === 'number' && data[i].cw <= 2){ work = data[i]; break; } }
-    if(!work){ for(let i = data.length - 1; i >= 0; i--){ if(data[i].cw !== DELOAD_IDX){ work = data[i]; break; } } }
-    if(!work || !(work.weight > 0)) return null;
+    if(!work) work = last;
+    if(!(work.weight > 0)) return null;
+    const tgt = targetRepsFor(name) || { min: work.reps, max: work.reps };
+    const hitTop = work.reps >= tgt.max;
+    const rpe = (typeof work.rpe === 'number') ? work.rpe : null;
     const leg = ['Legs', 'Quads', 'Hams', 'Glutes'].includes(getMuscleGroup(name));
     const inc = mainLiftsList().includes(name) ? (leg ? 5 : 2.5) : (work.weight >= 40 ? 2.5 : 1);
-    return { weight: roundLoad(work.weight + inc), sub: '+' + fmtKg(inc) + ' кг до робочої ваги минулого циклу' };
+    if(rpe !== null && rpe >= 9.5) return { weight: roundLoad(work.weight * 0.92), sub: 'минулий цикл: RPE ' + rpe + ', вагу знижено на 8%' };
+    if((rpe !== null && rpe >= 9) || !hitTop) return { weight: work.weight, sub: 'вага минулого циклу' + (rpe !== null ? ' (RPE ' + rpe + ')' : '') + ': спочатку добери повтори' };
+    return { weight: roundLoad(work.weight + inc), sub: '+' + fmtKg(inc) + ' кг: минулий цикл пройшов легко' + (rpe !== null ? ' (RPE ' + rpe + ')' : '') };
   }
   function cycleTarget(weekIdx, ex){
     if(weekIdx === 0){
@@ -3236,9 +3240,6 @@
       const e1 = estimate1RM(ex.name, ex);
       if(!(e1 > 0)) return null;
       return { sets: 4, reps: '4', weight: roundLoad(e1 * 0.88), rpe: '8–9', sub: 'оцінений максимум ' + Math.round(e1) + ' кг' };
-    }
-    if(weekIdx === DELOAD_IDX){
-      return { sets: Math.max(2, baseSets - 1), reps: weekReps(weekIdx, ex), weight: roundLoad(baseW * 0.85), rpe: '6', sub: '' };
     }
     const sg = suggestForExercise(ex.name);
     const w = (sg && typeof sg.weight === 'number') ? sg.weight : baseW;
@@ -3284,7 +3285,7 @@
     const cycNums = [...new Set(entries.map(e => e.cy || 1).concat([cycle.no || 1]))].sort((a, b) => a - b);
     const progRows = main.map(n => {
       const parts = cycNums.map(c => {
-        const ws = entries.filter(e => e.exercise === n && (e.cy || 1) === c && e.cw !== DELOAD_IDX && e.weight > 0).map(e => e.weight);
+        const ws = entries.filter(e => e.exercise === n && (e.cy || 1) === c && e.weight > 0).map(e => e.weight);
         return ws.length ? `Ц${c}: ${fmtKg(Math.max(...ws))}` : null;
       }).filter(Boolean);
       return parts.length ? `<div class="cyc-row"><span class="nm">${escapeHtml(n)}</span><span class="vl">${parts.join(' → ')} кг</span></div>` : '';
