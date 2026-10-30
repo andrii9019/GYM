@@ -234,15 +234,15 @@
   .ex-hint .tg { color: var(--accent-2); font-weight: 700; }
   .ex-hint .ls { color: var(--text-secondary); }
   .reps-hint { font-size: 11px; font-weight: 700; letter-spacing: 0; text-transform: none; color: var(--accent-2); opacity: .85; margin-left: 4px; white-space: nowrap; }
-  .day-chips { display:flex; gap:6px; overflow-x:auto; overflow-y:hidden; margin-bottom:8px; padding:2px 2px 6px; -webkit-overflow-scrolling:touch; scrollbar-width:none; touch-action:pan-x pan-y; }
+  .day-chips { display:flex; gap:6px; overflow-x:auto; overflow-y:hidden; margin-bottom:8px; padding:2px 2px 6px; -webkit-overflow-scrolling:touch; scrollbar-width:none; touch-action:pan-y; user-select:none; -webkit-user-select:none; overscroll-behavior-x:contain; }
   .day-chips::-webkit-scrollbar { display:none; }
   .day-chip { flex:0 0 auto; min-width:78px; max-width:130px; border-radius:12px; padding:7px 10px 6px; text-align:center; background: var(--surface-3); border:1px solid var(--border); cursor:pointer; color: var(--text-secondary); transition: background .15s, box-shadow .15s, transform .1s; }
   .day-chip:active { transform: scale(0.96); }
   .day-chip .ic { height:20px; display:flex; align-items:center; justify-content:center; margin-bottom:3px; }
   .day-chip .n { font-size:12px; font-weight:700; color: var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  #training-count-list { display:flex !important; gap:8px; overflow-x:auto; overflow-y:hidden; padding:2px 2px 8px; -webkit-overflow-scrolling:touch; scrollbar-width:none; scroll-snap-type:x proximity; }
+  #training-count-list { display:flex !important; gap:8px; overflow-x:auto; overflow-y:hidden; padding:2px 2px 8px; -webkit-overflow-scrolling:touch; scrollbar-width:none; touch-action:pan-y; user-select:none; -webkit-user-select:none; overscroll-behavior-x:contain; }
   #training-count-list::-webkit-scrollbar { display:none; }
-  #training-count-list .training-count-card { flex:0 0 calc(46% - 4px); min-width:148px; scroll-snap-align:start; box-sizing:border-box; }
+  #training-count-list .training-count-card { flex:0 0 calc(46% - 4px); min-width:148px; box-sizing:border-box; }
   .cyc-weeks { display:flex; gap:4px; margin-bottom:8px; }
   .cyc-week { flex:1; min-width:0; border-radius:12px; padding:6px 4px; text-align:center; background: var(--surface-3); border:1px solid var(--border); cursor:pointer; color: var(--text-secondary); transition: background .12s, transform .1s; }
   .cyc-week:active { transform: scale(0.96); }
@@ -1085,6 +1085,7 @@
     let startX = 0, startY = 0, tracking = false;
     root.addEventListener('touchstart', (e)=>{
       if(e.touches.length !== 1){ tracking = false; return; }
+      if(e.target && e.target.closest && e.target.closest('.day-chips, #training-count-list, .cyc-weeks, .week-chips, canvas')){ tracking = false; return; }
       startX = e.touches[0].clientX;
       startY = e.touches[0].clientY;
       tracking = true;
@@ -2041,11 +2042,58 @@
     renderCycle();
   });
 
+  // Горизонтальне гортання смуг (дні, картки): горизонтальний жест гортає смугу, вертикальний — сторінку.
+  // Після гортання або під час інерції дотик не вважається вибором (клік гаситься).
+  function enableDragScroll(el){
+    if(!el || el._dragScroll) return;
+    el._dragScroll = true;
+    let sx = 0, sy = 0, startLeft = 0, mode = null, pid = null, dragged = false, raf = 0, vel = 0, lastX = 0, lastT = 0;
+    const stopMomentum = () => { if(raf){ cancelAnimationFrame(raf); raf = 0; return true; } return false; };
+    el.addEventListener('pointerdown', e => {
+      if(e.pointerType === 'mouse' && e.button !== 0) return;
+      dragged = stopMomentum(); // дотик під час інерції лише зупиняє смугу
+      sx = e.clientX; sy = e.clientY; startLeft = el.scrollLeft; mode = 'pending'; pid = e.pointerId;
+      lastX = sx; lastT = performance.now(); vel = 0;
+    });
+    el.addEventListener('pointermove', e => {
+      if(mode === null || e.pointerId !== pid) return;
+      const dx = e.clientX - sx, dy = e.clientY - sy;
+      if(mode === 'pending'){
+        if(Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+        if(Math.abs(dx) > Math.abs(dy) * 0.8){ mode = 'drag'; dragged = true; try { el.setPointerCapture(pid); } catch(_){} }
+        else { mode = null; return; } // вертикальний жест — лишаємо сторінці
+      }
+      if(mode === 'drag'){
+        el.scrollLeft = startLeft - dx;
+        const now = performance.now(), dt = now - lastT;
+        if(dt > 0){ vel = 0.8 * vel + 0.2 * ((e.clientX - lastX) / dt); }
+        lastX = e.clientX; lastT = now;
+        e.preventDefault();
+      }
+    });
+    const end = e => {
+      if(mode === 'drag' && e && e.pointerId === pid){
+        try { el.releasePointerCapture(pid); } catch(_){}
+        let v = vel * 16; // px за кадр
+        const step = () => {
+          if(Math.abs(v) < 0.4){ raf = 0; return; }
+          el.scrollLeft -= v; v *= 0.95;
+          raf = requestAnimationFrame(step);
+        };
+        if(Math.abs(v) >= 0.4) raf = requestAnimationFrame(step);
+      }
+      mode = null;
+    };
+    el.addEventListener('pointerup', end);
+    el.addEventListener('pointercancel', end);
+    el.addEventListener('click', e => { if(dragged){ e.stopPropagation(); e.preventDefault(); dragged = false; } }, true);
+  }
   // Тренувальні дні панеллю (як тижні): підсвічується обраний день його кольором, при великій кількості днів — гортається вбік
   function renderDayChips(boxId, selId){
     const box = document.getElementById(boxId);
     const sel = document.getElementById(selId);
     if(!box || !sel) return;
+    enableDragScroll(box);
     const days = dayNames();
     const cur = sel.value || days[0];
     const colorMap = getDayColorMap();
@@ -2923,6 +2971,7 @@
 
     const container = document.getElementById('training-count-list');
     if(!container) return;
+    enableDragScroll(container);
     const colorMap = getDayColorMap();
     const cutoff = periodCutoffDate();
     const filtered = cutoff ? entries.filter(e => e.date >= cutoff) : entries;
