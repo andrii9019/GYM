@@ -381,8 +381,10 @@
     </div>
     <div class="wj-card" id="program-day-header" style="margin-bottom: 8px; display:flex; align-items:center; gap:10px;">
       <div id="program-day-icon" style="height:42px; flex-shrink:0; display:flex; align-items:center;"></div>
-      <select class="wj-select" id="program-day-select" style="flex:1; height:auto; padding:6px 8px; font-size:16px; font-weight:700; border:none; background:var(--surface-1);"></select>
+      <div id="program-day-title" style="flex:1; font-size:18px; font-weight:700; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></div>
+      <select class="wj-select" id="program-day-select" style="display:none;"></select>
     </div>
+    <div id="program-day-chips" class="day-chips"></div>
     <div class="wj-row" style="margin-bottom: 8px; gap:6px;">
       <button class="wj-btn" id="btn-edit-day" style="flex:1;">✎ Змінити</button>
       <button class="wj-btn wj-btn-success" id="btn-add-day" style="flex:1;">+ Додати день</button>
@@ -1260,6 +1262,8 @@
   function renderProgram(){
     const day = document.getElementById('program-day-select').value || dayNames()[0];
     updateProgramDayIcon(day);
+    { const tt = document.getElementById('program-day-title'); if(tt) tt.textContent = day || ''; }
+    renderDayChips('program-day-chips', 'program-day-select');
     const colorMap = getDayColorMap();
     const dayColor = (day && colorMap[day]) || '#4db6ac';
     applyGlow(document.getElementById('program-day-header'), dayColor);
@@ -2038,9 +2042,9 @@
   });
 
   // Тренувальні дні панеллю (як тижні): підсвічується обраний день його кольором, при великій кількості днів — гортається вбік
-  function renderLogDayChips(){
-    const box = document.getElementById('log-day-chips');
-    const sel = document.getElementById('log-day-select');
+  function renderDayChips(boxId, selId){
+    const box = document.getElementById(boxId);
+    const sel = document.getElementById(selId);
     if(!box || !sel) return;
     const days = dayNames();
     const cur = sel.value || days[0];
@@ -2052,24 +2056,24 @@
       const st = on
         ? `background: linear-gradient(180deg, ${c}59, ${c}26); border-color:${c}; box-shadow: 0 0 14px ${c}73;`
         : `border-color:${c}59;`;
-      return `<div class="day-chip" data-log-day="${escapeHtml(d)}" style="${st}"><div class="ic">${renderGroupIconsCombined(getDayIconKeys(d), 18, c)}</div><div class="n">${escapeHtml(d)}</div></div>`;
+      return `<div class="day-chip" data-day-chip="${escapeHtml(d)}" style="${st}"><div class="ic">${renderGroupIconsCombined(getDayIconKeys(d), 18, c)}</div><div class="n">${escapeHtml(d)}</div></div>`;
     }).join('');
     box.scrollLeft = prevScroll;
-    const el = box.querySelector('.day-chip[data-log-day]' ) && [...box.children].find(x => x.getAttribute('data-log-day') === cur);
+    const el = [...box.children].find(x => x.getAttribute('data-day-chip') === cur);
     if(el){
       const l = el.offsetLeft, r = l + el.offsetWidth;
       if(l < box.scrollLeft + 8) box.scrollLeft = Math.max(0, l - 8);
       else if(r > box.scrollLeft + box.clientWidth - 8) box.scrollLeft = r - box.clientWidth + 8;
     }
-    box.querySelectorAll('[data-log-day]').forEach(chip => chip.addEventListener('click', () => {
-      const d = chip.getAttribute('data-log-day');
+    box.querySelectorAll('[data-day-chip]').forEach(chip => chip.addEventListener('click', () => {
+      const d = chip.getAttribute('data-day-chip');
       if(sel.value === d) return;
       sel.value = d;
       sel.dispatchEvent(new Event('change'));
     }));
   }
   function renderLog(){
-    renderLogDayChips();
+    renderDayChips('log-day-chips', 'log-day-select');
     renderLogWeekBar();
     const day = document.getElementById('log-day-select').value || dayNames()[0];
     const colorMap = getDayColorMap();
