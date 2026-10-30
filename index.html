@@ -2149,7 +2149,7 @@
   // Простий облік відновлення: фіксований час на групу мʼязів від моменту останнього тренування.
   // Враховуються лише тренування після скидання (recoveryResetTs).
   const MUSCLE_KEY = 'muscle_groups';
-  // --- Тижневі плани: для кожного тижня циклу (W1–W4) свої підходи/повтори/вага по днях і вправах ---
+  // --- Тижневі плани: для кожного тижня циклу (W1–W5) свої підходи/повтори/вага по днях і вправах ---
   let weekPlans = {}; // { '0': { 'День': { 'Вправа': { sets, reps, weight } } } }
   const WEEKPLANS_KEY = 'week_plans';
   async function saveWeekPlans(){
@@ -2160,7 +2160,7 @@
     const r = {};
     if(!o || typeof o !== 'object') return r;
     Object.keys(o).forEach(w => {
-      if(!/^[0-3]$/.test(w) || !o[w] || typeof o[w] !== 'object') return;
+      if(!/^[0-4]$/.test(w) || !o[w] || typeof o[w] !== 'object') return;
       Object.keys(o[w]).forEach(day => {
         const d = o[w][day]; if(!d || typeof d !== 'object') return;
         Object.keys(d).forEach(name => {
@@ -2560,7 +2560,7 @@
     c = (c && typeof c === 'object') ? c : {};
     let act = (typeof c.active === 'number') ? c.active : null;
     if(c.v !== 5 && act !== null && act >= 2) act += 1; // старий 4-тижневий цикл: Strength 2→3, Deload 3→4
-    if(act !== null && act > 3) act = 0; // п'ятого тижня (розвантаження) більше немає
+    if(act !== null && act > 4) act = 0;
     return { start: c.start || null, mainLifts: Array.isArray(c.mainLifts) ? c.mainLifts : null, active: act, no: Math.max(1, parseInt(c.no) || 1), v: 5 };
   }
   let cyclePreviewWeek = null;
@@ -2572,14 +2572,14 @@
     catch(e){ console.error('Помилка збереження кольорів днів', e); }
   }
 
-  // Тиждень для нового запису = той, що обраний кнопками W1–W4 у «Тренуванні» (ВИМК = без мітки)
+  // Тиждень для нового запису = той, що обраний кнопками W1–W5 у «Тренуванні» (ВИМК = без мітки)
   function chosenWeek(){ return (typeof cycle.active === 'number') ? cycle.active : null; }
   function weekOptionsHtml(sel){
     return '<option value=""' + (sel === null ? ' selected' : '') + '>Без мітки</option>' +
       CYCLE_WEEKS.map((w, i) => `<option value="${i}"${sel === i ? ' selected' : ''}>W${i + 1} · ${escapeHtml(w.name)}</option>`).join('');
   }
   // Одне коло = CIRCLE_LEN різних тренувальних днів з одним тижнем циклу.
-  // Коли коло завершене, застосований тиждень зсувається на наступний (W4 → W1).
+  // Коли коло завершене, застосований тиждень зсувається на наступний (W5 → W1).
   const CIRCLE_LEN = 4;
   function advanceCycleWeek(week){
     const w = (typeof week === 'number') ? week : null;
@@ -2587,7 +2587,7 @@
     const dates = new Set(entries.filter(e => e.cw === w).map(e => e.date));
     if(dates.size < CIRCLE_LEN) return false;
     cycle.active = (w + 1) % CYCLE_WEEKS.length;
-    if(cycle.active === 0) cycle.no = (cycle.no || 1) + 1; // коло W4 завершене → новий цикл
+    if(cycle.active === 0) cycle.no = (cycle.no || 1) + 1; // коло W5 завершене → новий цикл
     return true;
   }
   async function saveCycle(){
@@ -3139,13 +3139,14 @@
     });
   }
 
-  // --- Періодизація: цикл 4 тижні (обʼєм → обʼєм+ → пік обʼєму → сила); W1 нового циклу — легший старт ---
+  // --- Періодизація: цикл 5 тижнів (обʼєм → обʼєм+ → пік обʼєму → сила → Target); W1 нового циклу — легший старт, розвантаження немає ---
   const STRENGTH_IDX = 3;
   const CYCLE_WEEKS = [
     { name: 'Обʼєм',   rpe: '7',   desc: 'Легший старт циклу: обʼєм за звичайною програмою, приблизно 3 повтори в запасі. Частково працює як розвантаження.' },
     { name: 'Обʼєм +', rpe: '8',   desc: 'Ті самі вправи, трохи важче. Зупиняйся приблизно за 2 повтори до відмови. Додай повтор або трохи ваги там, де легко.' },
     { name: 'Пік обʼєму', rpe: '8–9', desc: 'Найважчий обʼємний тиждень. В основних вправах на один підхід більше. Останні 1–2 повтори мають бути важкими.' },
-    { name: 'Сила', rpe: '8–9', desc: 'Менше вправ, більша вага. Лише основні вправи: 4 підходи приблизно по 4 повтори, відпочинок 3–5 хвилин.' }
+    { name: 'Сила', rpe: '8–9', desc: 'Менше вправ, більша вага. Лише основні вправи: 4 підходи приблизно по 4 повтори, відпочинок 3–5 хвилин.' },
+    { name: 'Target', rpe: '8', desc: 'Один мʼязовий акцент на день: груди, спина, ноги, дельти й руки. RPE 8, основні вправи першими, без доведення до відмови. Дні цього тижня додай з файлу або склади самостійно.' }
   ];
 
   function parseLocalDate(str){ return new Date(str + 'T00:00:00'); }
@@ -3238,8 +3239,9 @@
     const r = repRangeFor(name);
     return r ? '<span class="reps-hint">' + r[0] + '–' + r[1] + '</span>' : '';
   }
-  // Повтори тижня: W1 нижня частина діапазону, W2 середина, W3 верх, W5 як W1
+  // Повтори тижня: W1 нижня частина діапазону, W2 середина, W3 верх; W5 (Target) бере повтори з програми дня
   function weekReps(weekIdx, ex){
+    if(weekIdx === 4) return String(ex.reps); // Target: повтори беруться з програми дня, ти їх підбираєш сам
     let r = tableRange(ex.name);
     let lo, hi;
     if(r){ lo = r[0]; hi = r[1]; }
