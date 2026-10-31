@@ -893,6 +893,14 @@
     } catch(e){ weekPlans = {}; }
 
     try {
+      const pwRes = await storage.get(PLANWEEKS_KEY, false);
+      planWeeks = normPlanWeeks(pwRes && pwRes.value ? JSON.parse(pwRes.value) : null);
+      const wnRes = await storage.get(WEEKNAMES_KEY, false);
+      weekNames = normWeekNames(wnRes && wnRes.value ? JSON.parse(wnRes.value) : null);
+      applyWeekNames();
+    } catch(e){ planWeeks = {}; weekNames = {}; }
+
+    try {
       const plRes = await storage.get(PLANS_KEY, false);
       plans = normPlans(plRes && plRes.value ? JSON.parse(plRes.value) : null);
     } catch(e){ plans = {}; }
@@ -1700,7 +1708,9 @@
       library: exLibrary,
       plans,
       muscleGroups: muscleOverrides,
-      weekPlans
+      weekPlans,
+      planWeeks,
+      weekNames
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -1792,6 +1802,11 @@
     await saveMuscleOverrides();
     weekPlans = normWeekPlans(data.weekPlans);
     await saveWeekPlans();
+    planWeeks = normPlanWeeks(data.planWeeks);
+    await savePlanWeeks();
+    weekNames = normWeekNames(data.weekNames);
+    await saveWeekNames();
+    applyWeekNames();
     syncLibraryFromProgram();
     await saveLibrary();
 
@@ -2343,6 +2358,48 @@
     if(o && typeof o === 'object') Object.keys(o).forEach(k => { if(/^\d{4}-\d{2}-\d{2}$/.test(k) && typeof o[k] === 'string') r[k] = o[k]; });
     return r;
   }
+  // Тиждень циклу для запланованого дня і власні назви тижнів
+  const PLANWEEKS_KEY = 'plan_weeks';
+  const WEEKNAMES_KEY = 'week_names';
+  let planWeeks = {}; // { 'YYYY-MM-DD': 0..4 }
+  let weekNames = {}; // { '0': 'Назва' }
+  let weekNameDefaults = null;
+  async function savePlanWeeks(){ try { await storage.set(PLANWEEKS_KEY, JSON.stringify(planWeeks), false); } catch(e){} }
+  async function saveWeekNames(){ try { await storage.set(WEEKNAMES_KEY, JSON.stringify(weekNames), false); } catch(e){} }
+  function normPlanWeeks(o){
+    const r = {};
+    if(o && typeof o === 'object') Object.keys(o).forEach(k => { if(/^\d{4}-\d{2}-\d{2}$/.test(k) && Number.isInteger(o[k]) && o[k] >= 0 && o[k] <= 4) r[k] = o[k]; });
+    return r;
+  }
+  function normWeekNames(o){
+    const r = {};
+    if(o && typeof o === 'object') Object.keys(o).forEach(k => { if(/^[0-4]$/.test(k) && typeof o[k] === 'string' && o[k].trim()) r[k] = o[k].trim().slice(0, 24); });
+    return r;
+  }
+  function applyWeekNames(){
+    if(!weekNameDefaults) weekNameDefaults = CYCLE_WEEKS.map(w => w.name);
+    CYCLE_WEEKS.forEach((w, i) => { w.name = weekNames[i] || weekNameDefaults[i]; });
+  }
+  function weekNamesEditorHtml(){
+    return `<details class="wn-edit" style="margin-top:10px;"><summary style="cursor:pointer; font-size:13px; color:var(--text-secondary);">✎ Назви тижнів</summary>
+      <div style="margin-top:8px; display:flex; flex-direction:column; gap:6px;">
+      ${CYCLE_WEEKS.map((w, i) => `<div style="display:flex; align-items:center; gap:8px;"><span style="width:28px; font-weight:700; font-size:13px;">W${i + 1}</span><input class="wj-input wn-input" data-wn="${i}" maxlength="24" value="${escapeHtml(w.name)}" style="flex:1;" /></div>`).join('')}
+      <div style="display:flex; gap:8px;"><button class="wj-btn wj-btn-primary wn-save" style="flex:1;">Зберегти назви</button><button class="wj-btn wn-reset" style="flex:1;">Скинути</button></div>
+      </div></details>`;
+  }
+  function bindWeekNamesEditor(root){
+    const box = root.querySelector('.wn-edit'); if(!box) return;
+    const sv = box.querySelector('.wn-save'), rs = box.querySelector('.wn-reset');
+    sv.addEventListener('click', async () => {
+      weekNames = {};
+      box.querySelectorAll('.wn-input').forEach(inp => {
+        const i = +inp.dataset.wn, v = inp.value.trim().slice(0, 24);
+        if(v && v !== weekNameDefaults[i]) weekNames[i] = v;
+      });
+      await saveWeekNames(); applyWeekNames(); renderAll(); showToast('Назви тижнів збережено.');
+    });
+    rs.addEventListener('click', async () => { weekNames = {}; await saveWeekNames(); applyWeekNames(); renderAll(); showToast('Назви тижнів скинуто.'); });
+  }
   const RECOVERY_KEY = 'recovery_reset';
   let recoveryResetTs = null;
   function startOfTodayMs(){ const d = new Date(); d.setHours(0,0,0,0); return d.getTime(); }
@@ -2789,7 +2846,7 @@
         const pDay = plans[iso];
         const pColor = colorMap[pDay] || '#4db6ac';
         const pIcon = getDayIconKeys(pDay)[0];
-        html += `<div class="cal-cell planned${isToday ? ' today-marker' : ''}${isSelected ? ' selected' : ''}" style="border: 2px dashed ${pColor}; background: ${pColor}26; box-shadow: 0 0 10px ${pColor}40;" data-date="${iso}"><span class="cal-cell-day">${d}</span><span class="plan-tag" style="color:${pColor};">${escapeHtml(pDay)}</span></div>`;
+        html += `<div class="cal-cell planned${isToday ? ' today-marker' : ''}${isSelected ? ' selected' : ''}" style="border: 2px dashed ${pColor}; background: ${pColor}26; box-shadow: 0 0 10px ${pColor}40;" data-date="${iso}"><span class="cal-cell-day">${d}</span>${typeof planWeeks[iso] === 'number' ? `<span class="cal-wk" style="border-color:${pColor};">W${planWeeks[iso] + 1}</span>` : ''}<span class="plan-tag" style="color:${pColor};">${escapeHtml(pDay)}</span></div>`;
       } else {
         html += `<div class="cal-cell${isToday ? ' today-marker' : ''}${isSelected ? ' selected' : ''}" data-date="${iso}">${d}</div>`;
       }
@@ -2920,9 +2977,12 @@
       const last = [...entries].sort((a, b) => (a.date + a.id).localeCompare(b.date + b.id)).pop();
       if(last && days.includes(last.day)) def = days[(days.indexOf(last.day) + 1) % days.length];
     }
+    let defW = (typeof planWeeks[dateIso] === 'number') ? planWeeks[dateIso] : (typeof cycle.active === 'number' ? cycle.active : 0);
     list.innerHTML = `
       <div class="section-label" style="margin-bottom:6px;">${title} ${isPast ? '· пропущений план' : '· запланувати тренування'}</div>
       <select class="wj-select" id="plan-day-select" style="width:100%;" ${isPast ? 'disabled' : ''}>${days.map(d => `<option value="${escapeHtml(d)}"${d === def ? ' selected' : ''}>${escapeHtml(d)}</option>`).join('')}</select>
+      <div class="section-label" style="margin:10px 0 6px;">Тиждень циклу</div>
+      <div class="cyc-weeks" id="plan-week-chips">${CYCLE_WEEKS.map((w, i) => `<div class="cyc-week${i === defW ? ' selected' : ''}" data-pwk="${i}"${isPast ? ' style="pointer-events:none;"' : ''}><div class="w">W${i + 1}</div><div class="n">${escapeHtml(w.name)}</div></div>`).join('')}</div>
       <div id="plan-warning"></div>
       <div style="display:flex; gap:8px;">
         ${isPast ? '' : `<button class="wj-btn wj-btn-primary" id="btn-plan-save" style="flex:1;">${cur ? 'Оновити план' : 'Запланувати'}</button>`}
@@ -2932,10 +2992,16 @@
     const warn = document.getElementById('plan-warning');
     const upd = () => { warn.innerHTML = isPast ? '' : planWarningHtml(sel.value, dateIso); };
     sel.addEventListener('change', upd); upd();
+    list.querySelectorAll('[data-pwk]').forEach(ch => ch.addEventListener('click', () => {
+      defW = +ch.dataset.pwk;
+      list.querySelectorAll('[data-pwk]').forEach(c => c.classList.toggle('selected', c === ch));
+    }));
+    list.insertAdjacentHTML('beforeend', weekNamesEditorHtml());
+    bindWeekNamesEditor(list);
     const sv = document.getElementById('btn-plan-save');
-    if(sv) sv.addEventListener('click', async () => { plans[dateIso] = sel.value; await savePlans(); renderHistory(); showToast('Заплановано: ' + sel.value); });
+    if(sv) sv.addEventListener('click', async () => { plans[dateIso] = sel.value; planWeeks[dateIso] = defW; await savePlanWeeks(); await savePlans(); renderHistory(); showToast('Заплановано: ' + sel.value + ' · W' + (defW + 1)); });
     const rm = document.getElementById('btn-plan-remove');
-    if(rm) rm.addEventListener('click', async () => { delete plans[dateIso]; await savePlans(); renderHistory(); showToast('План прибрано.'); });
+    if(rm) rm.addEventListener('click', async () => { delete plans[dateIso]; delete planWeeks[dateIso]; await savePlanWeeks(); await savePlans(); renderHistory(); showToast('План прибрано.'); });
   }
 
   function renderSelectedDayDetails(){
