@@ -895,10 +895,10 @@
     try {
       const pwRes = await storage.get(PLANWEEKS_KEY, false);
       planWeeks = normPlanWeeks(pwRes && pwRes.value ? JSON.parse(pwRes.value) : null);
-      const wnRes = await storage.get(WEEKNAMES_KEY, false);
-      weekNames = normWeekNames(wnRes && wnRes.value ? JSON.parse(wnRes.value) : null);
-      applyWeekNames();
-    } catch(e){ planWeeks = {}; weekNames = {}; }
+      const wcRes = await storage.get(WEEKCFG_KEY, false);
+      weekCfg = normWeekCfg(wcRes && wcRes.value ? JSON.parse(wcRes.value) : null);
+      applyWeekCfg();
+    } catch(e){ planWeeks = {}; weekCfg = normWeekCfg(null); }
 
     try {
       const plRes = await storage.get(PLANS_KEY, false);
@@ -1164,10 +1164,10 @@
   let programWeek = null;
   // Рекомендація циклу для вправи в тижні (те саме, що бачиш у «Тренуванні»); null — вправа не входить у цей тиждень
   function recommendedFor(wkIdx, ex){
-    if(wkIdx === STRENGTH_IDX && !mainLiftsList().includes(ex.name)) return null;
+    if(isStrength(wkIdx) && !mainLiftsList().includes(ex.name)) return null;
     let t = cycleTarget(wkIdx, ex);
     const sg = suggestForExercise(ex.name);
-    if(t && (wkIdx === 0 || wkIdx === 1 || wkIdx === 2) && sg && typeof sg.weight === 'number' && !(wkIdx === 0 && newCycleStart(ex.name))) t = { ...t, weight: sg.weight };
+    if(t && isWorkType(wkIdx) && sg && typeof sg.weight === 'number' && !(wType(wkIdx) === 'start' && newCycleStart(ex.name))) t = { ...t, weight: sg.weight };
     return t;
   }
   // Що показувати в «Програмі» для тижня: власний план → рекомендація циклу → база
@@ -1178,6 +1178,58 @@
     if(t) return { sets: t.sets, reps: String(t.reps), weight: t.weight, own: false, kind: 'rec' };
     return { sets: ex.sets, reps: String(ex.reps), weight: ex.weight, own: false, kind: 'base' };
   }
+  let weeksEditing = false;
+  function weeksEditorHtml(){
+    const ord = weekOrder();
+    const rows = ord.map((id, p) => {
+      const w = CYCLE_WEEKS[id];
+      return `<div class="we-row" data-id="${id}" style="border:1px solid var(--border); border-radius:12px; padding:8px; margin-bottom:6px;">
+        <div style="display:flex; gap:6px; align-items:center;">
+          <b style="width:30px; font-size:13px;">W${p + 1}</b>
+          <input class="wj-input we-name" maxlength="24" value="${escapeHtml(w.name)}" style="flex:1; min-width:0;" />
+          <input class="wj-input we-rpe" maxlength="6" value="${escapeHtml(w.rpe)}" style="width:54px;" title="RPE" />
+        </div>
+        <div style="display:flex; gap:6px; align-items:center; margin-top:6px;">
+          <span class="cyc-muted" style="flex:1; font-size:11px;">${escapeHtml(WEEK_TYPES[w.type].label)}</span>
+          <button class="wj-btn we-up" ${p === 0 ? 'disabled' : ''}>↑</button>
+          <button class="wj-btn we-down" ${p === ord.length - 1 ? 'disabled' : ''}>↓</button>
+          <button class="wj-btn wj-btn-danger we-del" ${ord.length <= 1 ? 'disabled' : ''}>🗑</button>
+        </div></div>`;
+    }).join('');
+    return `<div class="wj-card" style="margin-bottom:8px;"><div class="section-label" style="margin-bottom:6px;">Тижні циклу (по порядку)</div>${rows}
+      <div style="display:flex; gap:6px; margin-top:6px;">
+        <select class="wj-select" id="we-new-type" style="flex:1;">${Object.keys(WEEK_TYPES).map(k => `<option value="${k}">${escapeHtml(WEEK_TYPES[k].label)}</option>`).join('')}</select>
+        <button class="wj-btn wj-btn-primary" id="we-add">+ Додати</button>
+      </div>
+      <div class="cyc-muted" style="margin-top:6px; font-size:11px;">Тип визначає, як рахуються поради (повтори, підходи, вага). Названа/RPE міняються вільно. Видалений тиждень лишається в історії записів.</div></div>`;
+  }
+  function bindWeeksEditor(root){
+    const commit = async () => { await saveWeekCfg(); applyWeekCfg(); if(programWeek !== null && !weekOrder().includes(programWeek)) programWeek = null; renderAll(); };
+    root.querySelectorAll('.we-row').forEach(row => {
+      const id = +row.dataset.id;
+      const cfgOf = () => (weekCfg.defs[id] = weekCfg.defs[id] || {});
+      row.querySelector('.we-name').addEventListener('change', async e => { const v = e.target.value.trim().slice(0, 24); if(v) cfgOf().name = v; await commit(); });
+      row.querySelector('.we-rpe').addEventListener('change', async e => { const v = e.target.value.trim().slice(0, 6); if(v) cfgOf().rpe = v; await commit(); });
+      const mv = async d => { const o = weekCfg.order, p = o.indexOf(id), q = p + d; if(q < 0 || q >= o.length) return; [o[p], o[q]] = [o[q], o[p]]; await commit(); };
+      row.querySelector('.we-up').addEventListener('click', () => mv(-1));
+      row.querySelector('.we-down').addEventListener('click', () => mv(1));
+      row.querySelector('.we-del').addEventListener('click', async () => {
+        const ok = await showConfirm('Видалити тиждень «' + CYCLE_WEEKS[id].name + '» з циклу? Записи в історії збережуть мітку, власні плани тижня лишаться, якщо ти його поверне.'.replace('поверне','повернеш'), 'Видалити');
+        if(!ok) return;
+        weekCfg.order = weekCfg.order.filter(x => x !== id);
+        if(cycle.active === id){ cycle.active = weekCfg.order[0]; await saveCycle(); }
+        await commit();
+      });
+    });
+    root.querySelector('#we-add').addEventListener('click', async () => {
+      const t = root.querySelector('#we-new-type').value;
+      let id = Math.max(5, CYCLE_WEEKS.length);
+      if(id > 99){ showToast('Забагато тижнів.'); return; }
+      weekCfg.defs[id] = { name: WEEK_TYPES[t].label.split(' (')[0], type: t, rpe: WEEK_TYPES[t].rpe, desc: WEEK_TYPES[t].desc };
+      weekCfg.order.push(id);
+      await commit(); showToast('Тиждень додано в кінець циклу.');
+    });
+  }
   function renderProgramWeekBar(day){
     const bar = document.getElementById('program-week-bar');
     if(!bar) return;
@@ -1185,12 +1237,12 @@
     const w = programWeek;
     const chips = `<div class="cyc-weeks" style="margin-bottom:8px;">
       <div class="cyc-week${w === null ? ' selected' : ''}" data-pw="base"><div class="w">БАЗА</div><div class="n">Склад</div></div>
-      ${CYCLE_WEEKS.map((c, i) => `<div class="cyc-week${w === i ? ' selected' : ''}${cycle.active === i ? ' current' : ''}" data-pw="${i}"><div class="w">W${i + 1}</div><div class="n">${escapeHtml(c.name)}</div></div>`).join('')}
+      ${orderedWeeks().map(({w:c, i}) => `<div class="cyc-week${w === i ? ' selected' : ''}${cycle.active === i ? ' current' : ''}" data-pw="${i}"><div class="w">${wLabel(i)}</div><div class="n">${escapeHtml(c.name)}</div></div>`).join('')}
     </div>`;
     let extra = '';
     if(w !== null){
-      const srcOpts = '<option value="base">База</option>' + CYCLE_WEEKS.map((c, i) => i === w ? '' : `<option value="${i}">W${i + 1} · ${escapeHtml(c.name)}</option>`).join('');
-      extra = `<div class="cyc-muted" style="margin-bottom:8px;">Плани тижня W${w + 1} · ${escapeHtml(CYCLE_WEEKS[w].name)}. Цифри тут уже підставлені за порадами циклу, як у «Тренуванні». Міняй лише те, що потрібно: змінене стає твоїм планом, решта й далі оновлюється за порадами. Склад вправ редагується в режимі «База».</div>
+      const srcOpts = '<option value="base">База</option>' + orderedWeeks().map(({w:c, i}) => i === w ? '' : `<option value="${i}">${wLabel(i)} · ${escapeHtml(c.name)}</option>`).join('');
+      extra = `<div class="cyc-muted" style="margin-bottom:8px;">Плани тижня ${wLabel(w)} · ${escapeHtml(CYCLE_WEEKS[w].name)}. Цифри тут уже підставлені за порадами циклу, як у «Тренуванні». Міняй лише те, що потрібно: змінене стає твоїм планом, решта й далі оновлюється за порадами. Склад вправ редагується в режимі «База».</div>
       <div style="display:flex; gap:6px; margin-bottom:8px;">
         <select class="wj-select" id="pw-copy-src" style="flex:1;">${srcOpts}</select>
         <button class="wj-btn" id="pw-copy">Скопіювати день</button>
@@ -1199,7 +1251,9 @@
         <button class="wj-btn wj-btn-danger" id="pw-reset" style="flex:1;">Скинути день до порад</button>
       </div>`;
     }
-    bar.innerHTML = chips + extra;
+    bar.innerHTML = chips + `<button class="wj-btn" id="pw-edit-weeks" style="width:100%; margin-bottom:8px;">${weeksEditing ? '✓ Готово' : '✎ Редагувати тижні'}</button>` + (weeksEditing ? weeksEditorHtml() : '') + extra;
+    document.getElementById('pw-edit-weeks').addEventListener('click', () => { weeksEditing = !weeksEditing; renderProgram(); });
+    if(weeksEditing) bindWeeksEditor(bar);
     bar.querySelectorAll('[data-pw]').forEach(el => el.addEventListener('click', () => {
       const v = el.getAttribute('data-pw');
       programWeek = v === 'base' ? null : parseInt(v);
@@ -1214,11 +1268,11 @@
         setWeekOverride(w, day, ex.name, src);
       });
       await saveWeekPlans(); renderProgram();
-      showToast('Скопійовано в W' + (w + 1) + ': ' + (v === 'base' ? 'База' : 'W' + (parseInt(v) + 1)));
+      showToast('Скопійовано в ' + wLabel(w) + ': ' + (v === 'base' ? 'База' : wLabel(parseInt(v))));
     });
     document.getElementById('pw-reset').addEventListener('click', async () => {
       if(!weekPlans[w] || !weekPlans[w][day]){ showToast('У цьому дні ще немає власних цифр.'); return; }
-      const ok = await showConfirm('Скинути власні цифри дня «' + day + '» у W' + (w + 1) + '? Знову будуть цифри за порадами циклу.', 'Скинути');
+      const ok = await showConfirm('Скинути власні цифри дня «' + day + '» у ' + wLabel(w) + '? Знову будуть цифри за порадами циклу.', 'Скинути');
       if(!ok) return;
       delete weekPlans[w][day];
       if(Object.keys(weekPlans[w]).length === 0) delete weekPlans[w];
@@ -1710,7 +1764,7 @@
       muscleGroups: muscleOverrides,
       weekPlans,
       planWeeks,
-      weekNames
+      weekCfg
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -1804,9 +1858,9 @@
     await saveWeekPlans();
     planWeeks = normPlanWeeks(data.planWeeks);
     await savePlanWeeks();
-    weekNames = normWeekNames(data.weekNames);
-    await saveWeekNames();
-    applyWeekNames();
+    weekCfg = normWeekCfg(data.weekCfg);
+    await saveWeekCfg();
+    applyWeekCfg();
     syncLibraryFromProgram();
     await saveLibrary();
 
@@ -2094,12 +2148,12 @@
     const act = (typeof cycle.active === 'number') ? cycle.active : null;
     const chips = `<div class="cyc-weeks" style="margin-bottom:6px;">
       <div class="cyc-week${act === null ? ' selected' : ''}" data-log-w="off"><div class="w">ВИМК</div><div class="n">Програма</div></div>
-      ${CYCLE_WEEKS.map((w, i) => `<div class="cyc-week${act === i ? ' selected' : ''}" data-log-w="${i}"><div class="w">W${i + 1}</div><div class="n">${escapeHtml(w.name)}</div></div>`).join('')}
+      ${orderedWeeks().map(({w:w, i}) => `<div class="cyc-week${act === i ? ' selected' : ''}" data-log-w="${i}"><div class="w">${wLabel(i)}</div><div class="n">${escapeHtml(w.name)}</div></div>`).join('')}
     </div>`;
     let info;
     if(act !== null){
       const wk = CYCLE_WEEKS[act];
-      info = `<div class="t">Тиждень ${act + 1} · ${escapeHtml(wk.name)} · цільовий RPE ${wk.rpe}</div><div class="d">${act === STRENGTH_IDX ? 'Лише основні вправи. Решта за бажанням (кнопка під списком).' : escapeHtml(wk.desc)}</div>`;
+      info = `<div class="t">${wLabel(act)} · ${escapeHtml(wk.name)} · цільовий RPE ${wk.rpe}</div><div class="d">${isStrength(act) ? 'Лише основні вправи. Решта за бажанням (кнопка під списком).' : escapeHtml(wk.desc)}</div>`;
     } else {
       info = '<div class="d" style="margin-top:0;">Обери тиждень, щоб підходи, повтори й вага підставлялись автоматично. Зараз: значення з Програми.</div>';
     }
@@ -2225,9 +2279,9 @@
       const sg = suggestForExercise(ex.name);
       const lastE = lastLoggedFor(ex.name);
       const wp = (wkIdx !== null) ? weekOverride(wkIdx, day, ex.name) : null;
-      const optional = (wkIdx === STRENGTH_IDX && !mainSet.includes(ex.name) && !wp);
+      const optional = (isStrength(wkIdx) && !mainSet.includes(ex.name) && !wp);
       let t = (wkIdx !== null && !optional) ? recommendedFor(wkIdx, ex) : null;
-      if(!t && wkIdx !== null && !optional && wkIdx === STRENGTH_IDX) t = cycleTarget(wkIdx, ex);
+      if(!t && wkIdx !== null && !optional && isStrength(wkIdx)) t = cycleTarget(wkIdx, ex);
       if(wp) t = { sets: wp.sets, reps: wp.reps, weight: wp.weight, rpe: CYCLE_WEEKS[wkIdx].rpe, sub: 'твій план на цей тиждень' };
       if(optional) optionalCount++;
       const vSets = t ? t.sets : ex.sets;
@@ -2282,7 +2336,7 @@
     const r = {};
     if(!o || typeof o !== 'object') return r;
     Object.keys(o).forEach(w => {
-      if(!/^[0-4]$/.test(w) || !o[w] || typeof o[w] !== 'object') return;
+      if(!/^\d{1,2}$/.test(w) || !o[w] || typeof o[w] !== 'object') return;
       Object.keys(o[w]).forEach(day => {
         const d = o[w][day]; if(!d || typeof d !== 'object') return;
         Object.keys(d).forEach(name => {
@@ -2358,48 +2412,63 @@
     if(o && typeof o === 'object') Object.keys(o).forEach(k => { if(/^\d{4}-\d{2}-\d{2}$/.test(k) && typeof o[k] === 'string') r[k] = o[k]; });
     return r;
   }
-  // Тиждень циклу для запланованого дня і власні назви тижнів
+  // Тиждень циклу для запланованого дня; налаштування тижнів (назви, порядок, додані/видалені)
   const PLANWEEKS_KEY = 'plan_weeks';
-  const WEEKNAMES_KEY = 'week_names';
-  let planWeeks = {}; // { 'YYYY-MM-DD': 0..4 }
-  let weekNames = {}; // { '0': 'Назва' }
-  let weekNameDefaults = null;
+  const WEEKCFG_KEY = 'week_cfg';
+  let planWeeks = {}; // { 'YYYY-MM-DD': id тижня }
+  let weekCfg = { order: [0,1,2,3,4], defs: {} }; // defs: { id: { name, rpe, type, desc } } — перевизначення та додані тижні
+  let weekBase = null;
   async function savePlanWeeks(){ try { await storage.set(PLANWEEKS_KEY, JSON.stringify(planWeeks), false); } catch(e){} }
-  async function saveWeekNames(){ try { await storage.set(WEEKNAMES_KEY, JSON.stringify(weekNames), false); } catch(e){} }
+  async function saveWeekCfg(){ try { await storage.set(WEEKCFG_KEY, JSON.stringify(weekCfg), false); } catch(e){} }
   function normPlanWeeks(o){
     const r = {};
-    if(o && typeof o === 'object') Object.keys(o).forEach(k => { if(/^\d{4}-\d{2}-\d{2}$/.test(k) && Number.isInteger(o[k]) && o[k] >= 0 && o[k] <= 4) r[k] = o[k]; });
+    if(o && typeof o === 'object') Object.keys(o).forEach(k => { if(/^\d{4}-\d{2}-\d{2}$/.test(k) && Number.isInteger(o[k]) && o[k] >= 0 && o[k] <= 99) r[k] = o[k]; });
     return r;
   }
-  function normWeekNames(o){
-    const r = {};
-    if(o && typeof o === 'object') Object.keys(o).forEach(k => { if(/^[0-4]$/.test(k) && typeof o[k] === 'string' && o[k].trim()) r[k] = o[k].trim().slice(0, 24); });
-    return r;
-  }
-  function applyWeekNames(){
-    if(!weekNameDefaults) weekNameDefaults = CYCLE_WEEKS.map(w => w.name);
-    CYCLE_WEEKS.forEach((w, i) => { w.name = weekNames[i] || weekNameDefaults[i]; });
-  }
-  function weekNamesEditorHtml(){
-    return `<details class="wn-edit" style="margin-top:10px;"><summary style="cursor:pointer; font-size:13px; color:var(--text-secondary);">✎ Назви тижнів</summary>
-      <div style="margin-top:8px; display:flex; flex-direction:column; gap:6px;">
-      ${CYCLE_WEEKS.map((w, i) => `<div style="display:flex; align-items:center; gap:8px;"><span style="width:28px; font-weight:700; font-size:13px;">W${i + 1}</span><input class="wj-input wn-input" data-wn="${i}" maxlength="24" value="${escapeHtml(w.name)}" style="flex:1;" /></div>`).join('')}
-      <div style="display:flex; gap:8px;"><button class="wj-btn wj-btn-primary wn-save" style="flex:1;">Зберегти назви</button><button class="wj-btn wn-reset" style="flex:1;">Скинути</button></div>
-      </div></details>`;
-  }
-  function bindWeekNamesEditor(root){
-    const box = root.querySelector('.wn-edit'); if(!box) return;
-    const sv = box.querySelector('.wn-save'), rs = box.querySelector('.wn-reset');
-    sv.addEventListener('click', async () => {
-      weekNames = {};
-      box.querySelectorAll('.wn-input').forEach(inp => {
-        const i = +inp.dataset.wn, v = inp.value.trim().slice(0, 24);
-        if(v && v !== weekNameDefaults[i]) weekNames[i] = v;
-      });
-      await saveWeekNames(); applyWeekNames(); renderAll(); showToast('Назви тижнів збережено.');
+  const WEEK_TYPES = {
+    start:    { label: 'Старт (легко, RPE 7)', rpe: '7',   desc: 'Легший старт: обʼєм за звичайною програмою, приблизно 3 повтори в запасі. Початок кола/циклу.' },
+    volume:   { label: 'Обʼєм (RPE 8)',        rpe: '8',   desc: 'Ті самі вправи, трохи важче. Зупиняйся приблизно за 2 повтори до відмови.' },
+    peak:     { label: 'Пік обʼєму (+1 підхід)', rpe: '8–9', desc: 'Найважчий обʼємний тиждень. В основних вправах на один підхід більше.' },
+    strength: { label: 'Сила (основні, 4×4)',  rpe: '8–9', desc: 'Менше вправ, більша вага. Лише основні вправи: 4 підходи приблизно по 4 повтори.' },
+    target:   { label: 'Target (акцент)',      rpe: '8',   desc: 'Один акцент на день, повтори з програми дня. RPE 8, без відмови.' }
+  };
+  function normWeekCfg(o){
+    const r = { order: [0,1,2,3,4], defs: {} };
+    if(!o || typeof o !== 'object') return r;
+    if(o.defs && typeof o.defs === 'object') Object.keys(o.defs).forEach(k => {
+      const d = o.defs[k]; if(!/^\d{1,2}$/.test(k) || !d || typeof d !== 'object') return;
+      const x = {};
+      if(typeof d.name === 'string' && d.name.trim()) x.name = d.name.trim().slice(0, 24);
+      if(typeof d.rpe === 'string' && d.rpe.trim()) x.rpe = d.rpe.trim().slice(0, 6);
+      if(typeof d.desc === 'string') x.desc = d.desc.slice(0, 400);
+      if(typeof d.type === 'string' && WEEK_TYPES[d.type]) x.type = d.type;
+      r.defs[k] = x;
     });
-    rs.addEventListener('click', async () => { weekNames = {}; await saveWeekNames(); applyWeekNames(); renderAll(); showToast('Назви тижнів скинуто.'); });
+    if(Array.isArray(o.order)){
+      const seen = new Set();
+      r.order = o.order.filter(n => Number.isInteger(n) && n >= 0 && n <= 99 && (n <= 4 || r.defs[n]) && !seen.has(n) && seen.add(n));
+      if(!r.order.length) r.order = [0];
+    }
+    return r;
   }
+  function applyWeekCfg(){
+    if(!weekBase) weekBase = CYCLE_WEEKS.map((w, i) => ({ ...w, type: ['start','volume','peak','strength','target'][i] }));
+    CYCLE_WEEKS.length = 0;
+    weekBase.forEach(w => CYCLE_WEEKS.push({ ...w }));
+    Object.keys(weekCfg.defs).map(Number).sort((a, b) => a - b).forEach(id => {
+      const d = weekCfg.defs[id];
+      if(id <= 4){ CYCLE_WEEKS[id] = { ...CYCLE_WEEKS[id], ...d, type: CYCLE_WEEKS[id].type }; return; }
+      while(CYCLE_WEEKS.length < id) CYCLE_WEEKS.push({ name: 'Тиждень', rpe: '8', desc: '', type: 'volume', removed: true });
+      const t = d.type || 'volume';
+      CYCLE_WEEKS[id] = { name: d.name || 'Тиждень', rpe: d.rpe || WEEK_TYPES[t].rpe, desc: d.desc || WEEK_TYPES[t].desc, type: t };
+    });
+  }
+  function weekOrder(){ return weekCfg.order.filter(id => CYCLE_WEEKS[id]); }
+  function orderedWeeks(){ return weekOrder().map(id => ({ w: CYCLE_WEEKS[id], i: id })); }
+  function wLabel(id){ const p = weekOrder().indexOf(id); return p >= 0 ? 'W' + (p + 1) : (CYCLE_WEEKS[id] ? CYCLE_WEEKS[id].name : '?'); }
+  function wType(id){ return CYCLE_WEEKS[id] ? CYCLE_WEEKS[id].type : null; }
+  function isStrength(id){ return wType(id) === 'strength'; }
+  function isWorkType(id){ return ['start','volume','peak'].includes(wType(id)); }
   const RECOVERY_KEY = 'recovery_reset';
   let recoveryResetTs = null;
   function startOfTodayMs(){ const d = new Date(); d.setHours(0,0,0,0); return d.getTime(); }
@@ -2533,7 +2602,7 @@
     if(typeof cwUsed === 'number' && cycle.active !== cwUsed){ cycle.active = cwUsed; cycleChanged = true; } // обраний вручну тиждень стає застосованим
     const advanced = advanceCycleWeek(cwUsed);
     if(cycleChanged && !advanced) await saveCycle();
-    if(advanced){ await saveCycle(); showToast(cycle.active === 0 ? ('Цикл завершено. Починається цикл №' + cycle.no + ' · W1') : ('Коло з ' + CIRCLE_LEN + ' тренувань завершено. Наступний тиждень: W' + (cycle.active + 1))); }
+    if(advanced){ await saveCycle(); showToast(weekOrder().indexOf(cycle.active) === 0 ? ('Цикл завершено. Починається цикл №' + cycle.no + ' · ' + wLabel(cycle.active)) : ('Коло з ' + CIRCLE_LEN + ' тренувань завершено. Наступний тиждень: ' + wLabel(cycle.active))); }
     renderAll();
     errEl.style.display = 'block';
     errEl.style.color = 'var(--text-success, #1a7a3a)';
@@ -2725,7 +2794,7 @@
     c = (c && typeof c === 'object') ? c : {};
     let act = (typeof c.active === 'number') ? c.active : null;
     if(c.v !== 5 && act !== null && act >= 2) act += 1; // старий 4-тижневий цикл: Strength 2→3, Deload 3→4
-    if(act !== null && act > 4) act = 0;
+    if(act !== null && act > 99) act = 0;
     return { start: c.start || null, mainLifts: Array.isArray(c.mainLifts) ? c.mainLifts : null, active: act, no: Math.max(1, parseInt(c.no) || 1), v: 5 };
   }
   let cyclePreviewWeek = null;
@@ -2741,7 +2810,8 @@
   function chosenWeek(){ return (typeof cycle.active === 'number') ? cycle.active : null; }
   function weekOptionsHtml(sel){
     return '<option value=""' + (sel === null ? ' selected' : '') + '>Без мітки</option>' +
-      CYCLE_WEEKS.map((w, i) => `<option value="${i}"${sel === i ? ' selected' : ''}>W${i + 1} · ${escapeHtml(w.name)}</option>`).join('');
+      orderedWeeks().map(({w:w, i}) => `<option value="${i}"${sel === i ? ' selected' : ''}>${wLabel(i)} · ${escapeHtml(w.name)}</option>`).join('') +
+      ((typeof sel === 'number' && !weekOrder().includes(sel) && CYCLE_WEEKS[sel]) ? `<option value="${sel}" selected>${escapeHtml(CYCLE_WEEKS[sel].name)} (видалений)</option>` : '');
   }
   // Одне коло = CIRCLE_LEN різних тренувальних днів з одним тижнем циклу.
   // Коли коло завершене, застосований тиждень зсувається на наступний (W5 → W1).
@@ -2751,8 +2821,11 @@
     if(w === null) return false;
     const dates = new Set(entries.filter(e => e.cw === w).map(e => e.date));
     if(dates.size < CIRCLE_LEN) return false;
-    cycle.active = (w + 1) % CYCLE_WEEKS.length;
-    if(cycle.active === 0) cycle.no = (cycle.no || 1) + 1; // коло W5 завершене → новий цикл
+    const ord = weekOrder(); const pos = ord.indexOf(w);
+    if(pos < 0) return false;
+    const nxt = (pos + 1) % ord.length;
+    cycle.active = ord[nxt];
+    if(nxt === 0) cycle.no = (cycle.no || 1) + 1; // останній тиждень завершено → новий цикл
     return true;
   }
   async function saveCycle(){
@@ -2839,7 +2912,7 @@
           : `background: ${color};`;
         const wk = dateToWeek[iso];
         const badgesHtml = (typeof wk === 'number')
-          ? `<span class="cal-wk" style="border-color:${color};">W${wk + 1}</span>`
+          ? `<span class="cal-wk" style="border-color:${color};">${wLabel(wk)}</span>`
           : '';
         html += `<div class="cal-cell trained${isToday ? ' today-marker' : ''}${isSelected ? ' selected' : ''}" style="${bgStyle} border: 2px solid ${color}; box-shadow: 0 0 20px ${color}80, 0 2px 8px rgba(0,0,0,0.4); color:#fff;" data-date="${iso}">${badgesHtml}<span class="cal-cell-day">${d}</span><span class="cal-cell-volume">${volLabel}</span></div>`;
       } else if(plans[iso]){
@@ -2982,7 +3055,7 @@
       <div class="section-label" style="margin-bottom:6px;">${title} ${isPast ? '· пропущений план' : '· запланувати тренування'}</div>
       <select class="wj-select" id="plan-day-select" style="width:100%;" ${isPast ? 'disabled' : ''}>${days.map(d => `<option value="${escapeHtml(d)}"${d === def ? ' selected' : ''}>${escapeHtml(d)}</option>`).join('')}</select>
       <div class="section-label" style="margin:10px 0 6px;">Тиждень циклу</div>
-      <div class="cyc-weeks" id="plan-week-chips">${CYCLE_WEEKS.map((w, i) => `<div class="cyc-week${i === defW ? ' selected' : ''}" data-pwk="${i}"${isPast ? ' style="pointer-events:none;"' : ''}><div class="w">W${i + 1}</div><div class="n">${escapeHtml(w.name)}</div></div>`).join('')}</div>
+      <div class="cyc-weeks" id="plan-week-chips">${orderedWeeks().map(({w:w, i}) => `<div class="cyc-week${i === defW ? ' selected' : ''}" data-pwk="${i}"${isPast ? ' style="pointer-events:none;"' : ''}><div class="w">${wLabel(i)}</div><div class="n">${escapeHtml(w.name)}</div></div>`).join('')}</div>
       <div id="plan-warning"></div>
       <div style="display:flex; gap:8px;">
         ${isPast ? '' : `<button class="wj-btn wj-btn-primary" id="btn-plan-save" style="flex:1;">${cur ? 'Оновити план' : 'Запланувати'}</button>`}
@@ -2996,8 +3069,6 @@
       defW = +ch.dataset.pwk;
       list.querySelectorAll('[data-pwk]').forEach(c => c.classList.toggle('selected', c === ch));
     }));
-    list.insertAdjacentHTML('beforeend', weekNamesEditorHtml());
-    bindWeekNamesEditor(list);
     const sv = document.getElementById('btn-plan-save');
     if(sv) sv.addEventListener('click', async () => { plans[dateIso] = sel.value; planWeeks[dateIso] = defW; await savePlanWeeks(); await savePlans(); renderHistory(); showToast('Заплановано: ' + sel.value + ' · W' + (defW + 1)); });
     const rm = document.getElementById('btn-plan-remove');
@@ -3416,7 +3487,7 @@
   }
   // Повтори тижня: W1 нижня частина діапазону, W2 середина, W3 верх; W5 (Target) бере повтори з програми дня
   function weekReps(weekIdx, ex){
-    if(weekIdx === 4) return String(ex.reps); // Target: повтори беруться з програми дня, ти їх підбираєш сам
+    if(wType(weekIdx) === 'target') return String(ex.reps); // Target: повтори беруться з програми дня, ти їх підбираєш сам
     let r = tableRange(ex.name);
     let lo, hi;
     if(r){ lo = r[0]; hi = r[1]; }
@@ -3426,8 +3497,8 @@
       else { const g = repRangeFor(ex.name); if(!g) return String(ex.reps); lo = g[0]; hi = g[1]; }
     }
     const span = hi - lo;
-    if(weekIdx === 1) return String(lo + Math.round(span * 0.6));
-    if(weekIdx === 2) return String(hi);
+    if(wType(weekIdx) === 'volume') return String(lo + Math.round(span * 0.6));
+    if(wType(weekIdx) === 'peak') return String(hi);
     return String(lo + Math.round(span * 0.25)); // W1 і W5
   }
   // Старт нового циклу (W1): вага береться з робочої ваги минулого циклу (останній запис у W1–W3) і залежить від RPE та повторів:
@@ -3438,7 +3509,7 @@
     const last = data[data.length - 1];
     if((last.cy || 1) >= (cycle.no || 1)) return null; // у цьому циклі вправу вже робив
     let work = null;
-    for(let i = data.length - 1; i >= 0; i--){ if(typeof data[i].cw === 'number' && data[i].cw <= 2){ work = data[i]; break; } }
+    for(let i = data.length - 1; i >= 0; i--){ if(typeof data[i].cw === 'number' && isWorkType(data[i].cw)){ work = data[i]; break; } }
     if(!work) work = last;
     if(!(work.weight > 0)) return null;
     const tgt = targetRepsFor(name) || { min: work.reps, max: work.reps };
@@ -3451,26 +3522,26 @@
     return { weight: roundLoad(work.weight + inc), sub: '+' + fmtKg(inc) + ' кг: минулий цикл пройшов легко' + (rpe !== null ? ' (RPE ' + rpe + ')' : '') };
   }
   function cycleTarget(weekIdx, ex){
-    if(weekIdx === 0){
+    if(wType(weekIdx) === 'start' && weekOrder()[0] === weekIdx){
       const ns = newCycleStart(ex.name);
-      if(ns) return { sets: parseInt(ex.sets) || 3, reps: weekReps(0, ex), weight: ns.weight, rpe: '7', sub: ns.sub };
+      if(ns) return { sets: parseInt(ex.sets) || 3, reps: weekReps(weekIdx, ex), weight: ns.weight, rpe: '7', sub: ns.sub };
     }
     const last = lastLoggedFor(ex.name);
     const baseW = last ? last.weight : (parseFloat(ex.weight) || 0);
     const baseSets = parseInt(ex.sets) || 3;
     const reps = String(ex.reps);
-    if(weekIdx === STRENGTH_IDX){
+    if(isStrength(weekIdx)){
       const e1 = estimate1RM(ex.name, ex);
       if(!(e1 > 0)) return null;
       return { sets: 4, reps: '4', weight: roundLoad(e1 * 0.88), rpe: '8–9', sub: 'оцінений максимум ' + Math.round(e1) + ' кг' };
     }
     const sg = suggestForExercise(ex.name);
     const w = (sg && typeof sg.weight === 'number') ? sg.weight : baseW;
-    if(weekIdx === 2){
+    if(wType(weekIdx) === 'peak'){
       const isMain = mainLiftsList().includes(ex.name);
       return { sets: isMain ? Math.min(6, baseSets + 1) : baseSets, reps: weekReps(weekIdx, ex), weight: w, rpe: '8–9', sub: isMain ? '+1 підхід' : '' };
     }
-    return { sets: baseSets, reps: weekReps(weekIdx, ex), weight: w, rpe: weekIdx === 0 ? '7' : '8', sub: '' };
+    return { sets: baseSets, reps: weekReps(weekIdx, ex), weight: w, rpe: wType(weekIdx) === 'start' ? '7' : (CYCLE_WEEKS[weekIdx] ? CYCLE_WEEKS[weekIdx].rpe : '8'), sub: '' };
   }
 
   function renderCycle(){
@@ -3480,7 +3551,8 @@
     const pos = null;
 
     // --- План тижня ---
-    const shownIdx = (cyclePreviewWeek !== null) ? cyclePreviewWeek : (typeof cycle.active === 'number' ? cycle.active : 0);
+    let shownIdx = (cyclePreviewWeek !== null) ? cyclePreviewWeek : (typeof cycle.active === 'number' ? cycle.active : weekOrder()[0]);
+    if(!CYCLE_WEEKS[shownIdx] || !weekOrder().includes(shownIdx)) shownIdx = weekOrder()[0];
     const main = mainLiftsList();
     const colorMap = getDayColorMap();
     const shown = CYCLE_WEEKS[shownIdx];
@@ -3491,16 +3563,16 @@
       let skipped = 0;
       list.forEach(ex => {
         const own = weekOverride(shownIdx, day, ex.name);
-        if(!own && shownIdx === STRENGTH_IDX && !main.includes(ex.name)){ skipped++; return; }
+        if(!own && isStrength(shownIdx) && !main.includes(ex.name)){ skipped++; return; }
         const t = own ? { sets: own.sets, reps: own.reps, weight: own.weight, sub: 'твій план' } : cycleTarget(shownIdx, ex);
         if(!t){ skipped++; return; }
         rows.push(`<div class="cyc-row"><span class="nm">${escapeHtml(ex.name)}</span><span class="vl">${t.sets}×${escapeHtml(String(t.reps))} · ${fmtKg(t.weight)} кг${t.sub ? `<span class="sub">${escapeHtml(t.sub)}</span>` : ''}</span></div>`);
       });
       if(rows.length === 0) return;
-      daysHtml += `<div class="cyc-day"><div class="cyc-day-title"><span class="dot" style="background:${colorMap[day] || '#4db6ac'};"></span>${escapeHtml(day)}</div>${rows.join('')}${shownIdx === STRENGTH_IDX && skipped ? `<div class="cyc-muted">Інших вправ: ${skipped}. Пропусти або зроби 1–2 легкі підходи.</div>` : ''}</div>`;
+      daysHtml += `<div class="cyc-day"><div class="cyc-day-title"><span class="dot" style="background:${colorMap[day] || '#4db6ac'};"></span>${escapeHtml(day)}</div>${rows.join('')}${isStrength(shownIdx) && skipped ? `<div class="cyc-muted">Інших вправ: ${skipped}. Пропусти або зроби 1–2 легкі підходи.</div>` : ''}</div>`;
     });
     if(!daysHtml){
-      daysHtml = '<p class="cyc-muted" style="margin-top:8px;">' + (shownIdx === STRENGTH_IDX
+      daysHtml = '<p class="cyc-muted" style="margin-top:8px;">' + (isStrength(shownIdx)
         ? 'Основні вправи для силового тижня не обрано. Обери їх нижче.'
         : 'Спочатку додай тренувальні дні й вправи на вкладці «Програма».') + '</p>';
     }
@@ -3518,14 +3590,14 @@
       : '';
     planEl.innerHTML = `
       <div class="section-label" style="margin-bottom:8px;">План тижня · цикл №${cycle.no || 1}</div>
-      <div class="cyc-weeks">${CYCLE_WEEKS.map((w, i) => `
-        <div class="cyc-week${cycle.active === i ? ' current' : ''}${i === shownIdx ? ' selected' : ''}" data-cyc-w="${i}"><div class="w">W${i + 1}</div><div class="n">${escapeHtml(w.name)}</div></div>`).join('')}
+      <div class="cyc-weeks">${orderedWeeks().map(({w:w, i}) => `
+        <div class="cyc-week${cycle.active === i ? ' current' : ''}${i === shownIdx ? ' selected' : ''}" data-cyc-w="${i}"><div class="w">${wLabel(i)}</div><div class="n">${escapeHtml(w.name)}</div></div>`).join('')}
       </div>
       ${cycle.active === shownIdx
         ? `<button class="wj-btn wj-btn-success" id="btn-cycle-off" style="width:100%; margin-bottom:8px;">✓ Використовується в Тренуванні · торкнись, щоб вимкнути</button>`
-        : `<button class="wj-btn wj-btn-primary" id="btn-cycle-apply" style="width:100%; margin-bottom:8px;">Використати W${shownIdx + 1} ${escapeHtml(shown.name)} у Тренуванні</button>`}
-      ${(typeof cycle.active === 'number' && cycle.active !== shownIdx) ? `<div class="cyc-muted" style="margin-bottom:6px;">Зараз у Тренуванні W${cycle.active + 1} ${escapeHtml(CYCLE_WEEKS[cycle.active].name)}.</div>` : ''}
-      <div class="cyc-muted">Цільовий RPE ${shown.rpe}. Ваги базуються на твоєму останньому тренуванні${shownIdx === STRENGTH_IDX ? ' та оціненому максимумі' : ''}. Округлюй до того, що дозволяє обладнання.</div>
+        : `<button class="wj-btn wj-btn-primary" id="btn-cycle-apply" style="width:100%; margin-bottom:8px;">Використати ${wLabel(shownIdx)} ${escapeHtml(shown.name)} у Тренуванні</button>`}
+      ${(typeof cycle.active === 'number' && cycle.active !== shownIdx) ? `<div class="cyc-muted" style="margin-bottom:6px;">Зараз у Тренуванні ${wLabel(cycle.active)} ${escapeHtml(CYCLE_WEEKS[cycle.active].name)}.</div>` : ''}
+      <div class="cyc-muted">Цільовий RPE ${shown.rpe}. Ваги базуються на твоєму останньому тренуванні${isStrength(shownIdx) ? ' та оціненому максимумі' : ''}. Округлюй до того, що дозволяє обладнання.</div>
       ${daysHtml}
       ${progRows ? `<div class="cyc-day" style="margin-top:10px;"><div class="cyc-day-title">Прогрес по циклах</div>${progRows}</div>` : ''}${stimulusTip}`;
 
@@ -3538,7 +3610,7 @@
 
     // --- Події ---
     const applyBtn = document.getElementById('btn-cycle-apply');
-    if(applyBtn) applyBtn.addEventListener('click', async () => { cycle.active = shownIdx; await saveCycle(); renderCycle(); renderLog(); showToast('Тиждень ' + (shownIdx + 1) + ' тепер використовується в Тренуванні.'); });
+    if(applyBtn) applyBtn.addEventListener('click', async () => { cycle.active = shownIdx; await saveCycle(); renderCycle(); renderLog(); showToast(wLabel(shownIdx) + ' тепер використовується в Тренуванні.'); });
     const offBtn = document.getElementById('btn-cycle-off');
     if(offBtn) offBtn.addEventListener('click', async () => { cycle.active = null; await saveCycle(); renderCycle(); renderLog(); showToast('Тренування знову бере дані з Програми.'); });
     planEl.querySelectorAll('[data-cyc-w]').forEach(el => el.addEventListener('click', () => {
