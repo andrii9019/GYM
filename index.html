@@ -1999,6 +1999,63 @@
   });
 
   const RPE_VALUES = [6, 7, 7.5, 8, 8.5, 9, 9.5, 10];
+  // --- Чернетка тренування: введені значення й RPE не губляться при перемиканні вкладок/днів ---
+  const LOG_DRAFT_KEY = LS_PREFIX + 'log_draft';
+  function draftKey(){ return (document.getElementById('log-day-select').value || '') + '|' + (chosenWeek() === null ? '-' : chosenWeek()); }
+  function readDrafts(){
+    try {
+      const o = JSON.parse(localStorage.getItem(LOG_DRAFT_KEY) || '{}') || {};
+      const now = Date.now();
+      Object.keys(o).forEach(k => { if(!o[k] || now - (o[k].ts || 0) > 36*3600*1000) delete o[k]; });
+      return o;
+    } catch(e){ return {}; }
+  }
+  function writeDrafts(o){ try { localStorage.setItem(LOG_DRAFT_KEY, JSON.stringify(o)); } catch(e){} }
+  function captureDraft(){
+    const list = document.getElementById('log-list');
+    const day = document.getElementById('log-day-select').value || dayNames()[0];
+    const exs = program[day] || [];
+    const rows = list.querySelectorAll('.ex-row');
+    if(!rows.length) return;
+    const d = readDrafts(); const k = draftKey();
+    const cur = (d[k] && d[k].rows) || {};
+    rows.forEach((row, i) => {
+      if(!exs[i] || !row.dataset.touched) return;
+      cur[exs[i].name] = {
+        sets: row.querySelector('[data-log-field="sets"]').value,
+        reps: row.querySelector('[data-log-field="reps"]').value,
+        weight: row.querySelector('[data-log-field="weight"]').value,
+        rpe: row.dataset.rpe || null
+      };
+    });
+    d[k] = { ts: Date.now(), rows: cur };
+    writeDrafts(d);
+  }
+  function applyDraft(){
+    const d = readDrafts(); const k = draftKey();
+    const cur = d[k] && d[k].rows; if(!cur) return;
+    const day = document.getElementById('log-day-select').value || dayNames()[0];
+    const exs = program[day] || [];
+    document.querySelectorAll('#log-list .ex-row').forEach((row, i) => {
+      const v = exs[i] && cur[exs[i].name]; if(!v) return;
+      row.dataset.touched = '1';
+      row.querySelector('[data-log-field="sets"]').value = v.sets;
+      row.querySelector('[data-log-field="reps"]').value = v.reps;
+      row.querySelector('[data-log-field="weight"]').value = v.weight;
+      row.querySelectorAll('.rpe-chip').forEach(c => c.classList.remove('selected'));
+      if(v.rpe){
+        row.dataset.rpe = v.rpe;
+        const c = row.querySelector('.rpe-chip[data-rpe="' + v.rpe + '"]'); if(c) c.classList.add('selected');
+      } else delete row.dataset.rpe;
+    });
+  }
+  function clearDraft(day, wk){
+    const d = readDrafts(); delete d[day + '|' + (wk === null || wk === undefined ? '-' : wk)]; writeDrafts(d);
+  }
+  document.getElementById('log-list').addEventListener('input', (ev)=>{
+    const row = ev.target.closest && ev.target.closest('.ex-row'); if(!row) return;
+    row.dataset.touched = '1'; captureDraft();
+  });
   document.getElementById('log-list').addEventListener('click', (ev)=>{
     const showBtn = ev.target.closest('#btn-show-optional');
     if(showBtn){
@@ -2013,6 +2070,7 @@
     row.querySelectorAll('.rpe-chip').forEach(c => c.classList.remove('selected'));
     if(wasSelected){ delete row.dataset.rpe; }
     else { chip.classList.add('selected'); row.dataset.rpe = chip.getAttribute('data-rpe'); }
+    row.dataset.touched = '1'; captureDraft();
   });
 
   function renderLogWeekBar(){
@@ -2192,6 +2250,7 @@
     `; }).join('');
     list.innerHTML = rowsHtml + (optionalCount ? `<button type="button" class="wj-btn" id="btn-show-optional" style="width:100%; margin-bottom:6px;">+ ${optionalCount} додаткових вправ</button>` : '');
     glowExerciseRows(list, dayColor);
+    applyDraft();
   }
 
   // Простий облік відновлення: фіксований час на групу мʼязів від моменту останнього тренування.
@@ -2408,6 +2467,7 @@
       return;
     }
     errEl.style.display = 'none';
+    clearDraft(day, chosenWeek());
     entries = entries.concat(newEntries);
     entries.sort((a,b)=> a.date.localeCompare(b.date));
     await saveEntries();
