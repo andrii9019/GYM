@@ -3068,6 +3068,7 @@
     list.querySelectorAll('[data-pwk]').forEach(ch => ch.addEventListener('click', () => {
       defW = +ch.dataset.pwk;
       list.querySelectorAll('[data-pwk]').forEach(c => c.classList.toggle('selected', c === ch));
+      if(!isPast && plans[dateIso]){ planWeeks[dateIso] = defW; savePlanWeeks().then(() => { renderHistory(); showToast('Тиждень плану: ' + wLabel(defW)); }); }
     }));
     const sv = document.getElementById('btn-plan-save');
     if(sv) sv.addEventListener('click', async () => { plans[dateIso] = sel.value; planWeeks[dateIso] = defW; await savePlanWeeks(); await savePlans(); renderHistory(); showToast('Заплановано: ' + sel.value + ' · W' + (defW + 1)); });
