@@ -2919,7 +2919,7 @@
         const pDay = plans[iso];
         const pColor = colorMap[pDay] || '#4db6ac';
         const pIcon = getDayIconKeys(pDay)[0];
-        html += `<div class="cal-cell planned${isToday ? ' today-marker' : ''}${isSelected ? ' selected' : ''}" style="border: 2px dashed ${pColor}; background: ${pColor}26; box-shadow: 0 0 10px ${pColor}40;" data-date="${iso}"><span class="cal-cell-day">${d}</span>${typeof planWeeks[iso] === 'number' ? `<span class="cal-wk" style="border-color:${pColor};">W${planWeeks[iso] + 1}</span>` : ''}<span class="plan-tag" style="color:${pColor};">${escapeHtml(pDay)}</span></div>`;
+        html += `<div class="cal-cell planned${isToday ? ' today-marker' : ''}${isSelected ? ' selected' : ''}" style="border: 2px dashed ${pColor}; background: ${pColor}26; box-shadow: 0 0 10px ${pColor}40;" data-date="${iso}"><span class="cal-cell-day">${d}</span>${typeof planWeeks[iso] === 'number' ? `<span class="cal-wk" style="border-color:${pColor};">${wLabel(planWeeks[iso])}</span>` : ''}<span class="plan-tag" style="color:${pColor};">${escapeHtml(pDay)}</span></div>`;
       } else {
         html += `<div class="cal-cell${isToday ? ' today-marker' : ''}${isSelected ? ' selected' : ''}" data-date="${iso}">${d}</div>`;
       }
