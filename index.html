@@ -117,7 +117,7 @@
   .ex-field-weight input { border-color: rgba(77,182,172,0.6); border-radius: 10px; }
 
   /* ---------- Календар ---------- */
-  .cal-cell { aspect-ratio: 1 / 0.8; display:flex; flex-direction: column; align-items:center; justify-content:center; border-radius: 10px; font-size: 12px; cursor: default; position: relative; color: var(--text-primary); background: var(--surface-1); box-sizing: border-box; }
+  .cal-cell { aspect-ratio: 1 / 0.8; display:flex; flex-direction: column; align-items:center; justify-content:center; border-radius: 10px; font-size: 12px; cursor: default; position: relative; color: var(--text-primary); background: var(--surface-1); box-sizing: border-box; min-width:0; overflow:hidden; }
   .cal-cell[data-date] { cursor: pointer; }
   .cal-cell.planned { font-weight: 600; gap: 1px; }
   .cal-cell.planned .plan-tag { font-size: 8px; line-height: 1; opacity: .9; max-width: 94%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -458,12 +458,12 @@
       </div>
 
       <div id="cal-month-label-1" style="font-weight:600; font-size:12px; text-align:center; margin-bottom:3px; color: var(--text-secondary,#666);">-</div>
-      <div id="cal-weekdays-1" style="display:grid; grid-template-columns: repeat(7, 1fr); gap:3px; font-size:10px; color: var(--text-secondary,#666); text-align:center; margin-bottom: 3px;"></div>
-      <div id="cal-grid-1" style="display:grid; grid-template-columns: repeat(7, 1fr); gap:3px;"></div>
+      <div id="cal-weekdays-1" style="display:grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap:3px; font-size:10px; color: var(--text-secondary,#666); text-align:center; margin-bottom: 3px;"></div>
+      <div id="cal-grid-1" style="display:grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap:3px;"></div>
 
       <div id="cal-month-label-2" style="font-weight:500; font-size:13px; text-align:center; margin: 8px 0 6px; color: var(--text-secondary,#666);">-</div>
-      <div id="cal-weekdays-2" style="display:grid; grid-template-columns: repeat(7, 1fr); gap:3px; font-size:10px; color: var(--text-secondary,#666); text-align:center; margin-bottom: 3px;"></div>
-      <div id="cal-grid-2" style="display:grid; grid-template-columns: repeat(7, 1fr); gap:3px;"></div>
+      <div id="cal-weekdays-2" style="display:grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap:3px; font-size:10px; color: var(--text-secondary,#666); text-align:center; margin-bottom: 3px;"></div>
+      <div id="cal-grid-2" style="display:grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap:3px;"></div>
 
       <div id="cal-legend" style="display:flex; flex-wrap:wrap; gap:8px; margin-top:8px;"></div>
     </div>
