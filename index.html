@@ -2288,7 +2288,7 @@
       const vReps = t ? t.reps : ex.reps;
       const vWeight = t ? t.weight : ex.weight;
       const hintTarget = t ? `<span class="tg">Ціль ${t.sets}×${escapeHtml(String(t.reps))} · ${fmtKg(t.weight)} кг · RPE ${t.rpe}</span>${t.sub ? ' <span class="ls">(' + escapeHtml(t.sub) + ')</span>' : ''}` : '';
-      const hintLast = (wkIdx !== null && lastE) ? `<span class="ls">Минулого разу: ${lastE.weight} кг × ${lastE.sets}×${escapeHtml(String(lastE.repsLabel || lastE.reps))}${typeof lastE.rpe === 'number' ? ' · RPE ' + lastE.rpe : ''}</span>` : '';
+      const hintLast = (wkIdx !== null && lastE) ? `<span class="ls">Минулого разу (${fmtShortDate(lastE.date)}${lastE.day ? ' · ' + escapeHtml(lastE.day) : ''}): ${lastE.weight} кг × ${lastE.sets}×${escapeHtml(String(lastE.repsLabel || lastE.reps))}${typeof lastE.rpe === 'number' ? ' · RPE ' + lastE.rpe : ''}</span>` : '';
       const hintAdvice = (sg && !optional) ? `<span class="ls"> · ${escapeHtml(sg.text)}</span>` : '';
       const hint = (hintTarget || hintLast) ? `<div class="ex-hint">${hintTarget}${hintTarget && hintLast ? '<br>' : ''}${hintLast}${hintAdvice}</div>` : '';
       return `
