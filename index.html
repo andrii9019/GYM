@@ -2288,7 +2288,9 @@
       const vReps = t ? t.reps : ex.reps;
       const vWeight = t ? t.weight : ex.weight;
       const hintTarget = t ? `<span class="tg">Ціль ${t.sets}×${escapeHtml(String(t.reps))} · ${fmtKg(t.weight)} кг · RPE ${t.rpe}</span>${t.sub ? ' <span class="ls">(' + escapeHtml(t.sub) + ')</span>' : ''}` : '';
-      const hintLast = (wkIdx !== null && lastE) ? `<span class="ls">Минулого разу (${fmtShortDate(lastE.date)}${lastE.day ? ' · ' + escapeHtml(lastE.day) : ''}): ${lastE.weight} кг × ${lastE.sets}×${escapeHtml(String(lastE.repsLabel || lastE.reps))}${typeof lastE.rpe === 'number' ? ' · RPE ' + lastE.rpe : ''}</span>` : '';
+      const pw = (wkIdx !== null) ? prevWeekEntry(ex.name, day, wkIdx) : null;
+      const hintLastE = pw ? pw.e : lastE;
+      const hintLast = (wkIdx !== null && hintLastE) ? `<span class="ls">${pw && pw.weekLabel ? (pw.sameDayOnly ? 'Минулого разу в цьому дні, ' : 'Минулий тиждень ') + pw.weekLabel : 'Востаннє'} (${fmtShortDate(hintLastE.date)}${hintLastE.day ? ' · ' + escapeHtml(hintLastE.day) : ''}): ${hintLastE.weight} кг × ${hintLastE.sets}×${escapeHtml(String(hintLastE.repsLabel || hintLastE.reps))}${typeof hintLastE.rpe === 'number' ? ' · RPE ' + hintLastE.rpe : ''}</span>` : '';
       const hintAdvice = (sg && !optional) ? `<span class="ls"> · ${escapeHtml(sg.text)}</span>` : '';
       const hint = (hintTarget || hintLast) ? `<div class="ex-hint">${hintTarget}${hintTarget && hintLast ? '<br>' : ''}${hintLast}${hintAdvice}</div>` : '';
       return `
@@ -3426,6 +3428,30 @@
       if(r && progEx.weight > 0) best = progEx.weight * (1 + (r.max + 1) / 30);
     }
     return best;
+  }
+  // Для підказки «Минулого разу»: запис тієї ж вправи в цьому ж дні з попереднього тижня циклу
+  // (для першого тижня циклу це останній тиждень минулого циклу); якщо такого немає — останній запис вправи.
+  function prevWeekEntry(name, day, wkIdx){
+    const all = entries.filter(e => e.exercise === name).sort((a, b) => a.date.localeCompare(b.date) || (a.id - b.id));
+    if(!all.length) return null;
+    if(typeof wkIdx === 'number'){
+      const ord = weekOrder(); const pos = ord.indexOf(wkIdx);
+      if(pos >= 0 && ord.length > 1){
+        const prevId = pos > 0 ? ord[pos - 1] : ord[ord.length - 1];
+        const prevCy = pos > 0 ? (cycle.no || 1) : (cycle.no || 1) - 1;
+        const pick = list => list.length ? list[list.length - 1] : null;
+        const inWeek = all.filter(e => e.cw === prevId && e.day === day);
+        let m = pick(inWeek.filter(e => (e.cy || 1) === prevCy)) || pick(inWeek.filter(e => (e.cy || 1) <= prevCy));
+        if(m) return { e: m, weekLabel: wLabel(prevId) };
+      }
+    }
+    // тиждень без попереднього запису в цьому дні (Target, Сила тощо): останній запис саме цього дня з будь-якого тижня
+    const sameDay = all.filter(e => e.day === day);
+    if(typeof wkIdx === 'number' && sameDay.length){
+      const m = sameDay[sameDay.length - 1];
+      return { e: m, weekLabel: typeof m.cw === 'number' ? wLabel(m.cw) + (m.cy && m.cy !== (cycle.no || 1) ? ', цикл ' + m.cy : '') : null, sameDayOnly: true };
+    }
+    return { e: all[all.length - 1], weekLabel: null };
   }
   function lastLoggedFor(name){
     const data = entries.filter(e => e.exercise === name).sort((a,b)=>a.date.localeCompare(b.date));
