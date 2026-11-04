@@ -83,7 +83,6 @@
   .view-panel::before { content: ''; position: absolute; top: -70px; left: -24px; right: -24px; height: 300px; pointer-events: none; filter: blur(30px); opacity: 0.55; z-index: 0; }
   #view-program::before, #view-log::before { background: radial-gradient(60% 100% at 18% 0%, var(--day-glow, #4db6ac) 0%, transparent 72%); }
   #view-history::before { background: radial-gradient(55% 100% at 82% 0%, #8f6ae8 0%, transparent 72%); }
-  #view-cycle::before { background: radial-gradient(60% 100% at 80% 0%, #e0a030 0%, #4db6ac 40%, transparent 75%); }
   #view-progress::before { background: radial-gradient(60% 100% at 50% 0%, #4db6ac 0%, #80cbc4 35%, transparent 75%); }
   .view-panel > * { position: relative; z-index: 1; }
   .view-panel.slide-in-right { transform: translateX(16px); opacity: 0; }
@@ -356,10 +355,6 @@
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V11M11 19V5M18 19v-6"/><path d="M2 19h20"/></svg>
         <span>Прогрес</span>
       </div>
-      <div class="wj-tab" data-tab="cycle" id="tab-cycle">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16l4-5 4 3 4-6 4 4"/><path d="M4 20h16"/></svg>
-        <span>Цикл</span>
-      </div>
     </div>
   </div>
 
@@ -433,6 +428,7 @@
       <button class="wj-btn" id="btn-add-new-ex" style="flex:1;">✎ Нова вправа</button>
       <button class="wj-btn wj-btn-primary" id="btn-add-library" style="flex:1;">☰ З наявних</button>
     </div>
+    <div class="wj-card" id="cycle-main" style="margin-top:14px;"></div>
   </div>
 
   <div id="view-log" class="view-panel" style="display:none;">
@@ -474,6 +470,11 @@
 
   <div id="view-progress" class="view-panel" style="display:none;">
     <div class="page-header"><div class="eyebrow">Прогрес</div><h1 class="page-title">Подивись, як далеко ти зайшов</h1></div>
+    <div class="wj-card" id="reco-card" style="margin-bottom: 8px;">
+      <div class="section-label" style="margin-bottom: 8px;">Рекомендації</div>
+      <div id="reco-list"></div>
+    </div>
+    <div class="wj-card" id="cycle-progress" style="margin-bottom: 8px; display:none;"></div>
     <div class="wj-card" style="margin-bottom: 8px;">
       <div class="section-label" style="margin-bottom: 10px;">Тренування за днями</div>
       <div id="training-count-list" style="display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 6px;"></div>
@@ -492,15 +493,6 @@
     </div>
   </div>
 
-  <div id="view-cycle" class="view-panel" style="display:none;">
-    <div class="page-header"><div class="eyebrow">Періодизація</div><h1 class="page-title">Твій тренувальний цикл</h1></div>
-    <div class="wj-card" id="reco-card" style="margin-bottom: 8px;">
-      <div class="section-label" style="margin-bottom: 8px;">Рекомендації</div>
-      <div id="reco-list"></div>
-    </div>
-    <div class="wj-card" id="cycle-plan" style="margin-bottom: 8px;"></div>
-    <div class="wj-card" id="cycle-main" style="margin-bottom: 8px;"></div>
-  </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
@@ -1074,18 +1066,16 @@
 
     if(tab==='log') renderLog();
     if(tab==='history') renderHistory();
-    if(tab==='progress'){ renderProgress(); renderTrainingCounts(); }
+    if(tab==='progress'){ renderProgress(); renderTrainingCounts(); renderCycle(); renderRecommendations(); }
     if(tab==='program') renderProgram();
-    if(tab==='cycle'){ renderCycle(); renderRecommendations(); }
   }
   document.getElementById('tab-program').addEventListener('click', ()=>switchTab('program'));
   document.getElementById('tab-log').addEventListener('click', ()=>switchTab('log'));
   document.getElementById('tab-history').addEventListener('click', ()=>switchTab('history'));
   document.getElementById('tab-progress').addEventListener('click', ()=>switchTab('progress'));
-  document.getElementById('tab-cycle').addEventListener('click', ()=>switchTab('cycle'));
 
   // --- Свайп вліво/вправо для перемикання вкладок ---
-  const TAB_ORDER = ['program', 'log', 'history', 'progress', 'cycle'];
+  const TAB_ORDER = ['program', 'log', 'history', 'progress'];
   function currentTab(){
     return TAB_ORDER.find(t => document.getElementById('tab-'+t).classList.contains('active')) || 'program';
   }
@@ -3593,87 +3583,42 @@
   }
 
   function renderCycle(){
-    const planEl = document.getElementById('cycle-plan');
+    const progEl = document.getElementById('cycle-progress');
     const mainEl = document.getElementById('cycle-main');
-    if(!planEl || !mainEl) return;
-    const pos = null;
-
-    // --- План тижня ---
-    let shownIdx = (cyclePreviewWeek !== null) ? cyclePreviewWeek : (typeof cycle.active === 'number' ? cycle.active : weekOrder()[0]);
-    if(!CYCLE_WEEKS[shownIdx] || !weekOrder().includes(shownIdx)) shownIdx = weekOrder()[0];
     const main = mainLiftsList();
-    const colorMap = getDayColorMap();
-    const shown = CYCLE_WEEKS[shownIdx];
-    let daysHtml = '';
-    Object.keys(program).forEach(day => {
-      const list = (program[day] || []).filter(ex => ex.name);
-      const rows = [];
-      let skipped = 0;
-      list.forEach(ex => {
-        const own = weekOverride(shownIdx, day, ex.name);
-        if(!own && isStrength(shownIdx) && !main.includes(ex.name)){ skipped++; return; }
-        const t = own ? { sets: own.sets, reps: own.reps, weight: own.weight, sub: 'твій план' } : cycleTarget(shownIdx, ex);
-        if(!t){ skipped++; return; }
-        rows.push(`<div class="cyc-row"><span class="nm">${escapeHtml(ex.name)}</span><span class="vl">${t.sets}×${escapeHtml(String(t.reps))} · ${fmtKg(t.weight)} кг${t.sub ? `<span class="sub">${escapeHtml(t.sub)}</span>` : ''}</span></div>`);
-      });
-      if(rows.length === 0) return;
-      daysHtml += `<div class="cyc-day"><div class="cyc-day-title"><span class="dot" style="background:${colorMap[day] || '#4db6ac'};"></span>${escapeHtml(day)}</div>${rows.join('')}${isStrength(shownIdx) && skipped ? `<div class="cyc-muted">Інших вправ: ${skipped}. Пропусти або зроби 1–2 легкі підходи.</div>` : ''}</div>`;
-    });
-    if(!daysHtml){
-      daysHtml = '<p class="cyc-muted" style="margin-top:8px;">' + (isStrength(shownIdx)
-        ? 'Основні вправи для силового тижня не обрано. Обери їх нижче.'
-        : 'Спочатку додай тренувальні дні й вправи на вкладці «Програма».') + '</p>';
+    // --- Прогрес по циклах: найбільша вага в основних вправах за кожен цикл (записи без номера = цикл 1) ---
+    if(progEl){
+      const cycNums = [...new Set(entries.map(e => e.cy || 1).concat([cycle.no || 1]))].sort((a, b) => a - b);
+      const progRows = main.map(n => {
+        const parts = cycNums.map(c => {
+          const ws = entries.filter(e => e.exercise === n && (e.cy || 1) === c && e.weight > 0).map(e => e.weight);
+          return ws.length ? `Ц${c}: ${fmtKg(Math.max(...ws))}` : null;
+        }).filter(Boolean);
+        return parts.length ? `<div class="cyc-row"><span class="nm">${escapeHtml(n)}</span><span class="vl">${parts.join(' → ')} кг</span></div>` : '';
+      }).join('');
+      const stimulusTip = (cycle.no || 1) >= 3
+        ? `<div class="cyc-muted" style="margin-top:8px;">Ти вже в ${cycle.no}-му циклі. Подумай про зміну стимулу: інший діапазон повторів в основних вправах (наприклад, 4–6), заміна частини допоміжних вправ або цикл з іншим акцентом.</div>`
+        : '';
+      progEl.style.display = progRows ? '' : 'none';
+      progEl.innerHTML = progRows ? `<div class="section-label" style="margin-bottom:8px;">Прогрес по циклах · зараз цикл №${cycle.no || 1}</div><div class="cyc-day">${progRows}</div>${stimulusTip}` : '';
     }
-    // Прогрес по циклах: найбільша вага в основних вправах за кожен цикл (записи без номера = цикл 1)
-    const cycNums = [...new Set(entries.map(e => e.cy || 1).concat([cycle.no || 1]))].sort((a, b) => a - b);
-    const progRows = main.map(n => {
-      const parts = cycNums.map(c => {
-        const ws = entries.filter(e => e.exercise === n && (e.cy || 1) === c && e.weight > 0).map(e => e.weight);
-        return ws.length ? `Ц${c}: ${fmtKg(Math.max(...ws))}` : null;
-      }).filter(Boolean);
-      return parts.length ? `<div class="cyc-row"><span class="nm">${escapeHtml(n)}</span><span class="vl">${parts.join(' → ')} кг</span></div>` : '';
-    }).join('');
-    const stimulusTip = (cycle.no || 1) >= 3
-      ? `<div class="cyc-muted" style="margin-top:8px;">Ти вже в ${cycle.no}-му циклі. Подумай про зміну стимулу: інший діапазон повторів в основних вправах (наприклад, 4–6), заміна частини допоміжних вправ або цикл з акцентом на слабку групу.</div>`
-      : '';
-    planEl.innerHTML = `
-      <div class="section-label" style="margin-bottom:8px;">План тижня · цикл №${cycle.no || 1}</div>
-      <div class="cyc-weeks">${orderedWeeks().map(({w:w, i}) => `
-        <div class="cyc-week${cycle.active === i ? ' current' : ''}${i === shownIdx ? ' selected' : ''}" data-cyc-w="${i}"><div class="w">${wLabel(i)}</div><div class="n">${escapeHtml(w.name)}</div></div>`).join('')}
-      </div>
-      ${cycle.active === shownIdx
-        ? `<button class="wj-btn wj-btn-success" id="btn-cycle-off" style="width:100%; margin-bottom:8px;">✓ Використовується в Тренуванні · торкнись, щоб вимкнути</button>`
-        : `<button class="wj-btn wj-btn-primary" id="btn-cycle-apply" style="width:100%; margin-bottom:8px;">Використати ${wLabel(shownIdx)} ${escapeHtml(shown.name)} у Тренуванні</button>`}
-      ${(typeof cycle.active === 'number' && cycle.active !== shownIdx) ? `<div class="cyc-muted" style="margin-bottom:6px;">Зараз у Тренуванні ${wLabel(cycle.active)} ${escapeHtml(CYCLE_WEEKS[cycle.active].name)}.</div>` : ''}
-      <div class="cyc-muted">Цільовий RPE ${shown.rpe}. Ваги базуються на твоєму останньому тренуванні${isStrength(shownIdx) ? ' та оціненому максимумі' : ''}. Округлюй до того, що дозволяє обладнання.</div>
-      ${daysHtml}
-      ${progRows ? `<div class="cyc-day" style="margin-top:10px;"><div class="cyc-day-title">Прогрес по циклах</div>${progRows}</div>` : ''}${stimulusTip}`;
-
     // --- Основні вправи ---
-    const allNames = [...new Set(Object.values(program).flat().map(e => e.name).filter(Boolean))];
-    mainEl.innerHTML = `
-      <div class="section-label">Основні вправи</div>
-      <div class="cyc-muted">Лише ці вправи йдуть у силовий тиждень. Торкнись, щоб змінити.</div>
-      <div class="cyc-chips">${allNames.map(n => `<button type="button" class="cyc-chip${main.includes(n) ? ' on' : ''}" data-cyc-main="${escapeHtml(n)}">${escapeHtml(n)}</button>`).join('') || '<span class="cyc-muted">Вправ ще немає.</span>'}</div>`;
-
-    // --- Події ---
-    const applyBtn = document.getElementById('btn-cycle-apply');
-    if(applyBtn) applyBtn.addEventListener('click', async () => { cycle.active = shownIdx; await saveCycle(); renderCycle(); renderLog(); showToast(wLabel(shownIdx) + ' тепер використовується в Тренуванні.'); });
-    const offBtn = document.getElementById('btn-cycle-off');
-    if(offBtn) offBtn.addEventListener('click', async () => { cycle.active = null; await saveCycle(); renderCycle(); renderLog(); showToast('Тренування знову бере дані з Програми.'); });
-    planEl.querySelectorAll('[data-cyc-w]').forEach(el => el.addEventListener('click', () => {
-      cyclePreviewWeek = parseInt(el.getAttribute('data-cyc-w'));
-      renderCycle();
-    }));
-    mainEl.querySelectorAll('[data-cyc-main]').forEach(el => el.addEventListener('click', async () => {
-      const n = el.getAttribute('data-cyc-main');
-      const cur = mainLiftsList().slice();
-      const i = cur.indexOf(n);
-      if(i >= 0) cur.splice(i, 1); else cur.push(n);
-      cycle.mainLifts = cur;
-      await saveCycle();
-      renderCycle();
-    }));
+    if(mainEl){
+      const allNames = [...new Set(Object.values(program).flat().map(e => e.name).filter(Boolean))];
+      mainEl.innerHTML = `
+        <div class="section-label">Основні вправи</div>
+        <div class="cyc-muted">Лише ці вправи йдуть у тиждень «Сила» й рахуються в прогресі по циклах. Торкнись, щоб змінити.</div>
+        <div class="cyc-chips">${allNames.map(n => `<button type="button" class="cyc-chip${main.includes(n) ? ' on' : ''}" data-cyc-main="${escapeHtml(n)}">${escapeHtml(n)}</button>`).join('') || '<span class="cyc-muted">Вправ ще немає.</span>'}</div>`;
+      mainEl.querySelectorAll('[data-cyc-main]').forEach(el => el.addEventListener('click', async () => {
+        const n = el.getAttribute('data-cyc-main');
+        const cur = mainLiftsList().slice();
+        const i = cur.indexOf(n);
+        if(i >= 0) cur.splice(i, 1); else cur.push(n);
+        cycle.mainLifts = cur;
+        await saveCycle();
+        renderCycle(); renderLog(); renderProgram();
+      }));
+    }
   }
 
   function renderProgress(){
