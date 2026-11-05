@@ -3560,9 +3560,10 @@
     return { weight: roundLoad(work.weight + inc), sub: '+' + fmtKg(inc) + ' кг: минулий цикл пройшов легко' + (rpe !== null ? ' (RPE ' + rpe + ')' : '') };
   }
   function cycleTarget(weekIdx, ex){
+    const wRpe = CYCLE_WEEKS[weekIdx] && CYCLE_WEEKS[weekIdx].rpe ? CYCLE_WEEKS[weekIdx].rpe : '8';
     if(wType(weekIdx) === 'start' && weekOrder()[0] === weekIdx){
       const ns = newCycleStart(ex.name);
-      if(ns) return { sets: parseInt(ex.sets) || 3, reps: weekReps(weekIdx, ex), weight: ns.weight, rpe: '7', sub: ns.sub };
+      if(ns) return { sets: parseInt(ex.sets) || 3, reps: weekReps(weekIdx, ex), weight: ns.weight, rpe: wRpe, sub: ns.sub };
     }
     const last = lastLoggedFor(ex.name);
     const baseW = last ? last.weight : (parseFloat(ex.weight) || 0);
@@ -3571,15 +3572,15 @@
     if(isStrength(weekIdx)){
       const e1 = estimate1RM(ex.name, ex);
       if(!(e1 > 0)) return null;
-      return { sets: 4, reps: '4', weight: roundLoad(e1 * 0.88), rpe: '8–9', sub: 'оцінений максимум ' + Math.round(e1) + ' кг' };
+      return { sets: 4, reps: '4', weight: roundLoad(e1 * 0.88), rpe: wRpe, sub: 'оцінений максимум ' + Math.round(e1) + ' кг' };
     }
     const sg = suggestForExercise(ex.name);
     const w = (sg && typeof sg.weight === 'number') ? sg.weight : baseW;
     if(wType(weekIdx) === 'peak'){
       const isMain = mainLiftsList().includes(ex.name);
-      return { sets: isMain ? Math.min(6, baseSets + 1) : baseSets, reps: weekReps(weekIdx, ex), weight: w, rpe: '8–9', sub: isMain ? '+1 підхід' : '' };
+      return { sets: isMain ? Math.min(6, baseSets + 1) : baseSets, reps: weekReps(weekIdx, ex), weight: w, rpe: wRpe, sub: isMain ? '+1 підхід' : '' };
     }
-    return { sets: baseSets, reps: weekReps(weekIdx, ex), weight: w, rpe: wType(weekIdx) === 'start' ? '7' : (CYCLE_WEEKS[weekIdx] ? CYCLE_WEEKS[weekIdx].rpe : '8'), sub: '' };
+    return { sets: baseSets, reps: weekReps(weekIdx, ex), weight: w, rpe: wRpe, sub: '' };
   }
 
   function renderCycle(){
