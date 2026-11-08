@@ -428,7 +428,6 @@
       <button class="wj-btn" id="btn-add-new-ex" style="flex:1;">✎ Нова вправа</button>
       <button class="wj-btn wj-btn-primary" id="btn-add-library" style="flex:1;">☰ З наявних</button>
     </div>
-    <div class="wj-card" id="cycle-main" style="margin-top:14px;"></div>
   </div>
 
   <div id="view-log" class="view-panel" style="display:none;">
@@ -470,10 +469,6 @@
 
   <div id="view-progress" class="view-panel" style="display:none;">
     <div class="page-header"><div class="eyebrow">Прогрес</div><h1 class="page-title">Подивись, як далеко ти зайшов</h1></div>
-    <div class="wj-card" id="reco-card" style="margin-bottom: 8px;">
-      <div class="section-label" style="margin-bottom: 8px;">Рекомендації</div>
-      <div id="reco-list"></div>
-    </div>
     <div class="wj-card" id="cycle-progress" style="margin-bottom: 8px; display:none;"></div>
     <div class="wj-card" style="margin-bottom: 8px;">
       <div class="section-label" style="margin-bottom: 10px;">Тренування за днями</div>
@@ -1066,7 +1061,7 @@
 
     if(tab==='log') renderLog();
     if(tab==='history') renderHistory();
-    if(tab==='progress'){ renderProgress(); renderTrainingCounts(); renderCycle(); renderRecommendations(); }
+    if(tab==='progress'){ renderProgress(); renderTrainingCounts(); renderCycle(); }
     if(tab==='program') renderProgram();
   }
   document.getElementById('tab-program').addEventListener('click', ()=>switchTab('program'));
@@ -2301,7 +2296,7 @@
       const pw = (wkIdx !== null) ? prevWeekEntry(ex.name, day, wkIdx) : null;
       const hintLastE = pw ? pw.e : lastE;
       const hintLast = (wkIdx !== null && hintLastE) ? `<span class="ls">${pw && pw.weekLabel ? (pw.sameDayOnly ? 'Минулого разу в цьому дні, ' : 'Минулий тиждень ') + pw.weekLabel : 'Востаннє'} (${fmtShortDate(hintLastE.date)}${hintLastE.day ? ' · ' + escapeHtml(hintLastE.day) : ''}): ${hintLastE.weight} кг × ${hintLastE.sets}×${escapeHtml(String(hintLastE.repsLabel || hintLastE.reps))}${typeof hintLastE.rpe === 'number' ? ' · RPE ' + hintLastE.rpe : ''}</span>` : '';
-      const hintAdvice = (sg && !optional) ? `<span class="ls"> · ${escapeHtml(sg.text)}</span>` : '';
+      const hintAdvice = '';
       const hint = (hintTarget || hintLast) ? `<div class="ex-hint">${hintTarget}${hintTarget && hintLast ? '<br>' : ''}${hintLast}${hintAdvice}</div>` : '';
       return `
       <div class="ex-row${optional ? ' ex-optional' : ''}"${optional ? ' style="display:none;"' : ''}>
@@ -3453,7 +3448,10 @@
     const all = [...new Set(Object.values(program).flat().map(e => e.name).filter(Boolean))];
     return all.filter(n => /^(жим|присід|румунська тяга|жим ногами)$/i.test(n.trim()));
   }
-  function mainLiftsList(){ return cycle.mainLifts !== null ? cycle.mainLifts : defaultMainLifts(); }
+  // «Основна» вправа дня — перша вправа в кожному дні програми (вибір вручну прибрано)
+  function mainLiftsList(){
+    return [...new Set(Object.values(program).map(list => list && list[0] && list[0].name).filter(Boolean))];
+  }
   function estimate1RM(name, progEx){
     const calc = (since, onlyStrength) => {
       let b = 0;
@@ -3587,7 +3585,7 @@
     const hitTop = work.reps >= tgt.max;
     const rpe = (typeof work.rpe === 'number') ? work.rpe : null;
     const leg = ['Legs', 'Quads', 'Hams', 'Glutes'].includes(getMuscleGroup(name));
-    const inc = mainLiftsList().includes(name) ? (leg ? 5 : 2.5) : (work.weight >= 40 ? 2.5 : 1);
+    const inc = 2.5;
     if(rpe !== null && rpe >= 9.5) return { weight: roundLoad(work.weight * 0.92), sub: 'минулий цикл: RPE ' + rpe + ', вагу знижено на 8%' };
     if((rpe !== null && rpe >= 9) || !hitTop) return { weight: work.weight, sub: 'вага минулого циклу' + (rpe !== null ? ' (RPE ' + rpe + ')' : '') + ': спочатку добери повтори' };
     return { weight: roundLoad(work.weight + inc), sub: '+' + fmtKg(inc) + ' кг: минулий цикл пройшов легко' + (rpe !== null ? ' (RPE ' + rpe + ')' : '') };
@@ -3620,7 +3618,6 @@
 
   function renderCycle(){
     const progEl = document.getElementById('cycle-progress');
-    const mainEl = document.getElementById('cycle-main');
     const main = mainLiftsList();
     // --- Прогрес по циклах: найбільша вага в основних вправах за кожен цикл (записи без номера = цикл 1) ---
     if(progEl){
@@ -3637,23 +3634,6 @@
         : '';
       progEl.style.display = progRows ? '' : 'none';
       progEl.innerHTML = progRows ? `<div class="section-label" style="margin-bottom:8px;">Прогрес по циклах · зараз цикл №${cycle.no || 1}</div><div class="cyc-day">${progRows}</div>${stimulusTip}` : '';
-    }
-    // --- Основні вправи ---
-    if(mainEl){
-      const allNames = [...new Set(Object.values(program).flat().map(e => e.name).filter(Boolean))];
-      mainEl.innerHTML = `
-        <div class="section-label">Основні вправи</div>
-        <div class="cyc-muted">Лише ці вправи йдуть у тиждень «Сила» й рахуються в прогресі по циклах. Торкнись, щоб змінити.</div>
-        <div class="cyc-chips">${allNames.map(n => `<button type="button" class="cyc-chip${main.includes(n) ? ' on' : ''}" data-cyc-main="${escapeHtml(n)}">${escapeHtml(n)}</button>`).join('') || '<span class="cyc-muted">Вправ ще немає.</span>'}</div>`;
-      mainEl.querySelectorAll('[data-cyc-main]').forEach(el => el.addEventListener('click', async () => {
-        const n = el.getAttribute('data-cyc-main');
-        const cur = mainLiftsList().slice();
-        const i = cur.indexOf(n);
-        if(i >= 0) cur.splice(i, 1); else cur.push(n);
-        cycle.mainLifts = cur;
-        await saveCycle();
-        renderCycle(); renderLog(); renderProgram();
-      }));
     }
   }
 
@@ -3899,7 +3879,6 @@
     renderHistory();
     renderProgress();
     renderTrainingCounts();
-    renderRecommendations();
     renderCycle();
   }
 
