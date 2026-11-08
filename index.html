@@ -259,6 +259,18 @@
   .cyc-bar span.done { background: var(--border-strong); }
   .cyc-bar span.now { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
   .cyc-day { margin-top:10px; }
+  .pp-item { padding:8px 10px 6px; border-radius:12px; background: var(--surface-3); margin-bottom:6px; }
+  .pp-head { display:flex; align-items:baseline; justify-content:space-between; gap:8px; margin-bottom:6px; }
+  .pp-head .nm { font-size:13px; font-weight:700; color: var(--text-primary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .pp-head .gain { font-size:12px; font-weight:700; color: var(--accent-2); flex-shrink:0; }
+  .pp-strip { display:flex; align-items:center; gap:4px; overflow-x:auto; scrollbar-width:none; touch-action: pan-y; overscroll-behavior-x: contain; padding:2px 14px 4px 2px; -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 22px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 22px), transparent); user-select:none; }
+  .pp-strip.at-end { -webkit-mask-image: none; mask-image: none; }
+  .pp-strip::-webkit-scrollbar { display:none; }
+  .pp-step { flex:0 0 auto; display:flex; flex-direction:column; align-items:center; min-width:46px; padding:4px 8px; border-radius:10px; background: var(--surface-1); border:1px solid var(--border); }
+  .pp-step b { font-size:14px; color: var(--text-primary); line-height:1.1; }
+  .pp-step small { font-size:10px; color: var(--text-secondary); }
+  .pp-step.last { border-color: var(--accent-2); box-shadow: 0 0 10px color-mix(in srgb, var(--accent-2) 45%, transparent); }
+  .pp-arrow { flex:0 0 auto; color: var(--text-secondary); font-size:12px; }
   .cyc-day-title { display:flex; align-items:center; gap:6px; font-size:12px; font-weight:700; color: var(--text-primary); margin-bottom:5px; }
   .cyc-day-title .dot { width:8px; height:8px; border-radius:50%; display:inline-block; }
   .cyc-row { display:flex; align-items:baseline; justify-content:space-between; gap:8px; padding:6px 10px; border-radius:10px; background: var(--surface-3); margin-bottom:4px; font-size:12px; }
@@ -1081,7 +1093,7 @@
     let startX = 0, startY = 0, tracking = false;
     root.addEventListener('touchstart', (e)=>{
       if(e.touches.length !== 1){ tracking = false; return; }
-      if(e.target && e.target.closest && e.target.closest('.day-chips, #training-count-list, .cyc-weeks, .week-chips, canvas')){ tracking = false; return; }
+      if(e.target && e.target.closest && e.target.closest('.day-chips, #training-count-list, .cyc-weeks, .week-chips, .pp-strip, canvas')){ tracking = false; return; }
       startX = e.touches[0].clientX;
       startY = e.touches[0].clientY;
       tracking = true;
@@ -3607,19 +3619,27 @@
     const main = mainLiftsList();
     // --- Прогрес по циклах: найбільша вага в основних вправах за кожен цикл (записи без номера = цикл 1) ---
     if(progEl){
-      const cycNums = [...new Set(entries.map(e => e.cy || 1).concat([cycle.no || 1]))].sort((a, b) => a - b);
-      const progRows = main.map(n => {
-        const parts = cycNums.map(c => {
-          const ws = entries.filter(e => e.exercise === n && (e.cy || 1) === c && e.weight > 0).map(e => e.weight);
-          return ws.length ? `Ц${c}: ${fmtKg(Math.max(...ws))}` : null;
-        }).filter(Boolean);
-        return parts.length ? `<div class="cyc-row"><span class="nm">${escapeHtml(n)}</span><span class="vl">${parts.join(' → ')} кг</span></div>` : '';
+      // Шлях прогресу: кожен новий рекорд ваги в основній вправі від початку (60 → 62.5 → 70 ...)
+      const rows = main.map(n => {
+        const data = entries.filter(e => e.exercise === n && e.weight > 0).sort((a, b) => a.date.localeCompare(b.date));
+        const steps = []; let best = 0;
+        data.forEach(e => { if(e.weight > best){ best = e.weight; steps.push({ w: e.weight, d: e.date }); } });
+        if(!steps.length) return '';
+        const gain = steps.length > 1 ? '+' + fmtKg(steps[steps.length - 1].w - steps[0].w) + ' кг' : 'старт';
+        const chips = steps.map((st, i) => `${i ? '<span class="pp-arrow">→</span>' : ''}<div class="pp-step${i === steps.length - 1 ? ' last' : ''}"><b>${fmtKg(st.w)}</b><small>${fmtShortDate(st.d)}</small></div>`).join('');
+        return `<div class="pp-item"><div class="pp-head"><span class="nm">${escapeHtml(n)}</span><span class="gain">${gain}</span></div><div class="pp-strip">${chips}</div></div>`;
       }).join('');
       const stimulusTip = (cycle.no || 1) >= 3
-        ? `<div class="cyc-muted" style="margin-top:8px;">Ти вже в ${cycle.no}-му циклі. Подумай про зміну стимулу: інший діапазон повторів в основних вправах (наприклад, 4–6), заміна частини допоміжних вправ або цикл з іншим акцентом.</div>`
+        ? `<div class="cyc-muted" style="margin-top:8px;">Ти вже в ${cycle.no}-му циклі. Якщо вага майже не росте, подумай про зміну стимулу: інший діапазон повторів в основних вправах (наприклад, 4–6), заміну частини допоміжних вправ або цикл з іншим акцентом.</div>`
         : '';
-      progEl.style.display = progRows ? '' : 'none';
-      progEl.innerHTML = progRows ? `<div class="section-label" style="margin-bottom:8px;">Прогрес по циклах · зараз цикл №${cycle.no || 1}</div><div class="cyc-day">${progRows}</div>${stimulusTip}` : '';
+      progEl.style.display = rows ? '' : 'none';
+      progEl.innerHTML = rows ? `<div class="section-label" style="margin-bottom:8px;">Шлях прогресу · кожен рекорд ваги</div>${rows}${stimulusTip}` : '';
+      progEl.querySelectorAll('.pp-strip').forEach(st => {
+        enableDragScroll(st);
+        const upd = () => st.classList.toggle('at-end', st.scrollLeft + st.clientWidth >= st.scrollWidth - 4);
+        st.addEventListener('scroll', upd, { passive: true });
+        st.scrollLeft = st.scrollWidth; upd();
+      });
     }
   }
 
