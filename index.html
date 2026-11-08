@@ -1228,12 +1228,7 @@
     </div>`;
     let extra = '';
     if(w !== null){
-      const srcOpts = '<option value="base">База</option>' + orderedWeeks().map(({w:c, i}) => i === w ? '' : `<option value="${i}">${wLabel(i)} · ${escapeHtml(c.name)}</option>`).join('');
       extra = `<div class="cyc-muted" style="margin-bottom:8px;">Плани тижня ${wLabel(w)} · ${escapeHtml(CYCLE_WEEKS[w].name)}. Цифри тут уже підставлені за порадами циклу, як у «Тренуванні». Міняй лише те, що потрібно: змінене стає твоїм планом, решта й далі оновлюється за порадами. Склад вправ редагується в режимі «База».</div>
-      <div style="display:flex; gap:6px; margin-bottom:8px;">
-        <select class="wj-select" id="pw-copy-src" style="flex:1;">${srcOpts}</select>
-        <button class="wj-btn" id="pw-copy">Скопіювати день</button>
-      </div>
       <div style="display:flex; gap:6px; margin-bottom:10px;">
         <button class="wj-btn wj-btn-danger" id="pw-reset" style="flex:1;">Скинути день до порад</button>
       </div>`;
@@ -1247,16 +1242,6 @@
       renderProgram();
     }));
     if(w === null) return;
-    const exs = (program[day] || []).filter(e => e.name);
-    document.getElementById('pw-copy').addEventListener('click', async () => {
-      const v = document.getElementById('pw-copy-src').value;
-      exs.forEach(ex => {
-        const src = v === 'base' ? { sets: ex.sets, reps: String(ex.reps), weight: ex.weight } : effectiveForWeek(parseInt(v), day, ex);
-        setWeekOverride(w, day, ex.name, src);
-      });
-      await saveWeekPlans(); renderProgram();
-      showToast('Скопійовано в ' + wLabel(w) + ': ' + (v === 'base' ? 'База' : wLabel(parseInt(v))));
-    });
     document.getElementById('pw-reset').addEventListener('click', async () => {
       if(!weekPlans[w] || !weekPlans[w][day]){ showToast('У цьому дні ще немає власних цифр.'); return; }
       const ok = await showConfirm('Скинути власні цифри дня «' + day + '» у ' + wLabel(w) + '? Знову будуть цифри за порадами циклу.', 'Скинути');
