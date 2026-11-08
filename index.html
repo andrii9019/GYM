@@ -1071,6 +1071,31 @@
   }
 
   function dayNames(){ return Object.keys(program); }
+  // Тип дня за назвою: «Сила…» / «Target|Таргет…» / решта = об'єм
+  function dayKind(d){
+    const n = String(d || '').trim().toLowerCase();
+    if(/^(сила|strength)/.test(n)) return 'strength';
+    if(/^(target|таргет)/.test(n)) return 'target';
+    return 'volume';
+  }
+  function weekKind(id){
+    const t = (CYCLE_WEEKS[id] || {}).type;
+    return t === 'strength' ? 'strength' : (t === 'target' ? 'target' : 'volume');
+  }
+  // Дні, доступні для тижня (null = без тижня → усі). Якщо відповідних днів немає — усі.
+  function daysForWeek(w){
+    const all = dayNames();
+    if(typeof w !== 'number' || !CYCLE_WEEKS[w]) return all;
+    const k = weekKind(w);
+    const f = all.filter(d => dayKind(d) === k);
+    return f.length ? f : all;
+  }
+  function syncDayToWeek(selId, w){
+    const sel = document.getElementById(selId);
+    const vis = daysForWeek(w);
+    if(sel && vis.length && !vis.includes(sel.value)) sel.value = vis[0];
+    return vis;
+  }
 
   function switchTab(tab){
     const activeBefore = TAB_ORDER.find(t => document.getElementById('tab-'+t).classList.contains('active')) || 'program';
@@ -1328,10 +1353,11 @@
     }));
   }
   function renderProgram(){
+    const progVis = syncDayToWeek('program-day-select', programWeek);
     const day = document.getElementById('program-day-select').value || dayNames()[0];
     updateProgramDayIcon(day);
     { const tt = document.getElementById('program-day-title'); if(tt) tt.textContent = day || ''; }
-    renderDayChips('program-day-chips', 'program-day-select');
+    renderDayChips('program-day-chips', 'program-day-select', progVis);
     const colorMap = getDayColorMap();
     const dayColor = (day && colorMap[day]) || '#4db6ac';
     applyGlow(document.getElementById('program-day-header'), dayColor);
@@ -1941,6 +1967,7 @@
     document.getElementById('add-day-form').style.display = 'none';
     fillDaySelects();
     document.getElementById('program-day-select').value = name;
+    if(programWeek !== null && weekKind(programWeek) !== dayKind(name)) programWeek = null;
     renderProgram();
   });
 
@@ -2065,6 +2092,7 @@
     document.getElementById('edit-day-form').style.display = 'none';
     fillDaySelects();
     document.getElementById('program-day-select').value = newName;
+    if(programWeek !== null && weekKind(programWeek) !== dayKind(newName)) programWeek = null;
     renderProgram();
     renderHistory();
 
@@ -2227,12 +2255,12 @@
     el.addEventListener('click', e => { if(dragged){ e.stopPropagation(); e.preventDefault(); dragged = false; } }, true);
   }
   // Тренувальні дні панеллю (як тижні): підсвічується обраний день його кольором, при великій кількості днів — гортається вбік
-  function renderDayChips(boxId, selId){
+  function renderDayChips(boxId, selId, onlyDays){
     const box = document.getElementById(boxId);
     const sel = document.getElementById(selId);
     if(!box || !sel) return;
     enableDragScroll(box);
-    const days = dayNames();
+    const days = onlyDays || dayNames();
     const cur = sel.value || days[0];
     const colorMap = getDayColorMap();
     const prevScroll = box.scrollLeft;
@@ -2271,7 +2299,8 @@
     c.textContent = n ? ('Вправ у цьому дні: ' + n + (hidden ? ' · ще ' + hidden + ' додаткових' : '')) : '';
   }
   function renderLog(){
-    renderDayChips('log-day-chips', 'log-day-select');
+    const logVis = syncDayToWeek('log-day-select', chosenWeek());
+    renderDayChips('log-day-chips', 'log-day-select', logVis);
     renderLogWeekBar();
     const day = document.getElementById('log-day-select').value || dayNames()[0];
     const colorMap = getDayColorMap();
@@ -3071,15 +3100,17 @@
       return;
     }
     // за замовчуванням: наступний день за колом після останнього проведеного
-    let def = cur && days.includes(cur) ? cur : days[0];
+    let defW = (typeof planWeeks[dateIso] === 'number') ? planWeeks[dateIso] : (typeof cycle.active === 'number' ? cycle.active : 0);
+    const visFor = w => isPast ? days : daysForWeek(w);
+    let vis0 = visFor(defW);
+    let def = cur && vis0.includes(cur) ? cur : vis0[0];
     if(!cur){
       const last = [...entries].sort((a, b) => (a.date + a.id).localeCompare(b.date + b.id)).pop();
-      if(last && days.includes(last.day)) def = days[(days.indexOf(last.day) + 1) % days.length];
+      if(last && vis0.includes(last.day)) def = vis0[(vis0.indexOf(last.day) + 1) % vis0.length];
     }
-    let defW = (typeof planWeeks[dateIso] === 'number') ? planWeeks[dateIso] : (typeof cycle.active === 'number' ? cycle.active : 0);
     list.innerHTML = `
       <div class="section-label" style="margin-bottom:6px;">${title} ${isPast ? '· пропущений план' : '· запланувати тренування'}</div>
-      <select class="wj-select" id="plan-day-select" style="width:100%;" ${isPast ? 'disabled' : ''}>${days.map(d => `<option value="${escapeHtml(d)}"${d === def ? ' selected' : ''}>${escapeHtml(d)}</option>`).join('')}</select>
+      <select class="wj-select" id="plan-day-select" style="width:100%;" ${isPast ? 'disabled' : ''}>${vis0.map(d => `<option value="${escapeHtml(d)}"${d === def ? ' selected' : ''}>${escapeHtml(d)}</option>`).join('')}</select>
       <div class="section-label" style="margin:10px 0 6px;">Тиждень циклу</div>
       <div class="cyc-weeks" id="plan-week-chips">${orderedWeeks().map(({w:w, i}) => `<div class="cyc-week${i === defW ? ' selected' : ''}" data-pwk="${i}"${isPast ? ' style="pointer-events:none;"' : ''}><div class="w">${wLabel(i)}</div><div class="n">${escapeHtml(w.name)}</div></div>`).join('')}</div>
       <div id="plan-warning"></div>
@@ -3095,7 +3126,13 @@
     list.querySelectorAll('[data-pwk]').forEach(ch => ch.addEventListener('click', () => {
       defW = +ch.dataset.pwk;
       list.querySelectorAll('[data-pwk]').forEach(c => c.classList.toggle('selected', c === ch));
-      if(!isPast && plans[dateIso]){ planWeeks[dateIso] = defW; savePlanWeeks().then(() => { renderHistory(); showToast('Тиждень плану: ' + wLabel(defW)); }); }
+      if(!isPast){
+        const keep = sel.value, v = visFor(defW);
+        sel.innerHTML = v.map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join('');
+        sel.value = v.includes(keep) ? keep : v[0];
+        upd();
+      }
+      if(!isPast && plans[dateIso]){ planWeeks[dateIso] = defW; plans[dateIso] = sel.value; Promise.all([savePlanWeeks(), savePlans()]).then(() => { renderHistory(); showToast('План: ' + wLabel(defW) + ' · ' + sel.value); }); }
     }));
     const sv = document.getElementById('btn-plan-save');
     if(sv) sv.addEventListener('click', async () => { plans[dateIso] = sel.value; planWeeks[dateIso] = defW; await savePlanWeeks(); await savePlans(); renderHistory(); showToast('Заплановано: ' + sel.value + ' · W' + (defW + 1)); });
