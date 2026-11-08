@@ -221,6 +221,8 @@
   #view-program .ex-grid, #view-log .ex-grid { gap: 4px; }
   #view-program .ex-field-sets, #view-program .ex-field-reps, #view-program .ex-field-weight,
   #view-log .ex-field-sets, #view-log .ex-field-reps, #view-log .ex-field-weight { padding: 2px 5px; }
+  #view-program .ex-row, #view-log .ex-row { position: relative; padding-left: 42px; }
+  #view-program .ex-row .ex-num, #view-log .ex-row .ex-num { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); margin: 0; min-width: 26px; height: 26px; border-radius: 13px; font-size: 14px; }
   #view-program .ex-row .wj-input, #view-log .ex-row .wj-input { height: 30px; padding: 0 8px; }
   #view-program .ex-mini-label, #view-log .ex-mini-label { font-size: 10px; line-height: 1.15; }
   #view-program .ex-row .wj-btn { padding: 3px 9px !important; font-size: 11px !important; }
@@ -376,7 +378,7 @@
       <input type="file" id="import-days-input" accept="application/json" style="display:none;" />
       <div id="backup-status" style="font-size:12px; color:var(--text-secondary); display:none;"></div>
     </div>
-    <div class="wj-card" id="program-day-header" style="margin-bottom: 8px; display:flex; align-items:center; gap:10px;">
+    <div class="wj-card" id="program-day-header" style="margin-bottom: 8px; display:none; align-items:center; gap:10px;">
       <div id="program-day-icon" style="height:42px; flex-shrink:0; display:flex; align-items:center;"></div>
       <div id="program-day-title" style="flex:1; font-size:18px; font-weight:700; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></div>
       <select class="wj-select" id="program-day-select" style="display:none;"></select>
@@ -431,11 +433,10 @@
   </div>
 
   <div id="view-log" class="view-panel" style="display:none;">
-    <div class="page-header"><div class="eyebrow">Тренування</div><h1 class="page-title">Сьогоднішнє тренування</h1></div>
-    <div class="wj-row" id="log-day-header" style="margin-bottom: 8px; gap:6px; align-items:center; border-radius: 14px; padding: 0.5rem 0.65rem; background: var(--surface-1); box-sizing: border-box;">
+    <div class="page-header" style="display:flex; align-items:flex-end; justify-content:space-between; gap:10px;"><div style="min-width:0;"><div class="eyebrow">Тренування</div><h1 class="page-title">Твоє тренування</h1></div><input type="date" class="wj-input" id="log-date" style="flex:0 0 auto; width:150px; height:34px; padding:0 8px; font-size:14px;" /></div>
+    <div class="wj-row" id="log-day-header" style="display:none; margin-bottom: 8px; gap:6px; align-items:center; border-radius: 14px; padding: 0.5rem 0.65rem; background: var(--surface-1); box-sizing: border-box;">
       <div id="log-day-icon" style="height:26px; flex-shrink:0; display:flex; align-items:center;"></div>
       <select class="wj-select" id="log-day-select" style="flex:2; display:none;"></select>
-      <input type="date" class="wj-input" id="log-date" style="flex:1;" />
     </div>
     <div id="log-day-chips" class="day-chips"></div>
     <div id="log-cycle-banner"></div>
