@@ -1158,7 +1158,7 @@
   function recommendedFor(wkIdx, ex){
     if(isStrength(wkIdx) && !mainLiftsList().includes(ex.name)) return null;
     let t = cycleTarget(wkIdx, ex);
-    const sg = suggestForExercise(ex.name);
+    const sg = suggestForExercise(ex.name, famOf(wkIdx));
     if(t && isWorkType(wkIdx) && sg && typeof sg.weight === 'number' && !(wType(wkIdx) === 'start' && newCycleStart(ex.name))) t = { ...t, weight: sg.weight };
     return t;
   }
@@ -2286,7 +2286,7 @@
     const mainSet = mainLiftsList();
     let optionalCount = 0;
     const rowsHtml = exercises.map((ex, i) => {
-      const sg = suggestForExercise(ex.name);
+      const sg = suggestForExercise(ex.name, wkIdx !== null ? famOf(wkIdx) : null);
       const lastE = lastLoggedFor(ex.name);
       const wp = (wkIdx !== null) ? weekOverride(wkIdx, day, ex.name) : null;
       const optional = (isStrength(wkIdx) && !mainSet.includes(ex.name) && !wp);
@@ -3073,7 +3073,8 @@
       <div style="display:flex; gap:8px;">
         ${isPast ? '' : `<button class="wj-btn wj-btn-primary" id="btn-plan-save" style="flex:1;">${cur ? 'Оновити план' : 'Запланувати'}</button>`}
         ${cur ? '<button class="wj-btn wj-btn-danger" id="btn-plan-remove" style="flex:1;">Прибрати план</button>' : ''}
-      </div>`;
+      </div>
+      ${cur ? '<button class="wj-btn wj-btn-success" id="btn-plan-go" style="width:100%; margin-top:8px;">▶ Перейти до тренування</button>' : ''}`;
     const sel = document.getElementById('plan-day-select');
     const warn = document.getElementById('plan-warning');
     const upd = () => { warn.innerHTML = isPast ? '' : planWarningHtml(sel.value, dateIso); };
@@ -3085,6 +3086,18 @@
     }));
     const sv = document.getElementById('btn-plan-save');
     if(sv) sv.addEventListener('click', async () => { plans[dateIso] = sel.value; planWeeks[dateIso] = defW; await savePlanWeeks(); await savePlans(); renderHistory(); showToast('Заплановано: ' + sel.value + ' · W' + (defW + 1)); });
+    const go = document.getElementById('btn-plan-go');
+    if(go) go.addEventListener('click', async () => {
+      const day = plans[dateIso]; if(!day) return;
+      if(typeof planWeeks[dateIso] === 'number' && CYCLE_WEEKS[planWeeks[dateIso]]){ cycle.active = planWeeks[dateIso]; await saveCycle(); }
+      document.getElementById('log-date').value = dateIso;
+      const ds = document.getElementById('log-day-select');
+      ds.value = day;
+      ds.dispatchEvent(new Event('change'));
+      switchTab('log');
+      renderLog();
+      showToast((typeof planWeeks[dateIso] === 'number' ? wLabel(planWeeks[dateIso]) + ' · ' : '') + day);
+    });
     const rm = document.getElementById('btn-plan-remove');
     if(rm) rm.addEventListener('click', async () => { delete plans[dateIso]; delete planWeeks[dateIso]; await savePlanWeeks(); await savePlans(); renderHistory(); showToast('План прибрано.'); });
   }
@@ -3309,11 +3322,26 @@
   }
   function fmtKg(v){ return String(Math.round(v * 100) / 100); }
 
-  function suggestForExercise(name){
-    const data = entries.filter(e => e.exercise === name).sort((a,b)=>a.date.localeCompare(b.date));
+  // «Доріжки» тижнів: обʼємні (старт/обʼєм/пік), Target і Сила рахуються кожна за власною історією
+  function famOf(wkIdx){
+    const t = wType(wkIdx);
+    return t === 'target' ? 'target' : (t === 'strength' ? 'strength' : (t ? 'volume' : null));
+  }
+  function entryFam(e){ return (typeof e.cw === 'number' && CYCLE_WEEKS[e.cw]) ? famOf(e.cw) : null; }
+  // Записи вправи тієї ж доріжки; якщо їх немає — уся історія вправи (exact=false)
+  function famEntries(name, fam){
+    const all = entries.filter(e => e.exercise === name).sort((a,b)=>a.date.localeCompare(b.date));
+    if(!fam) return { list: all, exact: true };
+    const f = all.filter(e => entryFam(e) === fam);
+    if(f.length) return { list: f, exact: true };
+    if(fam === 'target'){ const v = all.filter(e => entryFam(e) === 'volume'); if(v.length) return { list: v, exact: false }; }
+    return { list: all, exact: false };
+  }
+  function suggestForExercise(name, fam){
+    const data = famEntries(name, fam).list;
     if(data.length < 2) return null;
     const last = data[data.length - 1], prev = data[data.length - 2];
-    if(last.date < daysAgoStr(21)) return null; // вправа вже неактивна
+    if(last.date < daysAgoStr(fam && fam !== 'volume' ? 84 : 21)) return null; // вправа вже неактивна
     const tgt = targetRepsFor(name) || { min: last.reps, max: last.reps };
     const step = last.weight >= 20 ? 2.5 : 1;
     const hitTop = last.reps >= tgt.max;
@@ -3427,13 +3455,18 @@
   }
   function mainLiftsList(){ return cycle.mainLifts !== null ? cycle.mainLifts : defaultMainLifts(); }
   function estimate1RM(name, progEx){
-    const since = daysAgoStr(60);
-    let best = 0;
-    entries.forEach(e => {
-      if(e.exercise !== name || e.date < since || !(e.weight > 0) || !(e.reps > 0)) return;
-      const rir = (typeof e.rpe === 'number') ? Math.max(0, 10 - e.rpe) : 1;
-      best = Math.max(best, e.weight * (1 + (e.reps + rir) / 30));
-    });
+    const calc = (since, onlyStrength) => {
+      let b = 0;
+      entries.forEach(e => {
+        if(e.exercise !== name || e.date < since || !(e.weight > 0) || !(e.reps > 0)) return;
+        if(onlyStrength && entryFam(e) !== 'strength') return;
+        const rir = (typeof e.rpe === 'number') ? Math.max(0, 10 - e.rpe) : 1;
+        b = Math.max(b, e.weight * (1 + (e.reps + rir) / 30));
+      });
+      return b;
+    };
+    // спочатку силові записи (до 120 днів), якщо їх немає — уся історія за 60 днів
+    let best = calc(daysAgoStr(120), true) || calc(daysAgoStr(60), false);
     if(best === 0 && progEx){
       const r = parseRepRange(progEx.reps);
       if(r && progEx.weight > 0) best = progEx.weight * (1 + (r.max + 1) / 30);
@@ -3464,8 +3497,8 @@
     }
     return { e: all[all.length - 1], weekLabel: null };
   }
-  function lastLoggedFor(name){
-    const data = entries.filter(e => e.exercise === name).sort((a,b)=>a.date.localeCompare(b.date));
+  function lastLoggedFor(name, fam){
+    const data = famEntries(name, fam).list;
     return data.length ? data[data.length - 1] : null;
   }
   // Діапазони повторів для гіпертрофії (використовуються для цільових повторів по тижнях)
@@ -3565,7 +3598,8 @@
       const ns = newCycleStart(ex.name);
       if(ns) return { sets: parseInt(ex.sets) || 3, reps: weekReps(weekIdx, ex), weight: ns.weight, rpe: wRpe, sub: ns.sub };
     }
-    const last = lastLoggedFor(ex.name);
+    const fam = famOf(weekIdx);
+    const last = lastLoggedFor(ex.name, fam);
     const baseW = last ? last.weight : (parseFloat(ex.weight) || 0);
     const baseSets = parseInt(ex.sets) || 3;
     const reps = String(ex.reps);
@@ -3574,13 +3608,14 @@
       if(!(e1 > 0)) return null;
       return { sets: 4, reps: '4', weight: roundLoad(e1 * 0.88), rpe: wRpe, sub: 'оцінений максимум ' + Math.round(e1) + ' кг' };
     }
-    const sg = suggestForExercise(ex.name);
+    const sg = suggestForExercise(ex.name, fam);
     const w = (sg && typeof sg.weight === 'number') ? sg.weight : baseW;
+    const noFamHist = fam !== 'volume' && !famEntries(ex.name, fam).exact && !!last;
     if(wType(weekIdx) === 'peak'){
       const isMain = mainLiftsList().includes(ex.name);
       return { sets: isMain ? Math.min(6, baseSets + 1) : baseSets, reps: weekReps(weekIdx, ex), weight: w, rpe: wRpe, sub: isMain ? '+1 підхід' : '' };
     }
-    return { sets: baseSets, reps: weekReps(weekIdx, ex), weight: w, rpe: wRpe, sub: '' };
+    return { sets: baseSets, reps: weekReps(weekIdx, ex), weight: w, rpe: wRpe, sub: noFamHist ? 'ще немає історії цього тижня: вага з останнього запису' : '' };
   }
 
   function renderCycle(){
