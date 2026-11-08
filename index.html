@@ -221,8 +221,8 @@
   #view-program .ex-grid, #view-log .ex-grid { gap: 4px; }
   #view-program .ex-field-sets, #view-program .ex-field-reps, #view-program .ex-field-weight,
   #view-log .ex-field-sets, #view-log .ex-field-reps, #view-log .ex-field-weight { padding: 2px 5px; }
-  #view-program .ex-row, #view-log .ex-row { position: relative; padding-left: 42px; }
-  #view-program .ex-row .ex-num, #view-log .ex-row .ex-num { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); margin: 0; min-width: 26px; height: 26px; border-radius: 13px; font-size: 14px; }
+  #view-program .ex-row, #view-log .ex-row { position: relative; padding-left: 54px; }
+  #view-program .ex-row .ex-num, #view-log .ex-row .ex-num { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); margin: 0; min-width: 34px; height: 34px; padding: 0; border-radius: 17px; font-size: 17px; font-weight: 800; color: #fff; background: color-mix(in srgb, var(--dc, var(--accent)) 38%, transparent); border: 2px solid var(--dc, var(--accent)); box-shadow: 0 0 14px color-mix(in srgb, var(--dc, var(--accent)) 70%, transparent), inset 0 0 8px color-mix(in srgb, var(--dc, var(--accent)) 45%, transparent); text-shadow: 0 1px 3px rgba(0,0,0,.5); }
   #view-program .ex-row .wj-input, #view-log .ex-row .wj-input { height: 30px; padding: 0 8px; }
   #view-program .ex-mini-label, #view-log .ex-mini-label { font-size: 10px; line-height: 1.15; }
   #view-program .ex-row .wj-btn { padding: 3px 9px !important; font-size: 11px !important; }
@@ -1145,7 +1145,7 @@
 
   function glowExerciseRows(containerEl, color){
     if(!containerEl) return;
-    containerEl.querySelectorAll('.ex-row').forEach(row => applyGlow(row, color));
+    containerEl.querySelectorAll('.ex-row').forEach(row => { applyGlow(row, color); if(color) row.style.setProperty('--dc', color); else row.style.removeProperty('--dc'); });
   }
 
   // Режим редагування: null = «База» (склад вправ і базові цифри), 0..4 = план конкретного тижня
