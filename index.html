@@ -2442,7 +2442,7 @@
     if(ents) await saveEntries();
     return { days, entries: ents };
   }
-  function openExerciseLibrary(){
+  function openExerciseManager(){
     let ov = document.getElementById('exlib-overlay');
     if(ov) ov.remove();
     ov = document.createElement('div'); ov.id = 'exlib-overlay';
@@ -2485,7 +2485,7 @@
     q.addEventListener('input', draw);
     draw();
   }
-  document.getElementById('btn-ex-library').addEventListener('click', openExerciseLibrary);
+  document.getElementById('btn-ex-library').addEventListener('click', openExerciseManager);
 
   function renameWeekPlanEx(day, oldName, newName){
     Object.keys(weekPlans).forEach(w => {
