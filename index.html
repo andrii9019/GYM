@@ -404,6 +404,7 @@
       <button class="wj-btn wj-btn-success" id="btn-add-day" style="flex:1;">+ Додати день</button>
       <button class="wj-btn wj-btn-danger" id="btn-delete-day" style="flex:1;">✕ Видалити</button>
     </div>
+    <button class="wj-btn" id="btn-ex-library" style="width:100%; margin-bottom:8px;">📚 Бібліотека вправ</button>
     <div id="edit-day-form" style="display:none; margin-bottom: 10px; flex-direction:column; gap:8px;">
       <input type="text" class="wj-input" id="edit-day-name" placeholder="Назва дня" />
       <div>
@@ -1442,23 +1443,15 @@
           const oldName = program[day][i].name;
           const newName = val.trim();
           if(oldName === newName) return;
+          if(oldName && newName){
+            const r = await renameExerciseEverywhere(oldName, newName);
+            renderProgram();
+            showToast(`«${oldName}» → «${newName}»: днів ${r.days}, записів в історії ${r.entries}`);
+            return;
+          }
           program[day][i].name = newName;
-          renameWeekPlanEx(day, oldName, newName); await saveWeekPlans();
-          if(muscleOverrides[oldName]){ muscleOverrides[newName] = muscleOverrides[oldName]; delete muscleOverrides[oldName]; await saveMuscleOverrides(); }
           if(exLibrary.hidden.includes(newName)){ exLibrary.hidden = exLibrary.hidden.filter(h => h !== newName); await saveLibrary(); }
           await saveProgram();
-          if(oldName && newName){
-            let count = 0;
-            entries.forEach(e => {
-              if(e.exercise === oldName){ e.exercise = newName; count++; }
-            });
-            if(count > 0){
-              await saveEntries();
-              showToast(`Оновлено в історії: ${count} запис(ів) «${oldName}» → «${newName}»`);
-            } else {
-              showToast(`Вправу перейменовано на «${newName}»`);
-            }
-          }
           return;
         }
 
@@ -2423,6 +2416,77 @@
       if(Object.keys(weekPlans[w]).length === 0) delete weekPlans[w];
     }
   }
+  // Перейменування вправи всюди: усі дні програми, цифри тижнів, бібліотека, група мʼязів, історія
+  async function renameExerciseEverywhere(oldN, newN){
+    let days = 0, ents = 0;
+    Object.keys(program).forEach(d => {
+      const arr = program[d] || [];
+      const hasNew = arr.some(e => e.name === newN);
+      let touched = false;
+      for(let i = arr.length - 1; i >= 0; i--){
+        if(arr[i].name !== oldN) continue;
+        touched = true;
+        if(hasNew) arr.splice(i, 1); else arr[i].name = newN;
+      }
+      if(touched) days++;
+    });
+    Object.keys(weekPlans).forEach(w => Object.keys(weekPlans[w] || {}).forEach(d => {
+      const o = weekPlans[w][d];
+      if(o && o[oldN]){ if(!o[newN]) o[newN] = o[oldN]; delete o[oldN]; }
+    }));
+    if(muscleOverrides[oldN]){ if(!muscleOverrides[newN]) muscleOverrides[newN] = muscleOverrides[oldN]; delete muscleOverrides[oldN]; }
+    if(exLibrary.items[oldN]){ if(!exLibrary.items[newN]) exLibrary.items[newN] = exLibrary.items[oldN]; delete exLibrary.items[oldN]; }
+    exLibrary.hidden = exLibrary.hidden.filter(h => h !== newN && h !== oldN);
+    entries.forEach(e => { if(e.exercise === oldN){ e.exercise = newN; ents++; } });
+    await saveWeekPlans(); await saveMuscleOverrides(); await saveLibrary(); await saveProgram();
+    if(ents) await saveEntries();
+    return { days, entries: ents };
+  }
+  function openExerciseLibrary(){
+    let ov = document.getElementById('exlib-overlay');
+    if(ov) ov.remove();
+    ov = document.createElement('div'); ov.id = 'exlib-overlay';
+    ov.style.cssText = 'position:fixed; inset:0; background:rgba(2,8,6,0.78); z-index:9000; display:flex; align-items:flex-end; justify-content:center;';
+    ov.innerHTML = `<div style="width:100%; max-width:640px; max-height:88vh; background:var(--surface-2,#0b3a3a); border-radius:20px 20px 0 0; display:flex; flex-direction:column; border:1px solid var(--border,#1d5c58);">
+      <div style="display:flex; align-items:center; gap:8px; padding:14px 16px 8px;"><div style="flex:1; font-size:17px; font-weight:700;">📚 Бібліотека вправ</div><button class="wj-btn" id="exlib-close" style="padding:6px 12px;">Закрити</button></div>
+      <div class="cyc-muted" style="padding:0 16px 8px;">Зміни назву вправи, і вона оновиться в усіх днях (Обʼєм, Target, Сила), у цифрах тижнів та в історії. Якщо ввести назву, яка вже є, вправи обʼєднаються.</div>
+      <div style="padding:0 16px 8px;"><input type="text" class="wj-input" id="exlib-search" placeholder="Пошук вправи" style="width:100%; box-sizing:border-box;" /></div>
+      <div id="exlib-list" style="overflow-y:auto; padding:0 16px 20px; flex:1;"></div></div>`;
+    document.body.appendChild(ov);
+    const close = () => { ov.remove(); renderAll(); };
+    ov.addEventListener('click', e => { if(e.target === ov) close(); });
+    ov.querySelector('#exlib-close').addEventListener('click', close);
+    const listEl = ov.querySelector('#exlib-list');
+    const q = ov.querySelector('#exlib-search');
+    function names(){
+      const set = new Set(allExerciseNames());
+      Object.keys(exLibrary.items).forEach(n => { if(!exLibrary.hidden.includes(n)) set.add(n); });
+      return [...set].filter(Boolean).sort((a, b) => a.localeCompare(b, 'uk'));
+    }
+    function draw(){
+      const f = q.value.trim().toLowerCase();
+      listEl.innerHTML = names().filter(n => !f || n.toLowerCase().includes(f)).map(n => {
+        const inDays = Object.keys(program).filter(d => (program[d] || []).some(e => e.name === n));
+        const cnt = entries.filter(e => e.exercise === n).length;
+        return `<div style="margin-bottom:10px;"><input type="text" class="wj-input" data-exname="${escapeHtml(n)}" value="${escapeHtml(n)}" style="width:100%; box-sizing:border-box;" /><div class="cyc-muted" style="margin-top:3px; font-size:11px;">${inDays.length ? 'Дні: ' + escapeHtml(inDays.join(', ')) : 'Немає в програмі'} · записів: ${cnt}</div></div>`;
+      }).join('') || '<p class="cyc-muted">Нічого не знайдено.</p>';
+      listEl.querySelectorAll('input[data-exname]').forEach(inp => inp.addEventListener('change', async () => {
+        const oldN = inp.getAttribute('data-exname'), newN = inp.value.trim();
+        if(!newN || newN === oldN){ inp.value = oldN; return; }
+        if(names().includes(newN)){
+          const ok = await showConfirm(`Вправа «${newN}» уже є. Обʼєднати з нею «${oldN}»?`, 'Обʼєднати');
+          if(!ok){ inp.value = oldN; return; }
+        }
+        const r = await renameExerciseEverywhere(oldN, newN);
+        showToast(`«${oldN}» → «${newN}»: днів ${r.days}, записів ${r.entries}`);
+        draw();
+      }));
+    }
+    q.addEventListener('input', draw);
+    draw();
+  }
+  document.getElementById('btn-ex-library').addEventListener('click', openExerciseLibrary);
+
   function renameWeekPlanEx(day, oldName, newName){
     Object.keys(weekPlans).forEach(w => {
       const d = weekPlans[w][day];
