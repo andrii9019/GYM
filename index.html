@@ -129,6 +129,9 @@
   .ex-count { font-size:12px; color: var(--text-secondary); margin: 0 2px 6px; }
   .cal-wk { position:absolute; top:3px; right:2px; font-size:9px; font-weight:800; line-height:1; padding:1px 3px; border-radius:5px; background:rgba(0,0,0,.6); border:1px solid; color:#fff; letter-spacing:0; }
   .cal-cell.selected { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .cal-cell.moving { outline: 2px solid #fff; outline-offset: 1px; animation: calmove 1s ease-in-out infinite; }
+  @keyframes calmove { 50% { transform: scale(.92); opacity:.75; } }
+  .cal-cell.planned { touch-action: manipulation; -webkit-touch-callout: none; user-select: none; }
   .cal-cell.today-marker::after { content:''; position:absolute; bottom:2px; width:4px; height:4px; border-radius:50%; background: currentColor; opacity:0.7; }
   .cal-cell.trained.today-marker::after { bottom: auto; top: auto; bottom: 14px; right: 6px; }
   .cal-cell-day { line-height: 1; }
@@ -2982,12 +2985,61 @@
     grid.innerHTML = html;
 
     grid.querySelectorAll('.cal-cell[data-date]').forEach(cell=>{
-      cell.addEventListener('click', ()=>{
-        selectedCalDate = cell.getAttribute('data-date');
+      const iso = cell.getAttribute('data-date');
+      if(moveFrom && iso === moveFrom) cell.classList.add('moving');
+      // довгий натиск на запланований день → режим перенесення
+      if(cell.classList.contains('planned') && iso >= todayStr()){
+        let timer = 0, sx = 0, sy = 0;
+        const clear = () => { if(timer){ clearTimeout(timer); timer = 0; } };
+        cell.addEventListener('pointerdown', e => {
+          sx = e.clientX; sy = e.clientY; clear();
+          timer = setTimeout(() => {
+            timer = 0; moveFrom = iso; moveJustStarted = true;
+            try { navigator.vibrate && navigator.vibrate(30); } catch(_){}
+            document.addEventListener('pointerup', () => setTimeout(() => { moveJustStarted = false; }, 120), { once: true });
+            renderHistory(); showMoveBanner();
+          }, 480);
+        });
+        cell.addEventListener('pointermove', e => { if(timer && (Math.abs(e.clientX - sx) > 10 || Math.abs(e.clientY - sy) > 10)) clear(); });
+        ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => cell.addEventListener(t, clear));
+        cell.addEventListener('contextmenu', e => e.preventDefault());
+      }
+      cell.addEventListener('click', async ()=>{
+        if(moveJustStarted){ moveJustStarted = false; return; }
+        if(moveFrom){
+          if(iso === moveFrom){ cancelMove(); return; }
+          if(iso < todayStr()){ showToast('Не можна переносити в минуле.'); return; }
+          if(entries.some(e => e.date === iso)){ showToast('У цей день уже є проведене тренування.'); return; }
+          const from = moveFrom, dayA = plans[from], wkA = planWeeks[from];
+          const dayB = plans[iso], wkB = planWeeks[iso];
+          plans[iso] = dayA; if(typeof wkA === 'number') planWeeks[iso] = wkA; else delete planWeeks[iso];
+          if(dayB){ plans[from] = dayB; if(typeof wkB === 'number') planWeeks[from] = wkB; else delete planWeeks[from]; }
+          else { delete plans[from]; delete planWeeks[from]; }
+          moveFrom = null; hideMoveBanner();
+          await savePlans(); await savePlanWeeks();
+          selectedCalDate = iso;
+          renderHistory();
+          showToast(dayB ? 'Плани поміняно місцями.' : 'Тренування перенесено на ' + fmtShortDate(iso));
+          return;
+        }
+        selectedCalDate = iso;
         renderHistory();
       });
     });
   }
+  let moveFrom = null, moveJustStarted = false;
+  function showMoveBanner(){
+    let b = document.getElementById('move-banner');
+    if(!b){
+      b = document.createElement('div'); b.id = 'move-banner';
+      b.style.cssText = 'position:fixed; left:12px; right:12px; bottom:88px; z-index:60; display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:14px; background:var(--surface-2,#0b3a3a); border:1px solid var(--accent,#4db6ac); box-shadow:0 6px 20px rgba(0,0,0,.45); color:var(--text-primary); font-size:13px;';
+      b.innerHTML = '<span style="flex:1;">Перенесення: натисни день, куди перенести план</span><button class="wj-btn" id="move-cancel" style="padding:6px 12px;">Скасувати</button>';
+      document.body.appendChild(b);
+      b.querySelector('#move-cancel').addEventListener('click', cancelMove);
+    }
+  }
+  function hideMoveBanner(){ const b = document.getElementById('move-banner'); if(b) b.remove(); }
+  function cancelMove(){ moveFrom = null; moveJustStarted = false; hideMoveBanner(); renderHistory(); }
 
   let dateToWeek = {};
   function renderHistory(){
