@@ -2988,7 +2988,7 @@
       const iso = cell.getAttribute('data-date');
       if(moveFrom && iso === moveFrom) cell.classList.add('moving');
       // довгий натиск на запланований день → режим перенесення
-      if(cell.classList.contains('planned') && iso >= todayStr()){
+      if(cell.classList.contains('planned')){
         let timer = 0, sx = 0, sy = 0;
         const clear = () => { if(timer){ clearTimeout(timer); timer = 0; } };
         cell.addEventListener('pointerdown', e => {
@@ -3008,7 +3008,6 @@
         if(moveJustStarted){ moveJustStarted = false; return; }
         if(moveFrom){
           if(iso === moveFrom){ cancelMove(); return; }
-          if(iso < todayStr()){ showToast('Не можна переносити в минуле.'); return; }
           if(entries.some(e => e.date === iso)){ showToast('У цей день уже є проведене тренування.'); return; }
           const from = moveFrom, dayA = plans[from], wkA = planWeeks[from];
           const dayB = plans[iso], wkB = planWeeks[iso];
