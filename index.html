@@ -1394,6 +1394,7 @@
           <input class="wj-input" data-field="name" data-i="${i}" value="${escapeHtml(ex.name)}" placeholder="Назва вправи" style="flex:1;" />
           <button class="wj-btn" data-move-up="${i}" style="flex-shrink:0; padding:6px 10px;" aria-label="Вгору" ${i === 0 ? 'disabled' : ''}>↑</button>
           <button class="wj-btn" data-move-down="${i}" style="flex-shrink:0; padding:6px 10px;" aria-label="Вниз" ${i === exercises.length - 1 ? 'disabled' : ''}>↓</button>
+          <button class="wj-btn" data-swap="${i}" style="flex-shrink:0; padding:6px 10px;" aria-label="Замінити вправу на іншу">🔁</button>
           <button class="wj-btn" data-xfer="${i}" style="flex-shrink:0; padding:6px 10px;" aria-label="Перенести або копіювати в інший день" ${Object.keys(program).length < 2 ? 'disabled' : ''}>⇄</button>
           <button class="wj-btn wj-btn-danger" data-del="${i}" style="flex-shrink:0; padding:6px 10px;" aria-label="Видалити вправу">✕</button>
         </div>
@@ -1462,6 +1463,13 @@
       // не завжди надійно шлють 'change' для текстових полів.
       inp.addEventListener('change', handleFieldCommit);
       inp.addEventListener('blur', handleFieldCommit);
+    });
+    list.querySelectorAll('button[data-swap]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const i = parseInt(btn.getAttribute('data-swap'));
+        if(!program[day] || !program[day][i]) return;
+        openExerciseLibrary(day, i);
+      });
     });
     list.querySelectorAll('button[data-xfer]').forEach(btn=>{
       btn.addEventListener('click', async ()=>{
@@ -1576,14 +1584,16 @@
     if(last) return { name, sets: last.sets || 3, reps: String(last.repsLabel || last.reps || 10), weight: last.weight || 0, _from: 'history' };
     return { name, sets: 3, reps: '10', weight: 0, _from: '' };
   }
-  function openExerciseLibrary(day){
+  function openExerciseLibrary(day, replaceIdx){
+    const replacing = (typeof replaceIdx === 'number') && program[day] && program[day][replaceIdx];
+    const oldName = replacing ? program[day][replaceIdx].name : '';
     const overlay = document.getElementById('lib-modal-overlay');
     const search = document.getElementById('lib-search');
     const source = document.getElementById('lib-source');
     const listEl = document.getElementById('lib-list');
     const addBtn = document.getElementById('lib-add-btn');
     const closeBtn = document.getElementById('lib-modal-close');
-    document.getElementById('lib-modal-title').textContent = 'Додати в ' + day + ': торкнись вправи';
+    document.getElementById('lib-modal-title').textContent = replacing ? 'Заміна «' + oldName + '»: торкнись нової вправи' : 'Додати в ' + day + ': торкнись вправи';
     source.innerHTML = '<option value="">Усі вправи</option>' +
       dayNames().filter(d => d !== day).map(d => `<option value="d:${escapeHtml(d)}">З дня: ${escapeHtml(d)}</option>`).join('');
     search.value = '';
@@ -1621,6 +1631,14 @@
         const arr = program[day];
         if(arr.some(e => (e.name || '').trim().toLowerCase() === name.trim().toLowerCase())) return;
         const t = exerciseTemplate(name); delete t._from;
+        if(replacing){
+          arr[replaceIdx] = t;
+          await saveProgram();
+          renderProgram();
+          showToast('«' + oldName + '» → «' + name + '»');
+          close();
+          return;
+        }
         arr.push(t);
         inDay.add(name.trim().toLowerCase());
         await saveProgram();
