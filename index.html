@@ -594,7 +594,7 @@
       const overlay = document.getElementById('move-modal-overlay');
       const sel = document.getElementById('move-modal-select');
       document.getElementById('move-modal-text').textContent = '"' + exName + '" → ';
-      sel.innerHTML = Object.keys(program).filter(d => d !== fromDay)
+      sel.innerHTML = dayNames().filter(d => d !== fromDay)
         .map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join('');
       overlay.classList.add('show');
       const mv = document.getElementById('move-modal-move');
@@ -1074,7 +1074,7 @@
     catch(e){ console.error('Помилка збереження історії', e); }
   }
 
-  function dayNames(){ return Object.keys(program); }
+  function dayNames(){ return Object.keys(program).sort((a,b) => String(a).localeCompare(String(b), 'uk', {numeric:true, sensitivity:'base'})); }
   // Тип дня за назвою: «Сила…» / «Target|Таргет…» / решта = об'єм
   function dayKind(d){
     const n = String(d || '').trim().toLowerCase();
@@ -1585,7 +1585,7 @@
     const closeBtn = document.getElementById('lib-modal-close');
     document.getElementById('lib-modal-title').textContent = 'Додати в ' + day + ': торкнись вправи';
     source.innerHTML = '<option value="">Усі вправи</option>' +
-      Object.keys(program).filter(d => d !== day).map(d => `<option value="d:${escapeHtml(d)}">З дня: ${escapeHtml(d)}</option>`).join('');
+      dayNames().filter(d => d !== day).map(d => `<option value="d:${escapeHtml(d)}">З дня: ${escapeHtml(d)}</option>`).join('');
     search.value = '';
     const inDay = new Set((program[day] || []).map(e => (e.name || '').trim().toLowerCase()));
     function names(){
@@ -1916,7 +1916,7 @@
       newDayIconManuallyPicked = false;
       document.getElementById('new-day-suggestion').style.display = 'none';
       { const cf = document.getElementById('new-day-copy-from');
-        cf.innerHTML = '<option value="">— порожній день —</option>' + Object.keys(program).map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)} (${(program[d]||[]).length})</option>`).join(''); }
+        cf.innerHTML = '<option value="">— порожній день —</option>' + dayNames().map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)} (${(program[d]||[]).length})</option>`).join(''); }
       renderColorSwatches();
       renderIconChoices();
     }
